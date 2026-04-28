@@ -1,17 +1,50 @@
-# project
+# 📱 Proyecto Desarrollo Móvil - Flutter
 
-A new Flutter project.
+## 📌 Descripción
+Este proyecto consiste en el desarrollo de una aplicación móvil en Flutter para el Centro Psicológico Araguaney
 
-## Getting Started
+## 👥 Organización del Equipo
 
-This project is a starting point for a Flutter application.
+- **Product Owner:** Cristóbal Quezada  
+- **Scrum Master:** Derick Oses
+- **Tech Lead & Git Manager:** Cielo Vinazza
+- **Integración Frontend:** Ismael Herrea
+- **UX/UI:** Vicente Bernal
+- **Flutter Developers:** Todo el equipo  
+---
+## ⚙️ Metodología de Trabajo
+Se utiliza metodología **Scrum**, organizando el desarrollo en sprints.
 
-A few resources to get you started if this is your first Flutter project:
+### 🔹 Sprint actual
+- `sprint-0`: Configuración inicial del proyecto
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+---
+## 🌿 Estrategia de Ramas
+El proyecto utiliza la siguiente estructura:
+- `main` → versión estable  
+- `sprint-0` → desarrollo actual  
+---
+## 🚀 Instalación
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+git clone https://github.com/cielovinazza/desarrollo_movil.git
+cd desarrollo_movil
+git checkout sprint-0
+flutter pub get
+flutter run
+---
+
+## 🔄 Flujo de Trabajo
+Cada integrante debe:
+```bash
+git pull
+git add .
+git commit -m "Descripción del cambio"
+git push
+
+---
+## 🛠️ Tecnologías
+- Flutter  
+- Dart  
+- Git & GitHub  
+- Jira  
