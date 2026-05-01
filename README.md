@@ -1,17 +1,11 @@
-# project
+Estructura del Proyecto - Sprint 0
 
-A new Flutter project.
 
-## Getting Started
+## Organización de Carpetas
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **core/**: Infraestructura global (Network, Errores).
+- **shared/**: Componentes reutilizables (Design System/theme, Widgets comunes).
+- **features/**: Modulos por funcionalidad. Capas de features:
+  - **presentation**: UI (Pages, Widgets) y logica (ViewModel).
+  - **domain**: Logica de negocio (Entities, Repositories, Usecases).
+  - **data**: Implementacion de datos (Datasources,dtos, Mappers).
