@@ -1,8 +1,8 @@
 # 📱 Proyecto Desarrollo Móvil - Flutter
 
 ## 📌 Descripción
-Este proyecto consiste en el desarrollo de una aplicación móvil en Flutter para el Centro Psicológico Araguaney
-
+Este proyecto consiste en el desarrollo de una aplicación móvil en Flutter 
+---
 ## 👥 Organización del Equipo
 
 - **Product Owner:** Cristóbal Quezada  
