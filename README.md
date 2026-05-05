@@ -1,7 +1,7 @@
 # 📱 Proyecto Desarrollo Móvil - Flutter
 
 ## 📌 Descripción
-Este proyecto consiste en el desarrollo de una aplicación móvil en Flutter 
+Desarrollar una aplicación móvil que permita a un contratista generar, gestionar y enviar cotizaciones de manera rápida, precisa y profesional; optimizando el cálculo de costos y reduciendo errores en el proceso.
 ---
 ## 👥 Organización del Equipo
 
