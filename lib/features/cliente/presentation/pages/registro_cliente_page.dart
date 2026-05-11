@@ -213,15 +213,11 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 },
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
 
               ClienteTextField(
-
-                controller:
-                    _correoController,
+                controller: _correoController,
 
                 label: 'Correo',
 
