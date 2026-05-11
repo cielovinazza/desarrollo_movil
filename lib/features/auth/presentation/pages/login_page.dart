@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/usecases/login_usecase.dart';
+import 'package:project/features/home/presentation/pages/home_page.dart';
 
 class LoginPage extends StatefulWidget {
 
@@ -36,6 +37,9 @@ class _LoginPageState extends State<LoginPage> {
           content: Text("Acceso correcto"),
         ),
       );
+
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage(),),);
+
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
