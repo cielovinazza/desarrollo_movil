@@ -14,23 +14,7 @@ class HomePage extends StatelessWidget {
 
         centerTitle: true,
 
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add),
-
-            tooltip: 'Registrar cliente',
-
-            onPressed: () {
-              Navigator.push(
-                context,
-
-                MaterialPageRoute(
-                  builder: (context) => const RegistroClientePage(),
-                ),
-              );
-            },
-          ),
-        ],
+        
       ),
 
       body: Center(
