@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter/services.dart';
 import '../../data/repositories/cliente_repository_impl.dart';
 
 import '../../domain/entities/cliente.dart';
@@ -120,12 +120,16 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Cliente registrado correctamente')),
     );
+    Navigator.pop(context);
   }
 
+  
   void _clearForm() {
     _formKey.currentState?.reset();
 
     _nombreController.clear();
+
+    _rutController.clear();
 
     _correoController.clear();
 
@@ -176,7 +180,48 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
               const SizedBox(height: 16),
 
               ClienteTextField(
-                controller: _correoController,
+                controller: 
+                    _rutController, 
+                label: 'Rut', 
+              
+                hint: 'Ingrese su rut con puntos y guión.', 
+              
+                icon: Icons.contact_page,
+                
+                keyboardType: TextInputType.text,
+                
+                textCapitalization:
+                    TextCapitalization.characters,
+
+                inputFormatters:[
+
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'[0-9kK.-]'),
+                  ),
+                ],
+
+                validator: (value){
+                  if (value==null||value.trim().isEmpty){
+                    return 'El rut es obligatorio';
+                  }
+
+                  if (!validaRut(value)){
+                    return 'Rut invalido, intente nuevamente.';
+                  }
+
+                  return null;
+                },
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+
+              ClienteTextField(
+
+                controller:
+                    _correoController,
 
                 label: 'Correo',
 
@@ -206,7 +251,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                 label: 'Teléfono',
 
-                hint: '912345678',
+                hint: 'ej: 912345678',
 
                 icon: Icons.phone,
 
@@ -219,8 +264,12 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                   String numeros = value.replaceAll(RegExp(r'\D'), '');
 
-                  if (numeros.length < 8) {
-                    return 'Mínimo 8 dígitos';
+                  if (numeros
+                          .length <
+                      9||numeros.length>9) {
+
+                    return
+                        'Número de teléfono invalido';
                   }
 
                   return null;
