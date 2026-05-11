@@ -118,7 +118,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     await registrarClienteUseCase(cliente);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cliente registrado correctamente holaaaa')),
+      const SnackBar(content: Text('Cliente registrado correctamente')),
     );
   }
 
