@@ -1,0 +1,44 @@
+class ClienteDto {
+
+  final int? id;
+  final String nombre;
+  final String rut;
+  final String correo;
+  final String telefono;
+  final String? direccion;
+
+  ClienteDto({
+    this.id,
+    required this.nombre,
+    required this.rut,
+    required this.correo,
+    required this.telefono,
+    this.direccion,
+  });
+
+  Map<String, dynamic> toMap() {
+
+    return {
+      'id': id,
+      'nombre': nombre,
+      'rut':rut,
+      'correo': correo,
+      'telefono': telefono,
+      'direccion': direccion,
+    };
+  }
+
+  factory ClienteDto.fromMap(
+    Map<String, dynamic> map,
+  ) {
+
+    return ClienteDto(
+      id: map['id'],
+      nombre: map['nombre'],
+      rut: map['rut'],
+      correo: map['correo'],
+      telefono: map['telefono'],
+      direccion: map['direccion'],
+    );
+  }
+}
