@@ -8,17 +8,11 @@ import '../../domain/usecases/registrar_cliente.dart';
 
 import '../widgets/cliente_text_field.dart';
 
-class RegistroClientePage
-    extends StatefulWidget {
-
-  const RegistroClientePage({
-    super.key,
-  });
+class RegistroClientePage extends StatefulWidget {
+  const RegistroClientePage({super.key});
 
   @override
-  State<RegistroClientePage>
-      createState() =>
-          _RegistroClientePageState();
+  State<RegistroClientePage> createState() => _RegistroClientePageState();
 }
 
 class _RegistroClientePageState extends State<RegistroClientePage> {
@@ -38,15 +32,13 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
   @override
   void initState() {
-
     super.initState();
 
-    registrarClienteUseCase = RegistrarCliente(ClienteRepositoryImpl(),);
+    registrarClienteUseCase = RegistrarCliente(ClienteRepositoryImpl());
   }
 
   @override
   void dispose() {
-
     _nombreController.dispose();
 
     _rutController.dispose();
@@ -60,31 +52,21 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     super.dispose();
   }
 
-  bool validaRut(String rut){
-    rut=rut
-        .replaceAll('.', '')
-        .replaceAll('-', '')
-        .toUpperCase();
-    if (rut.length<8){
+  bool validaRut(String rut) {
+    rut = rut.replaceAll('.', '').replaceAll('-', '').toUpperCase();
+    if (rut.length < 8) {
       return false;
     }
 
-    String cuerpo =
-        rut.substring(0, rut.length - 1);
+    String cuerpo = rut.substring(0, rut.length - 1);
 
-    String dv =
-        rut.substring(rut.length - 1);
+    String dv = rut.substring(rut.length - 1);
 
     int suma = 0;
     int multiplo = 2;
 
-    for (int i = cuerpo.length - 1;
-        i >= 0;
-        i--) {
-
-      suma +=
-          int.parse(cuerpo[i]) *
-              multiplo;
+    for (int i = cuerpo.length - 1; i >= 0; i--) {
+      suma += int.parse(cuerpo[i]) * multiplo;
 
       multiplo++;
 
@@ -108,69 +90,39 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     return dv == dvEsperado;
   }
 
-
-
-  
   void _submitForm() async {
-
-    bool isValid =
-        _formKey.currentState!
-            .validate();
+    bool isValid = _formKey.currentState!.validate();
 
     if (!isValid) {
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Hay errores en el formulario',
-          ),
-        ),
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hay errores en el formulario')),
       );
 
       return;
     }
 
     Cliente cliente = Cliente(
-      nombre:
-          _nombreController.text.trim(),
+      nombre: _nombreController.text.trim(),
 
-      rut: 
-          _rutController.text.trim(),
+      rut: _rutController.text.trim(),
 
-      correo:
-          _correoController.text.trim(),
+      correo: _correoController.text.trim(),
 
-      telefono:
-          _telefonoController.text
-              .trim(),
+      telefono: _telefonoController.text.trim(),
 
-      direccion:
-          _direccionController.text
-                  .trim()
-                  .isEmpty
-              ? null
-              : _direccionController
-                  .text
-                  .trim(),
+      direccion: _direccionController.text.trim().isEmpty
+          ? null
+          : _direccionController.text.trim(),
     );
 
-    await registrarClienteUseCase(
-      cliente,
-    );
+    await registrarClienteUseCase(cliente);
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Cliente registrado correctamente',
-        ),
-      ),
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Cliente registrado correctamente')),
     );
   }
 
   void _clearForm() {
-
     _formKey.currentState?.reset();
 
     _nombreController.clear();
@@ -181,128 +133,76 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
     _direccionController.clear();
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Formulario limpiado',
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Formulario limpiado')));
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-
-      appBar: AppBar(
-        title: const Text(
-          'Registro Clientes',
-        ),
-      ),
+      appBar: AppBar(title: const Text('Registro Clientes')),
 
       body: SingleChildScrollView(
-
-        padding:
-            const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
 
         child: Form(
-
           key: _formKey,
 
           child: Column(
-
             children: [
-
               ClienteTextField(
-
-                controller:
-                    _nombreController,
+                controller: _nombreController,
 
                 label: 'Nombre',
 
-                hint:
-                    'Ingrese su nombre',
+                hint: 'Ingrese su nombre',
 
                 icon: Icons.person,
 
                 validator: (value) {
-
-                  if (value == null ||
-                      value
-                          .trim()
-                          .isEmpty) {
-
-                    return
-                        'El nombre es obligatorio';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'El nombre es obligatorio';
                   }
 
-                  if (value
-                          .trim()
-                          .length <
-                      3) {
-
-                    return
-                        'Mínimo 3 caracteres';
+                  if (value.trim().length < 3) {
+                    return 'Mínimo 3 caracteres';
                   }
 
                   return null;
                 },
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
               ClienteTextField(
-
-                controller:
-                    _correoController,
+                controller: _correoController,
 
                 label: 'Correo',
 
-                hint:
-                    'usuario@correo.com',
+                hint: 'usuario@correo.com',
 
                 icon: Icons.email,
 
-                keyboardType:
-                    TextInputType
-                        .emailAddress,
+                keyboardType: TextInputType.emailAddress,
 
                 validator: (value) {
-
-                  if (value == null ||
-                      value
-                          .trim()
-                          .isEmpty) {
-
-                    return
-                        'El correo es obligatorio';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'El correo es obligatorio';
                   }
 
-                  if (!value
-                          .contains('@') ||
-                      !value
-                          .contains('.')) {
-
-                    return
-                        'Correo inválido';
+                  if (!value.contains('@') || !value.contains('.')) {
+                    return 'Correo inválido';
                   }
 
                   return null;
                 },
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
               ClienteTextField(
-
-                controller:
-                    _telefonoController,
+                controller: _telefonoController,
 
                 label: 'Teléfono',
 
@@ -310,47 +210,27 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                 icon: Icons.phone,
 
-                keyboardType:
-                    TextInputType
-                        .phone,
+                keyboardType: TextInputType.phone,
 
                 validator: (value) {
-
-                  if (value == null ||
-                      value
-                          .trim()
-                          .isEmpty) {
-
-                    return
-                        'El teléfono es obligatorio';
+                  if (value == null || value.trim().isEmpty) {
+                    return 'El teléfono es obligatorio';
                   }
 
-                  String numeros =
-                      value.replaceAll(
-                    RegExp(r'\D'),
-                    '',
-                  );
+                  String numeros = value.replaceAll(RegExp(r'\D'), '');
 
-                  if (numeros
-                          .length <
-                      8) {
-
-                    return
-                        'Mínimo 8 dígitos';
+                  if (numeros.length < 8) {
+                    return 'Mínimo 8 dígitos';
                   }
 
                   return null;
                 },
               ),
 
-              const SizedBox(
-                height: 16,
-              ),
+              const SizedBox(height: 16),
 
               ClienteTextField(
-
-                controller:
-                    _direccionController,
+                controller: _direccionController,
 
                 label: 'Dirección',
 
@@ -359,74 +239,36 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 icon: Icons.home,
               ),
 
-              const SizedBox(
-                height: 24,
-              ),
+              const SizedBox(height: 24),
 
               Row(
-
                 children: [
-
                   Expanded(
-                    child:
-                        ElevatedButton
-                            .icon(
+                    child: ElevatedButton.icon(
+                      onPressed: _submitForm,
 
-                      onPressed:
-                          _submitForm,
+                      icon: const Icon(Icons.send),
 
-                      icon:
-                          const Icon(
-                        Icons.send,
-                      ),
+                      label: const Text('Enviar'),
 
-                      label:
-                          const Text(
-                        'Enviar',
-                      ),
-
-                      style:
-                          ElevatedButton
-                              .styleFrom(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          vertical: 14,
-                        ),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
                   ),
 
-                  const SizedBox(
-                    width: 12,
-                  ),
+                  const SizedBox(width: 12),
 
                   Expanded(
-                    child:
-                        OutlinedButton
-                            .icon(
+                    child: OutlinedButton.icon(
+                      onPressed: _clearForm,
 
-                      onPressed:
-                          _clearForm,
+                      icon: const Icon(Icons.clear),
 
-                      icon:
-                          const Icon(
-                        Icons.clear,
-                      ),
+                      label: const Text('Limpiar'),
 
-                      label:
-                          const Text(
-                        'Limpiar',
-                      ),
-
-                      style:
-                          OutlinedButton
-                              .styleFrom(
-                        padding:
-                            const EdgeInsets
-                                .symmetric(
-                          vertical: 14,
-                        ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
                   ),
