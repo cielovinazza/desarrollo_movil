@@ -251,7 +251,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                 icon: Icons.phone,
 
-                keyboardType: TextInputType.phone,
+                keyboardType: TextInputType.number,
 
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
