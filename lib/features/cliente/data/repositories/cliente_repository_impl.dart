@@ -2,17 +2,35 @@ import '../../domain/entities/cliente.dart';
 import '../../domain/repositories/cliente_repository.dart';
 
 class ClienteRepositoryImpl implements ClienteRepository {
-
-  final List<Cliente> _clientes = [];
+  static final List<Cliente> _clientes = [];
 
   @override
-  Future<void> registrarCliente(
-    Cliente cliente,
-  ) async {
+  Future<void> registrarCliente(Cliente cliente) async {
+    final nuevoCliente = Cliente(
+      id: _clientes.length + 1,
+      nombre: cliente.nombre,
+      rut: cliente.rut,
+      telefono: cliente.telefono,
+      correo: cliente.correo,
+      direccion: cliente.direccion,
+    );
 
-    _clientes.add(cliente);
+    _clientes.add(nuevoCliente);
+  }
 
-    print('Cliente registrado');
-    print(cliente.nombre);
+  @override
+  Future<List<Cliente>> listarClientes() async {
+    return _clientes;
+  }
+
+  @override
+  Future<void> editarCliente(Cliente cliente) async {
+    final index = _clientes.indexWhere(
+      (c) => c.id == cliente.id,
+    );
+
+    if (index != -1) {
+      _clientes[index] = cliente;
+    }
   }
 }

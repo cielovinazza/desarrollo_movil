@@ -1,4 +1,4 @@
-class Cliente{
+class Cliente {
   final int? id;
   final String nombre;
   final String rut;
@@ -13,8 +13,23 @@ class Cliente{
     required this.telefono,
     required this.correo,
     this.direccion,
-
   });
 
+  Cliente copyWith({
+    int? id,
+    String? nombre,
+    String? rut,
+    String? telefono,
+    String? correo,
+    String? direccion,
+  }) {
+    return Cliente(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      rut: rut ?? this.rut,
+      telefono: telefono ?? this.telefono,
+      correo: correo ?? this.correo,
+      direccion: direccion ?? this.direccion,
+    );
+  }
 }
-
