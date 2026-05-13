@@ -32,4 +32,14 @@ class Cliente {
       direccion: direccion ?? this.direccion,
     );
   }
+  factory Cliente.fromJson(Map<String, dynamic> json) {
+    return Cliente(
+      id: json['id'],
+      nombre: json['nombre'],
+      rut: json['rut'],
+      telefono: json['telefono'],
+      correo: json['correo'],
+      direccion: json['direccion'],
+    );
+  }
 }
