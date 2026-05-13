@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/repositories/cliente_repository_impl.dart';
 
 import '../../domain/entities/cliente.dart';
+import '../../data/datasources/clientes_local_datasource.dart';
 
 class EditarClientePage extends StatefulWidget {
   final Cliente cliente;
@@ -63,7 +64,7 @@ class _EditarClientePageState
       direccion: direccionController.text,
     );
 
-    await ClienteRepositoryImpl().editarCliente(
+    await ClienteRepositoryImpl(ClientesLocalDataSource()).editarCliente(
       clienteActualizado,
     );
 

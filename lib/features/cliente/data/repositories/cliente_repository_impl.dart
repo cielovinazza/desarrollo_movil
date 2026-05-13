@@ -1,36 +1,48 @@
-import '../../domain/entities/cliente.dart';
 import '../../domain/repositories/cliente_repository.dart';
+import '../../domain/entities/cliente.dart';
+import '../datasources/clientes_local_datasource.dart';
 
 class ClienteRepositoryImpl implements ClienteRepository {
-  static final List<Cliente> _clientes = [];
+
+  final ClientesLocalDataSource localDataSource;
+
+  ClienteRepositoryImpl(this.localDataSource);
 
   @override
   Future<void> registrarCliente(Cliente cliente) async {
-    final nuevoCliente = Cliente(
-      id: _clientes.length + 1,
-      nombre: cliente.nombre,
-      rut: cliente.rut,
-      telefono: cliente.telefono,
-      correo: cliente.correo,
-      direccion: cliente.direccion,
-    );
 
-    _clientes.add(nuevoCliente);
+    final nuevoCliente = {
+      'id': DateTime.now().millisecondsSinceEpoch,
+      'nombre': cliente.nombre,
+      'rut': cliente.rut,
+      'correo': cliente.correo,
+      'telefono': cliente.telefono,
+      'direccion': cliente.direccion,
+    };
+
+    await localDataSource.agregarCliente(nuevoCliente);
   }
 
   @override
   Future<List<Cliente>> listarClientes() async {
-    return _clientes;
+
+    final List<Map<String, dynamic>> data =
+        await localDataSource.getClientes();
+
+    return data.map<Cliente>((json) {
+      final map = json;
+
+      return Cliente(
+        id: map['id'] ?? 0,
+        nombre: map['nombre'] ?? '',
+        rut: map['rut'] ?? '',
+        correo: map['correo'] ?? '',
+        telefono: map['telefono'] ?? '',
+        direccion: map['direccion'],
+      );
+    }).toList();
   }
 
   @override
-  Future<void> editarCliente(Cliente cliente) async {
-    final index = _clientes.indexWhere(
-      (c) => c.id == cliente.id,
-    );
-
-    if (index != -1) {
-      _clientes[index] = cliente;
-    }
-  }
+  Future<void> editarCliente(Cliente cliente) async {}
 }

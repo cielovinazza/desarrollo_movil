@@ -1,5 +1,9 @@
-import '../../domain/entities/clientes_entity.dart';
+// lib/features/cliente/domain/repositories/cliente_repository.dart
 
-abstract class ClientesRepository {
-  Future<List<Cliente>> getClientes();
+import '../../domain/entities/cliente.dart';
+
+abstract class ClienteRepository {
+  Future<List<Cliente>> listarClientes();
+  Future<void> registrarCliente(Cliente cliente);
+  Future<void> editarCliente(Cliente cliente);
 }

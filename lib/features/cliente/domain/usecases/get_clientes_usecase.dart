@@ -1,13 +1,12 @@
-import '../entities/clientes_entity.dart';
-import '../../data/repositories/clientes_repository.dart';
+import '../../domain/entities/cliente.dart';
+import '../../domain/repositories/cliente_repository.dart';
 
 class GetClientesUseCase {
 
-  final ClientesRepository repository;
+  final ClienteRepository repository;
 
   GetClientesUseCase(this.repository);
 
-  Future<List<Cliente>> call() {
-    return repository.getClientes();
-  }
-}
+Future<List<Cliente>> call() {
+  return repository.listarClientes();
+}}

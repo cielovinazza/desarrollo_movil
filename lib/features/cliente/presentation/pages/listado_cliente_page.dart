@@ -5,6 +5,7 @@ import 'editar_cliente_page.dart';
 import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/usecases/listar_clientes.dart';
+import '../../data/datasources/clientes_local_datasource.dart';
 
 class ListadoClientesPage extends StatefulWidget {
   const ListadoClientesPage({super.key});
@@ -25,7 +26,7 @@ class _ListadoClientesPageState
     super.initState();
 
     listarClientesUseCase =
-        ListarClientes(ClienteRepositoryImpl());
+        ListarClientes(ClienteRepositoryImpl(ClientesLocalDataSource()));
 
     cargarClientes();
   }
