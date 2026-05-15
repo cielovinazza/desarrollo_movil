@@ -1,43 +1,33 @@
+// lib/features/cliente/data/repositories/cliente_repository_impl.dart
+
+import '../../domain/entities/cliente.dart';
 import '../../domain/repositories/cliente_repository.dart';
+import '../datasources/clientes_local_datasource.dart';
 
 class ClienteRepositoryImpl implements ClienteRepository {
-  static final List<Cliente> _clientes = [];
+  final ClientesLocalDataSource localDataSource;
 
-  static bool _initialized = false;
- 
-  Future<void> _init() async {
-    if (_initialized) return;
-    final data = await _localDataSource.getClientes();
-    _clientes.addAll(data.map((e) => Cliente.fromJson(e)));
-    _initialized = true;
-  }
+  // El constructor DEBE recibir el DataSource
+  ClienteRepositoryImpl(this.localDataSource);
+
   @override
-  Future<void> registrarCliente(Cliente cliente) async {
-    final nuevoCliente = Cliente(
-      id: _clientes.length + 1,
-      nombre: cliente.nombre,
-      rut: cliente.rut,
-      telefono: cliente.telefono,
-      correo: cliente.correo,
-      direccion: cliente.direccion,
-    );
-
-    await localDataSource.agregarCliente(nuevoCliente);
+  Future<List<Cliente>> getClientes() async {
+    return await localDataSource.getClientes();
   }
 
+  // Cumplimos con el contrato exacto que pide tu interfaz abstracta
   @override
   Future<List<Cliente>> listarClientes() async {
-    return _clientes;
+    return await localDataSource.getClientes();
+  }
+
+  @override
+  Future<void> registrarCliente(Cliente cliente) async {
+    await localDataSource.agregarCliente(cliente);
   }
 
   @override
   Future<void> editarCliente(Cliente cliente) async {
-    final index = _clientes.indexWhere(
-      (c) => c.id == cliente.id,
-    );
-
-    if (index != -1) {
-      _clientes[index] = cliente;
-    }
+    await localDataSource.editarCliente(cliente);
   }
 }
