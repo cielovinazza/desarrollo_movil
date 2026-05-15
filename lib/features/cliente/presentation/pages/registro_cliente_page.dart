@@ -180,7 +180,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 inputFormatters:[
 
                   FilteringTextInputFormatter.allow(
-                    RegExp(r'[a-zA-ZñÑ]'),
+                    RegExp(r'[a-zA-ZñÑ ]'),
                   ),
                 ],
 
