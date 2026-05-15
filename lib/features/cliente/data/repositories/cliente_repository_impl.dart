@@ -6,6 +6,19 @@ class ClienteRepositoryImpl implements ClienteRepository {
 
   @override
   Future<void> registrarCliente(Cliente cliente) async {
+
+    final rutExiste = _clientes.any(
+      (c) =>
+          c.rut.replaceAll('.', '').toUpperCase() ==
+          cliente.rut.replaceAll('.', '').toUpperCase(),
+    );
+
+    if (rutExiste) {
+      throw Exception('Ya existe un cliente con ese RUT');
+    }
+
+
+
     final nuevoCliente = Cliente(
       id: _clientes.length + 1,
       nombre: cliente.nombre,
