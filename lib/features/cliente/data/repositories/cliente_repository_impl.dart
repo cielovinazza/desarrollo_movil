@@ -1,36 +1,29 @@
+// lib/features/cliente/data/repositories/cliente_repository_impl.dart
+
 import '../../domain/entities/cliente.dart';
 import '../../domain/repositories/cliente_repository.dart';
+import '../datasources/clientes_local_datasource.dart';
 
 class ClienteRepositoryImpl implements ClienteRepository {
-  static final List<Cliente> _clientes = [];
+  final ClientesLocalDataSource localDataSource;
+  ClienteRepositoryImpl(this.localDataSource);
 
   @override
-  Future<void> registrarCliente(Cliente cliente) async {
-    final nuevoCliente = Cliente(
-      id: _clientes.length + 1,
-      nombre: cliente.nombre,
-      rut: cliente.rut,
-      telefono: cliente.telefono,
-      correo: cliente.correo,
-      direccion: cliente.direccion,
-    );
-
-    _clientes.add(nuevoCliente);
+  Future<List<Cliente>> getClientes() async {
+    return await localDataSource.getClientes();
+  }
+  @override
+  Future<List<Cliente>> listarClientes() async {
+    return await localDataSource.getClientes();
   }
 
   @override
-  Future<List<Cliente>> listarClientes() async {
-    return _clientes;
+  Future<void> registrarCliente(Cliente cliente) async {
+    await localDataSource.agregarCliente(cliente);
   }
 
   @override
   Future<void> editarCliente(Cliente cliente) async {
-    final index = _clientes.indexWhere(
-      (c) => c.id == cliente.id,
-    );
-
-    if (index != -1) {
-      _clientes[index] = cliente;
-    }
+    await localDataSource.editarCliente(cliente);
   }
 }

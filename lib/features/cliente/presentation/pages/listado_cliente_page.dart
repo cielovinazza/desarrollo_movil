@@ -1,40 +1,40 @@
 import 'package:flutter/material.dart';
-
 import 'editar_cliente_page.dart';
-
 import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/usecases/listar_clientes.dart';
+import '../../data/datasources/clientes_local_datasource.dart';
 
 class ListadoClientesPage extends StatefulWidget {
   const ListadoClientesPage({super.key});
 
   @override
-  State<ListadoClientesPage> createState() =>
-      _ListadoClientesPageState();
+  State<ListadoClientesPage> createState() => _ListadoClientesPageState();
 }
 
-class _ListadoClientesPageState
-    extends State<ListadoClientesPage> {
+class _ListadoClientesPageState extends State<ListadoClientesPage> {
   late final ListarClientes listarClientesUseCase;
-
   List<Cliente> clientes = [];
+  bool cargando = true;
 
   @override
   void initState() {
     super.initState();
-
-    listarClientesUseCase =
-        ListarClientes(ClienteRepositoryImpl());
-
+    
+   listarClientesUseCase = ListarClientes(
+    ClienteRepositoryImpl(ClientesLocalDataSource()),
+  );
     cargarClientes();
   }
 
   Future<void> cargarClientes() async {
+    setState(() => cargando = true);
+    
     final resultado = await listarClientesUseCase();
 
     setState(() {
       clientes = resultado;
+      cargando = false;
     });
   }
 
@@ -44,64 +44,70 @@ class _ListadoClientesPageState
       appBar: AppBar(
         title: const Text('Listado de clientes'),
         centerTitle: true,
+        actions: [
+          
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: cargarClientes,
+          )
+        ],
       ),
 
-      body: clientes.isEmpty
-          ? const Center(
-              child: Text('No hay clientes registrados'),
-            )
+      body: cargando 
+          ? const Center(child: CircularProgressIndicator())
+          : clientes.isEmpty
+              ? const Center(
+                  child: Text('No hay clientes registrados'),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: clientes.length,
+                  itemBuilder: (context, index) {
+                    final cliente = clientes[index];
 
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-
-              itemCount: clientes.length,
-
-              itemBuilder: (context, index) {
-                final cliente = clientes[index];
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-
-                  child: ListTile(
-                    leading: const CircleAvatar(
-                      child: Icon(Icons.person),
-                    ),
-
-                    title: Text(
-                      cliente.nombre,
-
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    subtitle: Text(
-                      'RUT: ${cliente.rut}\n'
-                      'Correo: ${cliente.correo}\n'
-                      'Teléfono: ${cliente.telefono}\n'
-                      'Dirección: ${cliente.direccion ?? "Sin dirección"}',
-                    ),
-
-                    isThreeLine: true,
-
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              EditarClientePage(
-                                cliente: cliente,
-                              ),
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: const CircleAvatar(
+                          child: Icon(Icons.person),
                         ),
-                      );
-
-                      cargarClientes();
-                    },
-                  ),
-                );
-              },
-            ),
+                        title: Text(
+                          cliente.nombre,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'RUT: ${cliente.rut}\n'
+                          'Correo: ${cliente.correo}\n'
+                          'Teléfono: ${cliente.telefono}\n'
+                          'Dirección: ${cliente.direccion ?? "Sin dirección"}',
+                        ),
+                        isThreeLine: true,
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditarClientePage(cliente: cliente),
+                            ),
+                          );
+                          cargarClientes();
+                        },
+                      ),
+                    );
+                  },
+                ),
+      
+      // Si tienes un FloatingActionButton para registrar:
+      /*
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await Navigator.pushNamed(context, '/registro-cliente');
+          cargarClientes(); // Recarga la lista con el nuevo cliente
+        },
+        child: const Icon(Icons.add),
+      ),
+      */
     );
   }
 }
