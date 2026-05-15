@@ -1,5 +1,3 @@
-// lib/features/cliente/domain/repositories/cliente_repository.dart
-
 import '../../domain/entities/cliente.dart';
 
 abstract class ClienteRepository {

@@ -1,9 +1,5 @@
-// lib/features/cliente/presentation/pages/registro_cliente_page.dart
-
 import 'package:flutter/material.dart';
 import '../../domain/entities/cliente.dart';
-
-// Importamos las capas necesarias para procesar el registro de forma limpia
 import '../../data/datasources/clientes_local_datasource.dart';
 import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/usecases/registrar_cliente.dart';
@@ -24,13 +20,11 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   final _telefonoController = TextEditingController();
   final _direccionController = TextEditingController();
 
-  // Declaramos el caso de uso para seguir la arquitectura limpia sin depender de DI externo
   late final RegistrarCliente registrarClienteUseCase;
 
   @override
   void initState() {
     super.initState();
-    // Inicializamos el caso de uso inyectándole el repositorio y el DataSource Singleton
     registrarClienteUseCase = RegistrarCliente(
     ClienteRepositoryImpl(ClientesLocalDataSource()),
     );
@@ -94,12 +88,9 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
           : _direccionController.text.trim(),
     );
 
-    // Ahora sí llamamos al caso de uso correctamente inicializado
     await registrarClienteUseCase(cliente);
 
     if (!mounted) return;
-
-    // Retornamos true para avisarle a la pantalla anterior que debe refrescar la lista
     Navigator.pop(context, true);
   }
 

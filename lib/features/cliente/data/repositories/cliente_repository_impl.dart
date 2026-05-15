@@ -6,16 +6,12 @@ import '../datasources/clientes_local_datasource.dart';
 
 class ClienteRepositoryImpl implements ClienteRepository {
   final ClientesLocalDataSource localDataSource;
-
-  // El constructor DEBE recibir el DataSource
   ClienteRepositoryImpl(this.localDataSource);
 
   @override
   Future<List<Cliente>> getClientes() async {
     return await localDataSource.getClientes();
   }
-
-  // Cumplimos con el contrato exacto que pide tu interfaz abstracta
   @override
   Future<List<Cliente>> listarClientes() async {
     return await localDataSource.getClientes();
