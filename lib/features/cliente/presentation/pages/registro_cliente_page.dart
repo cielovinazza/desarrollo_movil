@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../data/repositories/cliente_repository_impl.dart';
-
 import '../../domain/entities/cliente.dart';
-
 import '../../domain/usecases/registrar_cliente.dart';
-
 import '../widgets/cliente_text_field.dart';
+import '../formatters/mascara_rut_formatters.dart';
+
 
 class RegistroClientePage extends StatefulWidget {
   const RegistroClientePage({super.key});
@@ -115,13 +114,27 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
           : _direccionController.text.trim(),
     );
 
+   try {
+
     await registrarClienteUseCase(cliente);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cliente registrado correctamente')),
+      const SnackBar(
+        content: Text('Cliente registrado correctamente'),
+      ),
     );
+
     Navigator.pop(context);
+
+  } catch (e) {
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(e.toString().replaceFirst('Exception: ', '')),
+      ),
+    );
   }
+}
 
   
   void _clearForm() {
@@ -164,13 +177,20 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                 icon: Icons.person,
 
+                inputFormatters:[
+
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'[a-zA-ZñÑ]'),
+                  ),
+                ],
+
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'El nombre es obligatorio';
                   }
 
                   if (value.trim().length < 3) {
-                    return 'Mínimo 3 caracteres';
+                    return 'El nombre debe contener mínimo 3 caracteres';
                   }
 
                   return null;
@@ -184,7 +204,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                     _rutController, 
                 label: 'Rut', 
               
-                hint: 'Ingrese su rut con puntos y guión.', 
+                hint: 'Ingrese su rut.', 
               
                 icon: Icons.contact_page,
                 
@@ -196,8 +216,10 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 inputFormatters:[
 
                   FilteringTextInputFormatter.allow(
-                    RegExp(r'[0-9kK.-]'),
+                    RegExp(r'[0-9kK]'),
                   ),
+
+                  RutInputFormatter(),
                 ],
 
                 validator: (value){
@@ -232,8 +254,12 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                     return 'El correo es obligatorio';
                   }
 
-                  if (!value.contains('@') || !value.contains('.')) {
-                    return 'Correo inválido';
+                  final emailRegex = RegExp(
+                    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                  );
+
+                  if (!emailRegex.hasMatch(value.trim())) {
+                    return 'Correo inválido, debe ser de la forma usuario@correo.com';
                   }
 
                   return null;
@@ -253,6 +279,12 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                 keyboardType: TextInputType.number,
 
+                prefixText: '+56 ',
+
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(9),
+                ],
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
                     return 'El teléfono es obligatorio';

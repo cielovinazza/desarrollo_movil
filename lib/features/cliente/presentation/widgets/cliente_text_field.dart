@@ -12,6 +12,7 @@ class ClienteTextField
   final int maxLines;
   final TextCapitalization textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
+  final String? prefixText;
 
   final String? Function(String?)?
       validator;
@@ -28,7 +29,7 @@ class ClienteTextField
     this.validator,
     this.textCapitalization =TextCapitalization.none,
     this.inputFormatters,
-
+    this.prefixText,
   });
 
   @override
@@ -49,6 +50,7 @@ class ClienteTextField
       inputFormatters: inputFormatters,
 
       decoration: InputDecoration(
+        prefixText: prefixText,
         labelText: label,
         hintText: hint,
         prefixIcon: Icon(icon),
