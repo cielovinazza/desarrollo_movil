@@ -35,4 +35,15 @@ class ClienteRepositoryImpl implements ClienteRepository {
   Future<List<Cliente>> listarClientes() async {
     return _clientes;
   }
+
+  @override
+  Future<void> editarCliente(Cliente cliente) async {
+    final index = _clientes.indexWhere(
+      (c) => c.id == cliente.id,
+    );
+
+    if (index != -1) {
+      _clientes[index] = cliente;
+    }
+  }
 }
