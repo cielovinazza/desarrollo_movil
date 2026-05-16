@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../domain/usecases/get_clientes_usecase.dart';
 import '../../domain/entities/cliente.dart';
 import '../../../../core/di/injection.dart';
 import 'registro_cliente_page.dart';
