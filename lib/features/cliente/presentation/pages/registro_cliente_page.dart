@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:project/features/cliente/data/datasources/clientes_local_datasource.dart';
 import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/usecases/registrar_cliente.dart';
@@ -15,6 +16,9 @@ class RegistroClientePage extends StatefulWidget {
 }
 
 class _RegistroClientePageState extends State<RegistroClientePage> {
+  final repository=ClienteRepositoryImpl(ClientesLocalDataSource(),
+  );
+
   final _formKey = GlobalKey<FormState>();
 
   final _nombreController = TextEditingController();
@@ -33,7 +37,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   void initState() {
     super.initState();
 
-    registrarClienteUseCase = RegistrarCliente(ClienteRepositoryImpl());
+    registrarClienteUseCase = RegistrarCliente(repository);
   }
 
   @override

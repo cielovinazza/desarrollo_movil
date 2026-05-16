@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/features/cliente/data/datasources/clientes_local_datasource.dart';
 
 import 'editar_cliente_page.dart';
 
@@ -15,6 +16,8 @@ class ListadoClientesPage extends StatefulWidget {
 
 class _ListadoClientesPageState extends State<ListadoClientesPage> {
   late final ListarClientes listarClientesUseCase;
+  final repository = ClienteRepositoryImpl(ClientesLocalDataSource(),
+  );
 
   final TextEditingController _buscadorController = TextEditingController();
 
@@ -25,7 +28,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
   void initState() {
     super.initState();
 
-    listarClientesUseCase = ListarClientes(ClienteRepositoryImpl());
+    listarClientesUseCase = ListarClientes(repository);
 
     cargarClientes();
 

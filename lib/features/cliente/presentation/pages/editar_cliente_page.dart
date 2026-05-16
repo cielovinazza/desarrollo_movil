@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/features/cliente/data/datasources/clientes_local_datasource.dart';
 
 import '../../data/repositories/cliente_repository_impl.dart';
 
@@ -20,6 +21,9 @@ class EditarClientePage extends StatefulWidget {
 class _EditarClientePageState
     extends State<EditarClientePage> {
   final _formKey = GlobalKey<FormState>();
+
+  final repository= ClienteRepositoryImpl(ClientesLocalDataSource()
+  );
 
   late TextEditingController nombreController;
   late TextEditingController rutController;
@@ -63,7 +67,7 @@ class _EditarClientePageState
       direccion: direccionController.text,
     );
 
-    await ClienteRepositoryImpl().editarCliente(
+    await repository.editarCliente(
       clienteActualizado,
     );
 
