@@ -32,7 +32,6 @@ class Cliente {
       direccion: direccion ?? this.direccion,
     );
   }
-
   factory Cliente.fromJson(Map<String, dynamic> json) {
     return Cliente(
       id: json['id'],
@@ -55,4 +54,4 @@ class Cliente {
       'direccion': direccion,
     };
   }
-}
+} 

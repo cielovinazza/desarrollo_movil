@@ -22,7 +22,6 @@ class ClientesLocalDataSource {
     }
   }
 
-  // 4. Obtener todos los clientes
   Future<List<Cliente>> getClientes() async {
     await _init();
     return _clientes;
@@ -44,7 +43,6 @@ class ClientesLocalDataSource {
     if (index != -1) {
       _clientes[index] = clienteActualizado;
     } else {
-      // ignore: avoid_print
       print("No se encontró el cliente con ID: ${clienteActualizado.id}");
     }
   }
