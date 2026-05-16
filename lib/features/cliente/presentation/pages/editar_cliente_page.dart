@@ -106,21 +106,31 @@ class _EditarClientePageState
       direccion: direccionController.text,
     );
 
-    await repository.editarCliente(
-      clienteActualizado,
-    );
+    try{
+      await repository.editarCliente(
+        clienteActualizado,
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Cliente actualizado correctamente',
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Cliente actualizado correctamente',
+          ),
         ),
-      ),
-    );
+      );
 
-    Navigator.pop(context);
+      Navigator.pop(context);
+    }catch(e){
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', '',),
+          ),
+        ),
+      );
+    }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -186,6 +196,7 @@ class _EditarClientePageState
                   if (!validaRut(value)){
                     return 'Rut invalido, intente nuevamente';
                   }
+                  return null;
 
                 } ,
                 
