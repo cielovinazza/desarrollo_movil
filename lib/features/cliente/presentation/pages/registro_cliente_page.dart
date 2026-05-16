@@ -184,7 +184,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 inputFormatters:[
 
                   FilteringTextInputFormatter.allow(
-                    RegExp(r'[a-zA-ZñÑ ]'),
+                    RegExp(r'[a-zA-ZñÑÁÉÍÓÚáéíóú ]'),
                   ),
                 ],
 
@@ -296,12 +296,8 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                   String numeros = value.replaceAll(RegExp(r'\D'), '');
 
-                  if (numeros
-                          .length <
-                      9||numeros.length>9) {
-
-                    return
-                        'Número de teléfono invalido';
+                  if (numeros.length <9||numeros.length>9) {
+                    return 'Número de teléfono invalido';
                   }
 
                   return null;

@@ -210,7 +210,8 @@ class _LoginPageState extends State<LoginPage> {
                           ? const CircularProgressIndicator(color: Colors.white)
                           : const Text(
                               "Ingresar",
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(fontSize: 16,
+                              color: Colors.white),
                             ),
                     ),
                   ),

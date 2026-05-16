@@ -139,7 +139,10 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                               'Dirección: ${cliente.direccion ?? "Sin dirección"}',
                             ),
                             isThreeLine: true,
-                            onTap: () => _abrirEditarCliente(cliente),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _abrirEditarCliente(cliente),
+                            ),
                           ),
                         );
                       },
