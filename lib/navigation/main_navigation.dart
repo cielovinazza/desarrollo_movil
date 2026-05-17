@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project/features/home/presentation/pages/home_page.dart';
 import 'package:project/features/cliente/presentation/pages/registro_cliente_page.dart';
-import 'package:project/features/cotizacion/presentation/pages/cotizaciones_tab_page.dart';
+import 'package:project/features/cotizacion/presentation/pages/cotizaciones_page.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -13,11 +13,16 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  // 2. CONECTAMOS LAS VISTAS REALES EN LA LISTA
-  final List<Widget> _pages = [
-    const HomePage(),
+  void changeTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  late final List<Widget> _pages = [
+    HomePage(onGoToCotizaciones: () => changeTab(2)),
     const RegistroClientePage(),
-    const CotizacionesTabPage(), 
+    const CotizacionesPage(),
   ];
 
   @override
@@ -26,8 +31,8 @@ class _MainNavigationState extends State<MainNavigation> {
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        selectedItemColor: const Color(0xFF2E7D32), 
+        onTap: changeTab,
+        selectedItemColor: const Color(0xFF2E7D32),
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
@@ -50,3 +55,4 @@ class _MainNavigationState extends State<MainNavigation> {
     );
   }
 }
+
