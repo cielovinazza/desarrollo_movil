@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project/features/home/presentation/pages/home_page.dart';
 import 'package:project/features/cliente/presentation/pages/registro_cliente_page.dart';
-import 'package:project/features/cotizacion/presentation/pages/cotizaciones_page.dart';
-
+import '../features/cotizacion/presentation/pages/crear_cotizacion_page.dart';
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
@@ -22,7 +21,7 @@ class _MainNavigationState extends State<MainNavigation> {
   late final List<Widget> _pages = [
     HomePage(onGoToCotizaciones: () => changeTab(2)),
     const RegistroClientePage(),
-    const CotizacionesPage(),
+    const CrearCotizacionPage(),
   ];
 
   @override

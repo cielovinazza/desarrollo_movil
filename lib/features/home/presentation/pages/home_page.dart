@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project/features/cliente/presentation/pages/registro_cliente_page.dart';
 import 'package:project/features/cliente/presentation/pages/listado_cliente_page.dart';
+import 'package:project/features/cotizacion/presentation/pages/crear_cotizacion_page.dart';
 import 'package:project/shared/design_system/app_theme.dart';
 
 class HomePage extends StatelessWidget {
@@ -110,7 +111,11 @@ class HomePage extends StatelessWidget {
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton.icon(
-                          onPressed: onGoToCotizaciones,
+                          onPressed: (){
+                            Navigator.push(context,
+                            MaterialPageRoute(builder: (_)=>const CrearCotizacionPage(),),
+                            );
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: AppTheme.primary,
