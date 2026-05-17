@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../domain/usecases/login_usecase.dart';
+import 'package:project/features/auth/domain/usecases/login_usecase.dart';
 import 'package:project/navigation/main_navigation.dart';
+import 'package:project/shared/design_system/app_theme.dart';
 
 class LoginPage extends StatefulWidget {
-
   final LoginUseCase useCase;
 
   const LoginPage({super.key, required this.useCase});
@@ -18,32 +18,39 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
 
   bool loading = false;
+  bool obscurePassword = true;
+
   @override
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
   }
+
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'El correo es obligatorio';
     }
+
     final emailRegex = RegExp(r'^[\w.-]+@[\w.-]+\.\w+$');
     if (!emailRegex.hasMatch(value.trim())) {
-      return 'Formato de correo inválido (ej: usuario@correo.com/ usuario@gmail.com)';
+      return 'Formato de correo inválido';
     }
+
     return null;
-    }
+  }
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'La contraseña es obligatoria';
     }
+
     if (value.length < 4) {
       return 'La contraseña debe tener al menos 4 caracteres';
     }
+
     return null;
-    }
+  }
 
   void login() async {
     if (!_formKey.currentState!.validate()) return;
@@ -67,7 +74,7 @@ class _LoginPageState extends State<LoginPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.danger,
           content: Text('Credenciales inválidas'),
         ),
       );
@@ -77,143 +84,188 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: AppTheme.background,
       body: Center(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
-                  )
-                ],
-              ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-
-                    // 🏗️ LOGO CONSTRUCCIÓN
-                    Container(
-                      padding: const EdgeInsets.all(22),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF2E7D32),
-                      ),
-                      child: const Icon(
-                        Icons.construction,
-                        color: Colors.white,
-                        size: 42,
-                      ),
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary,
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primary.withOpacity(0.25),
+                          blurRadius: 18,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                     ),
-
-                    const SizedBox(height: 16),
-
-                    const Text(
-                      'Sistema de Cotizaciones',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2E7D32),
-                      ),
+                    child: const Icon(
+                      Icons.construction,
+                      color: Colors.white,
+                      size: 52,
                     ),
+                  ),
 
-                    const Text(
-                      'Construcción y Obras',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                  const SizedBox(height: 24),
+
+                  const Text(
+                    'Sistema de Cotizaciones',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
                     ),
+                  ),
 
-                    const SizedBox(height: 25),
+                  const SizedBox(height: 6),
 
-                    // EMAIL
-                    TextFormField(
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: _validateEmail,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      decoration: InputDecoration(
-                        labelText: 'Correo',
-                        hintText: 'ej: usuario@correo.com',
-                        prefixIcon: const Icon(Icons.email),
-                        filled: true,
-                        fillColor: const Color(0xFFF1F8F1),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.red),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.red),
-                        ),
-                      ),
+                  const Text(
+                    'CONSTRUCCIÓN Y OBRAS',
+                    style: TextStyle(
+                      fontSize: 14,
+                      letterSpacing: 3,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textGrey,
                     ),
+                  ),
 
-                    const SizedBox(height: 15),
+                  const SizedBox(height: 36),
 
-                    // PASSWORD
-                    TextFormField(
-                      controller: passwordController,
-                      obscureText: true,
-                      validator: _validatePassword,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        hintText: 'mínimo 4 caracteres',
-                        prefixIcon: const Icon(Icons.lock),
-                        filled: true,
-                        fillColor: const Color(0xFFF1F8F1),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.black12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
                         ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.red),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.red),
-                        ),
-                      ),
+                      ],
                     ),
-
-                  const SizedBox(height: 25),
-
-                  // BOTÓN
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: loading ? null : login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2E7D32),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: loading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              "Ingresar",
-                              style: TextStyle(fontSize: 16,
-                              color: Colors.white),
+                    child: Column(
+                      children: [
+                        TextFormField(
+                          controller: emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: _validateEmail,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          decoration: InputDecoration(
+                            labelText: 'Correo Electrónico',
+                            hintText: 'admin@ejemplo.com',
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        TextFormField(
+                          controller: passwordController,
+                          obscureText: obscurePassword,
+                          validator: _validatePassword,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          decoration: InputDecoration(
+                            labelText: 'Contraseña',
+                            hintText: '••••••••',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  obscurePassword = !obscurePassword;
+                                });
+                              },
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {},
+                            child: const Text(
+                              '¿Olvidaste tu contraseña?',
+                              style: TextStyle(
+                                color: AppTheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton.icon(
+                            onPressed: loading ? null : login,
+                            icon: loading
+                                ? const SizedBox()
+                                : const Icon(Icons.login),
+                            label: loading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
+                                : const Text(
+                                    'Ingresar',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+
+                  const SizedBox(height: 26),
+
+                  RichText(
+                    text: const TextSpan(
+                      text: '¿No tienes una cuenta? ',
+                      style: TextStyle(color: AppTheme.textGrey),
+                      children: [
+                        TextSpan(
+                          text: 'Contactar Administrador',
+                          style: TextStyle(
+                            color: AppTheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  const Text(
+                    'v1.0.4',
+                    style: TextStyle(color: Colors.black26),
                   ),
                 ],
               ),
@@ -221,7 +273,6 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
       ),
-     ),
-   );
+    );
   }
 }
