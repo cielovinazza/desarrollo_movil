@@ -1,3 +1,4 @@
+import '../entities/mano_de_obra.dart';
 class ItemTrabajo {
   final String tipo;
   final double metrosCuadrados;
@@ -26,7 +27,7 @@ class CotizacionModel {
 
   // Mocks requeridos para el Sprint 2 (Simulación de lo que hacen tus compañeros)
   final double costoMaterialesSimulado;
-  final double costoManoObraSimulado;
+  final List<ManoDeObra> listaManoObra;
 
   CotizacionModel({
     required this.direccionObra,
@@ -35,7 +36,7 @@ class CotizacionModel {
     required this.porcentajeUtilidad,
     this.porcentajeIva = 19.0,
     this.costoMaterialesSimulado = 50000.0,
-    this.costoManoObraSimulado = 120000.0,
+    required this.listaManoObra,
   });
 
   // Suma total de todos los subtotales de la lista de trabajos
@@ -43,11 +44,20 @@ class CotizacionModel {
     return listaTrabajos.fold(0.0, (suma, item) => suma + item.subtotal);
   }
 
+  double get subtotalManoObraTotal {
+
+  return listaManoObra.fold(
+    0.0,
+    (suma, item) =>
+        suma + item.subtotal,
+  );
+}
+
   // Fórmula: Total = (Suma Mat + Suma MO + Viático) * (1 + %Utilidad) * (1 + %IVA)
   int calcularTotalFinal() {
     double costoBaseTotal = subtotalObraTotal + 
         costoMaterialesSimulado + 
-        costoManoObraSimulado + 
+        subtotalManoObraTotal + 
         (viatico ?? 0.0);
 
     double factorUtilidad = 1 + (porcentajeUtilidad / 100);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/cotizacion_model.dart';
+import '../widgets/manodeobra.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -11,6 +12,8 @@ class CrearCotizacionPage extends StatefulWidget {
 class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _formKey = GlobalKey<FormState>();
   int _currentStep = 0;
+
+  final List<ManoDeObra> _manoObraAgregada=[];
 
   // Color verde institucional de la app
   final Color _verdeApp = const Color(0xFF2E7D32);
@@ -32,6 +35,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     _ivaController.dispose();
     super.dispose();
   }
+  
 
   // Captura el estado y calcula en vivo
   // Nota: Mantiene los mocks exigidos de materiales y mano de obra del Sprint 2
@@ -42,6 +46,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     return CotizacionModel(
       direccionObra: _direccionController.text.trim(),
       listaTrabajos: _trabajosAgregados,
+      listaManoObra: _manoObraAgregada,
       viatico: viaticoValor,
       porcentajeUtilidad: double.tryParse(_utilidadController.text) ?? 0.0,
       porcentajeIva: double.tryParse(_ivaController.text) ?? 19.0,
@@ -71,7 +76,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: tipoSeleccionado,
+                  initialValue: tipoSeleccionado,
                   decoration: const InputDecoration(
                     labelText: 'Tipo de Rubro',
                     border: OutlineInputBorder(),
@@ -139,6 +144,20 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     );
   }
 
+  Future<void> _agregarManoObra() async{
+
+    final resultado= await showDialog<ManoDeObra>(
+      context: context,
+      builder: (_)=>ManoObraDialog(verdeApp: _verdeApp),
+      );
+
+    if (resultado != null){
+      setState(() {
+        _manoObraAgregada.add(resultado);
+      });
+    }  
+  }
+
   @override
   Widget build(BuildContext context) {
     final datosEnVivo = _obtenerEstadoActual();
@@ -161,6 +180,41 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
+            controlsBuilder: (context, details) {
+
+              return Row(
+                children: [
+
+                  ElevatedButton(
+
+                    onPressed: details.onStepContinue,
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _verdeApp,
+                      foregroundColor: Colors.white,
+                    ),
+
+                    child: Text(
+                      _currentStep == 3
+                          ? 'Guardar': 'Continuar',
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  TextButton(
+
+                    onPressed: details.onStepCancel,
+
+                    child: Text(
+                      _currentStep == 0
+                          ? 'Salir': 'Atrás',
+                    ),
+                  ),
+                ],
+              );
+            },
+
             onStepContinue: () {
               if (_currentStep < 4) {
                 setState(() => _currentStep += 1);
@@ -266,7 +320,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           border: Border.all(color: Colors.grey.shade200),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: 0.02),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             )
@@ -277,7 +331,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: _verdeApp.withOpacity(0.1),
+                              color: _verdeApp.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(Icons.build_circle_outlined, color: _verdeApp, size: 22),
@@ -317,9 +371,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: _verdeApp.withOpacity(0.06),
+                        color: _verdeApp.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _verdeApp.withOpacity(0.2)),
+                        border: Border.all(color: _verdeApp.withValues(alpha: 0.2)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -344,12 +398,17 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               Step(
                 title: const Text('Cargas de Mano de Obra', style: TextStyle(fontWeight: FontWeight.w600)),
                 isActive: _currentStep >= 2,
-                content: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text('Costo acumulado MO (Simulado): \$${datosEnVivo.costoManoObraSimulado.toStringAsFixed(0)} CLP', style: const TextStyle(color: Colors.grey)),
-                  ),
+                content: ManoObraLista(
+                  items: _manoObraAgregada,
+                  verdeApp: _verdeApp,
+                  onAgregar: _agregarManoObra,
+                  onEliminar: (index){
+                    setState(() {
+                      _manoObraAgregada.removeAt(index);
+
+                    });
+                  },
+                 
                 ),
               ),
 
@@ -413,7 +472,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: _verdeApp.withOpacity(0.3),
+                            color: _verdeApp.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           )
