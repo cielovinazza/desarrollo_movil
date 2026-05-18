@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:project/features/auth/presentation/pages/login_page.dart';
+import 'package:project/core/di/injection.dart';
+import 'package:project/shared/design_system/app_theme.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -7,12 +10,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Proyecto Flutter',
-      home: Scaffold(
-        body: Center(
-          child: Text('Proyecto base'),
-          ),
-      ),
+      title: 'Sistema de Cotizaciones',
+      theme: AppTheme.lightTheme,
+      home: LoginPage(useCase: loginUseCase),
     );
   }
 }

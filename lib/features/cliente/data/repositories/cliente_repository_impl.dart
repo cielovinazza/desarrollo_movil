@@ -1,13 +1,19 @@
 import '../../domain/entities/cliente.dart';
 import '../../domain/repositories/cliente_repository.dart';
+import '../datasources/clientes_local_datasource.dart';
 
 class ClienteRepositoryImpl implements ClienteRepository {
-  static final List<Cliente> _clientes = [];
+
+  final ClientesLocalDataSource localDataSource;
+
+  ClienteRepositoryImpl(this.localDataSource);
 
   @override
   Future<void> registrarCliente(Cliente cliente) async {
 
-    final rutExiste = _clientes.any(
+    final clientes = await localDataSource.getClientes();
+
+    final rutExiste = clientes.any(
       (c) =>
           c.rut.replaceAll('.', '').toUpperCase() ==
           cliente.rut.replaceAll('.', '').toUpperCase(),
@@ -17,10 +23,8 @@ class ClienteRepositoryImpl implements ClienteRepository {
       throw Exception('Ya existe un cliente con ese RUT');
     }
 
-
-
     final nuevoCliente = Cliente(
-      id: _clientes.length + 1,
+      id: clientes.length + 1,
       nombre: cliente.nombre,
       rut: cliente.rut,
       telefono: cliente.telefono,
@@ -28,22 +32,34 @@ class ClienteRepositoryImpl implements ClienteRepository {
       direccion: cliente.direccion,
     );
 
-    _clientes.add(nuevoCliente);
+    await localDataSource.agregarCliente(nuevoCliente);
   }
 
   @override
   Future<List<Cliente>> listarClientes() async {
-    return _clientes;
+    return await localDataSource.getClientes();
   }
 
   @override
   Future<void> editarCliente(Cliente cliente) async {
-    final index = _clientes.indexWhere(
-      (c) => c.id == cliente.id,
+
+    final clientes = await localDataSource.getClientes();
+
+    final rutDuplicado = clientes.any(
+      (c) =>
+          c.id != cliente.id &&
+          c.rut.replaceAll('.', '').toUpperCase() ==
+              cliente.rut.replaceAll('.', '').toUpperCase(),
     );
 
-    if (index != -1) {
-      _clientes[index] = cliente;
+    if (rutDuplicado) {
+      throw Exception('Ya existe un cliente con ese RUT');
     }
+
+    await localDataSource.editarCliente(cliente);
+  }
+
+  Future<List<Cliente>> getClientes() async {
+    return await localDataSource.getClientes();
   }
 }
