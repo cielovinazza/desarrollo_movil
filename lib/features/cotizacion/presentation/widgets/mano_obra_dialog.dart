@@ -220,7 +220,7 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: widget.verdeApp.withOpacity(0.08),
+                  color: widget.verdeApp.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(

@@ -469,7 +469,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           border: Border.all(color: Colors.grey.shade200),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: 0.02),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -483,7 +483,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: _verdeApp.withOpacity(0.1),
+                              color: _verdeApp.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -545,10 +545,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: _verdeApp.withOpacity(0.06),
+                        color: _verdeApp.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: _verdeApp.withOpacity(0.2),
+                          color: _verdeApp.withValues(alpha: 0.2),
                         ),
                       ),
                       child: Row(
@@ -669,7 +669,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: _verdeApp.withOpacity(0.3),
+                            color: _verdeApp.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
