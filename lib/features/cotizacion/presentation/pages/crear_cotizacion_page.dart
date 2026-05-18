@@ -4,6 +4,7 @@ import '../widgets/manodeobra.dart';
 import '../widgets/materiales.dart';
 import 'package:project/features/cotizacion/data/cotizaciones_memoria.dart';
 
+
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
 
@@ -330,7 +331,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     backgroundColor: _verdeApp,
-                    content: Text('Cotización guardada. Total: \$${datosEnVivo.calcularTotalFinal()} CLP'),
+                    content: Text(
+                      'Cotización guardada. Total: \$${datosEnVivo.calcularTotalFinal()} CLP',
+                    ),
                   ),
                 );
 
@@ -351,14 +354,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 0,
+                content: SelectorCliente(
                   controller: _clienteController,
-                  decoration: const InputDecoration(
-                    labelText: 'Buscar cliente',
                 ),
               ),
               Step(
-                title: const Text('Detalle de Trabajos de la Obra', style: TextStyle(fontWeight: FontWeight.w600)),
                 title: const Text(
+                  'Detalle de Trabajos de la Obra',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 isActive: _currentStep >= 1,
                 content: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -418,13 +422,18 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         ),
                       );
                     }),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Subtotal Obra: \$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
-                      style: TextStyle(color: _verdeApp, fontWeight: FontWeight.bold),
+                    if (_trabajosAgregados.isNotEmpty) const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _verdeApp.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: _verdeApp.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
                             'Subtotal Obra:',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
@@ -432,6 +441,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                               fontSize: 14,
                             ),
                           ),
+                          Text(
+                            '\$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _verdeApp,
+                              fontSize: 16,
                             ),
                           ),
                         ],
