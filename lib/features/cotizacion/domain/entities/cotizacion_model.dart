@@ -15,7 +15,9 @@ class ItemTrabajo {
 }
 
 class CotizacionModel {
+  final String cliente;
   final String direccionObra;
+
   
   // Tarea A: Lista de trabajos independientes (Pintura, Yeso, etc.)
   final List<ItemTrabajo> listaTrabajos;
@@ -30,6 +32,7 @@ class CotizacionModel {
   final List<ManoDeObra> listaManoObra;
 
   CotizacionModel({
+    required this.cliente,
     required this.direccionObra,
     required this.listaTrabajos,
     this.viatico,

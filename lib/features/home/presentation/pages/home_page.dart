@@ -3,7 +3,6 @@ import 'package:project/features/cliente/presentation/pages/registro_cliente_pag
 import 'package:project/features/cliente/presentation/pages/listado_cliente_page.dart';
 import 'package:project/features/cotizacion/presentation/pages/crear_cotizacion_page.dart';
 import 'package:project/shared/design_system/app_theme.dart';
-import 'package:project/features/materiales/presentation/pages/materiales_page.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onGoToCotizaciones;
@@ -154,27 +153,6 @@ class HomePage extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (_) => const ListadoClientesPage(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 14),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionCard(
-                        icon: Icons.inventory_2_outlined,
-                        title: 'Materiales',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const MaterialesPage(),
                             ),
                           );
                         },

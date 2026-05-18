@@ -88,6 +88,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
               cotizaciones.insert(0, {
                 'codigo': 'COT-00${cotizaciones.length + 1}',
                 'cliente': nuevaCotizacion['cliente'] ?? 'Cliente Nuevo',
+                'direccion': nuevaCotizacion['direccion']?? 'Dirección Nueva',
                 'fecha': nuevaCotizacion['fecha'] ?? 'Hoy',
                 'monto': nuevaCotizacion['monto'] ?? '\$0',
                 'estado': 'Pendiente',
@@ -237,6 +238,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       return _CotizacionCard(
                         codigo: cotizacion['codigo']!,
                         cliente: cotizacion['cliente']!,
+                        direccion: cotizacion['direccion']!,
                         fecha: cotizacion['fecha']!,
                         monto: cotizacion['monto']!,
                         estado: estado,
@@ -322,6 +324,7 @@ class _ResumenCard extends StatelessWidget {
 class _CotizacionCard extends StatelessWidget {
   final String codigo;
   final String cliente;
+  final String direccion;
   final String fecha;
   final String monto;
   final String estado;
@@ -333,6 +336,7 @@ class _CotizacionCard extends StatelessWidget {
   const _CotizacionCard({
     required this.codigo,
     required this.cliente,
+    required this.direccion,
     required this.fecha,
     required this.monto,
     required this.estado,
@@ -497,6 +501,7 @@ class _CotizacionCard extends StatelessWidget {
                                   CrossAxisAlignment.start,
                               children: [
                                 Text('Código: $codigo'),
+                                Text('Dirección: $direccion'),
                                 Text('Fecha: $fecha'),
                                 Text('Monto: $monto'),
                                 Text('Estado: $estado'),
