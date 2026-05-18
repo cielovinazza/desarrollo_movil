@@ -176,6 +176,7 @@ class ManoObraLista extends StatelessWidget {
                   BoxShadow(
                     color: Colors.black
                         .withOpacity(0.02),
+                        .withValues(alpha: 0.02),
 
                     blurRadius: 4,
 
@@ -202,6 +203,7 @@ class ManoObraLista extends StatelessWidget {
 
                     color: verdeApp
                         .withOpacity(0.1),
+                        .withValues(alpha: 0.1),
 
                     shape: BoxShape.circle,
                   ),
@@ -303,6 +305,7 @@ class ManoObraLista extends StatelessWidget {
 
             color:
                 verdeApp.withOpacity(0.06),
+                verdeApp.withValues(alpha: 0.06),
 
             borderRadius:
                 BorderRadius.circular(10),
@@ -310,6 +313,7 @@ class ManoObraLista extends StatelessWidget {
             border: Border.all(
               color:
                   verdeApp.withOpacity(0.2),
+                  verdeApp.withValues(alpha: 0.2),
             ),
           ),
 

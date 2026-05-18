@@ -4,7 +4,6 @@ import '../widgets/manodeobra.dart';
 import '../widgets/materiales.dart';
 import 'package:project/features/cotizacion/data/cotizaciones_memoria.dart';
 
-
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
 
@@ -68,6 +67,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       porcentajeUtilidad: double.tryParse(_utilidadController.text) ?? 0.0,
       porcentajeIva: double.tryParse(_ivaController.text) ?? 19.0,
       costoMaterialesSimulado: _totalMateriales,
+    );
+  }
+
+  void _mostrarMensaje(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensaje)),
     );
   }
 
@@ -219,7 +224,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 if (m2 > 0 && precio > 0) {
                   setState(() {
                     _trabajosAgregados.add(
-                      ItemTrabajo(tipo: tipoSeleccionado, metrosCuadrados: m2, precioPorMetro: precio),
+                      ItemTrabajo(
+                        tipo: tipoSeleccionado,
+                        metrosCuadrados: m2,
+                        precioPorMetro: precio,
+                      ),
                     );
                   });
                   Navigator.pop(context);
@@ -284,6 +293,24 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               ],
             ),
             onStepContinue: () {
+              if (_currentStep == 0) {
+                if (_clienteController.text.trim().isEmpty) {
+                  _mostrarMensaje('Debes ingresar o seleccionar un cliente');
+                  return;
+                }
+              }
+
+              if (_currentStep == 1) {
+                if (_direccionController.text.trim().isEmpty) {
+                  _mostrarMensaje('Debes ingresar la dirección de la obra');
+                  return;
+                }
+                if (_trabajosAgregados.isEmpty) {
+                  _mostrarMensaje('Debes agregar al menos un trabajo de obra');
+                  return;
+                }
+              }
+
               if (_currentStep < 4) {
                 setState(() => _currentStep += 1);
               } else {
@@ -319,20 +346,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             },
             steps: [
               Step(
-                title: const Text('Identificación del Cliente', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text(
+                  'Identificación del Cliente',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 isActive: _currentStep >= 0,
-                content: TextFormField(
                   controller: _clienteController,
                   decoration: const InputDecoration(
                     labelText: 'Buscar cliente',
-                    hintText: 'Buscar por RUT o nombre',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
                 ),
               ),
               Step(
                 title: const Text('Detalle de Trabajos de la Obra', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text(
                 isActive: _currentStep >= 1,
                 content: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,12 +422,30 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     Text(
                       'Subtotal Obra: \$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
                       style: TextStyle(color: _verdeApp, fontWeight: FontWeight.bold),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                        border: Border.all(color: _verdeApp.withValues(alpha: 0.2)),
+                            'Subtotal Obra:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _verdeApp,
+                              fontSize: 14,
+                            ),
+                          ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
               Step(
-                title: const Text('Cargas de Mano de Obra', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text(
+                  'Cargas de Mano de Obra',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 isActive: _currentStep >= 2,
                 content: ManoObraLista(
                   items: _manoObraAgregada,
@@ -411,7 +455,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 ),
               ),
               Step(
-                title: const Text('Catálogo de Materiales', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text(
+                  'Catálogo de Materiales',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 isActive: _currentStep >= 3,
                 content: MaterialLista(
                   items: _materialesAgregados,
@@ -419,11 +466,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   onAgregar: _agregarMaterial,
                   onEliminar: (index) => setState(() => _materialesAgregados.removeAt(index)),
                   onEditar: _editarMaterial,
-                  onImportarCSV: (materiales) => setState(() => _materialesAgregados.addAll(materiales)),
+                  onImportarCSV: (materiales) =>
+                      setState(() => _materialesAgregados.addAll(materiales)),
                 ),
               ),
               Step(
-                title: const Text('Configuración de Totales', style: TextStyle(fontWeight: FontWeight.w600)),
+                title: const Text(
+                  'Configuración de Totales',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 isActive: _currentStep >= 4,
                 content: Column(
                   children: [
@@ -469,12 +520,20 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         children: [
                           const Text(
                             'TOTAL GENERAL NETO + IMPUESTOS',
-                            style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Monto Final: \$${datosEnVivo.calcularTotalFinal()} CLP',
-                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
