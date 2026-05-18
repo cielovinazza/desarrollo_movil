@@ -5,6 +5,9 @@ import '../../domain/usecases/crear_material.dart';
 import '../../domain/usecases/editar_material.dart';
 import '../../domain/usecases/eliminar_material.dart';
 import '../../domain/usecases/listar_material.dart';
+import '../../utils/csv_parser.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 class MaterialesPage extends StatefulWidget {
   const MaterialesPage({super.key});
@@ -138,13 +141,51 @@ class _MaterialesPageState extends State<MaterialesPage> {
     }
   }
 
+  Future<void> importarCSV() async {
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: ['csv'],);
+
+  if (result == null) return;
+
+  final path = result.files.single.path;
+
+  if (path == null) return;
+
+  final file = File(path);
+  final contenido = await file.readAsString();
+
+  final resultado = parsearCSV(contenido);
+
+  for (final material in resultado.materialesValidos) {
+    await crearMaterialUseCase(material);
+  }
+
+  if (!mounted) return;
+  await cargarMateriales();
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        'Importados: ${resultado.materialesValidos.length} | '
+        'Rechazados: ${resultado.filasRechazadas.length}',
+      ),
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Registro de materiales'),
         centerTitle: true,
-      ),
+        actions: [
+          TextButton.icon(
+            onPressed: importarCSV,
+            icon: const Icon(Icons.upload_file),
+            label: const Text('Importar materiales CSV'),),
+            ],
+            ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
