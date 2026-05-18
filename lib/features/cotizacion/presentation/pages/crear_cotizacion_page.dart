@@ -444,6 +444,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 content: SelectorCliente(
                   controller: _clienteController
                   ),
+                  
                 ),
               
               Step(
@@ -524,14 +525,41 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         ),
                       );
                     }),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Subtotal Obra: \$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
-                      style: TextStyle(
-                        color: _verdeApp,
-                        fontWeight: FontWeight.bold,
+                    const SizedBox(height:2 ),
+                    if (_trabajosAgregados.isNotEmpty) const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _verdeApp.withValues(alpha:0.06),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _verdeApp.withValues(alpha:0.2),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Subtotal Obra:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _verdeApp,
+                              fontSize: 14,
+                            ),
+                          ),
+                           const SizedBox(height: 8),
+                          Text(
+                            '\$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _verdeApp,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
