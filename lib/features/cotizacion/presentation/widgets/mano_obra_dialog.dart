@@ -133,7 +133,7 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: cargoSeleccionado,
+                initialValue: cargoSeleccionado,
                 decoration: const InputDecoration(
                   labelText: 'Cargo',
                   border: OutlineInputBorder(),
@@ -220,7 +220,6 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: widget.verdeApp.withOpacity(0.08),
                   color: widget.verdeApp.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
