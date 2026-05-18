@@ -141,7 +141,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: tipoSeleccionado,
+                  initialValue: tipoSeleccionado,
                   decoration: const InputDecoration(
                     labelText: 'Tipo de Rubro',
                     border: OutlineInputBorder(),
