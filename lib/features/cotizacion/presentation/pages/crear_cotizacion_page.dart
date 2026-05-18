@@ -17,7 +17,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final List<ManoDeObra> _manoObraAgregada = [];
 
   final Color _verdeApp = const Color(0xFF2E7D32);
-
+  final _clienteController = TextEditingController();
   final _direccionController = TextEditingController();
   final _viaticoController = TextEditingController();
   final _utilidadController = TextEditingController(text: '0');
@@ -40,6 +40,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
   @override
   void dispose() {
+    _clienteController.dispose();
     _direccionController.dispose();
     _viaticoController.dispose();
     _utilidadController.dispose();
@@ -53,6 +54,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         viaticoTexto.isEmpty ? null : double.tryParse(viaticoTexto);
 
     return CotizacionModel(
+      cliente: _clienteController.text.trim(),
       direccionObra: _direccionController.text.trim(),
       listaTrabajos: _trabajosAgregados,
       listaManoObra: _manoObraAgregada,
@@ -316,9 +318,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               } else {
                 CotizacionesMemoria.lista.insert(0, {
                   'codigo': 'COT-00${CotizacionesMemoria.lista.length + 1}',
-                  'cliente': _direccionController.text.trim().isEmpty
+                  'cliente': _clienteController.text.trim().isEmpty
                       ? 'Cliente sin identificar'
-                      : _direccionController.text.trim(),
+                      : _clienteController.text.trim(),
+                  'direccion': _direccionController.text.trim().isEmpty
+                      ? 'Dirección no especificada'
+                      :_direccionController.text.trim(),
                   'fecha':
                       '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
                   'monto': '\$${datosEnVivo.calcularTotalFinal()}',

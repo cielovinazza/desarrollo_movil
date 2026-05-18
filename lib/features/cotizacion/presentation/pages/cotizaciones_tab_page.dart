@@ -19,7 +19,7 @@ class CotizacionesTabPage extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'Presiona el botón + para iniciar el Stepper del Sprint 2',
+              'Presiona el botón + ',
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
