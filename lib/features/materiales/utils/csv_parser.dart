@@ -20,7 +20,9 @@ ResultadoCSV parsearCSV(String contenido) {
   if (lineas.isEmpty) {
     return ResultadoCSV(
       materialesValidos: [],
-      filasRechazadas: [],
+      filasRechazadas: [
+        'El archivo CSV está vacío',
+      ],
     );
   }
 
@@ -31,16 +33,23 @@ ResultadoCSV parsearCSV(String contenido) {
 
   final idxNombre =
       encabezados.indexWhere((h) => h == 'Nombre_Material');
+
   final idxUnidad =
       encabezados.indexWhere((h) => h == 'Unidad_Medida');
+
   final idxCosto =
       encabezados.indexWhere((h) => h == 'Costo_Unitario_CLP');
 
-  if (idxNombre == -1 || idxUnidad == -1 || idxCosto == -1) {
+  if (idxNombre == -1 ||
+      idxUnidad == -1 ||
+      idxCosto == -1) {
     return ResultadoCSV(
       materialesValidos: [],
       filasRechazadas: [
-        'Encabezado invalido: se requieren Nombre_Material, Unidad_Medida, Costo_Unitario_CLP'
+        'Encabezado inválido: se requieren '
+            'Nombre_Material, '
+            'Unidad_Medida, '
+            'Costo_Unitario_CLP',
       ],
     );
   }
@@ -59,7 +68,9 @@ ResultadoCSV parsearCSV(String contenido) {
     if (celdas.length <= idxNombre ||
         celdas.length <= idxUnidad ||
         celdas.length <= idxCosto) {
-      rechazadas.add('Fila $numFila: columnas insuficientes');
+      rechazadas.add(
+        'Fila $numFila: columnas insuficientes',
+      );
       continue;
     }
 
@@ -67,21 +78,36 @@ ResultadoCSV parsearCSV(String contenido) {
     final unidad = celdas[idxUnidad].trim();
     final costoStr = celdas[idxCosto].trim();
 
-    if (nombre.isEmpty || unidad.isEmpty || costoStr.isEmpty) {
-      rechazadas.add('Fila $numFila: contiene celdas vacias');
+    if (nombre.isEmpty ||
+        unidad.isEmpty ||
+        costoStr.isEmpty) {
+      rechazadas.add(
+        'Fila $numFila: contiene celdas vacías',
+      );
       continue;
     }
 
     final costo = double.tryParse(costoStr);
 
     if (costo == null) {
-      rechazadas.add('Fila $numFila: "$costoStr" no es un valor numerico');
+      rechazadas.add(
+        'Fila $numFila: "$costoStr" no es un valor numérico',
+      );
       continue;
     }
 
     if (costo <= 0) {
       rechazadas.add(
-        'Fila $numFila: costo debe ser mayor a cero (valor: $costoStr)',
+        'Fila $numFila: costo debe ser mayor a cero '
+        '(valor: $costoStr)',
+      );
+      continue;
+    }
+
+
+    if (costo % 1 != 0) {
+      rechazadas.add(
+        'Fila $numFila: el costo debe ser un número entero',
       );
       continue;
     }
@@ -91,6 +117,7 @@ ResultadoCSV parsearCSV(String contenido) {
         nombre: nombre,
         unidadMedida: unidad,
         costoUnitario: costo,
+        cantidad: 1,
       ),
     );
   }
