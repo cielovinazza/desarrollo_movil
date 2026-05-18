@@ -8,4 +8,6 @@ abstract class MaterialRepository {
   Future<void> editarMaterial(int index, MaterialEntity material);
 
   Future<void> eliminarMaterial(int index);
+
+   Future<void> agregarMultiples(List<MaterialEntity> materiales);
 }

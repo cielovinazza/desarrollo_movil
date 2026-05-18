@@ -211,13 +211,18 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
 
                 const SizedBox(height: 22),
 
-                if (lista.isEmpty)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(30),
-                      child: Text('No se encontraron cotizaciones'),
-                    ),
-                  )
+                if (lista.isEmpty && searchText.isNotEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(30),
+                    child: Text(
+                      'Cliente sin historial',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,),
+                        ),
+                        ),
+                        )
                 else
                   ListView.separated(
                     shrinkWrap: true,
