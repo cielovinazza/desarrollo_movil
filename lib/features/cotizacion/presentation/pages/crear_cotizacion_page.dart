@@ -49,8 +49,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
   CotizacionModel _obtenerEstadoActual() {
     final viaticoTexto = _viaticoController.text.trim();
-    final double? viaticoValor =
-        viaticoTexto.isEmpty ? null : double.tryParse(viaticoTexto);
+    final double? viaticoValor = viaticoTexto.isEmpty
+        ? null
+        : double.tryParse(viaticoTexto);
 
     return CotizacionModel(
       direccionObra: _direccionController.text.trim(),
@@ -146,10 +147,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   ),
                   items: _tiposDisponibles
                       .map(
-                        (tipo) => DropdownMenuItem(
-                          value: tipo,
-                          child: Text(tipo),
-                        ),
+                        (tipo) =>
+                            DropdownMenuItem(value: tipo, child: Text(tipo)),
                       )
                       .toList(),
                   onChanged: (value) {
@@ -166,14 +165,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: () {
-                      _mostrarDialogoCrearTipoTrabajo(
-                        setModalState,
-                        (nuevoTipo) {
-                          setModalState(() {
-                            tipoSeleccionado = nuevoTipo;
-                          });
-                        },
-                      );
+                      _mostrarDialogoCrearTipoTrabajo(setModalState, (
+                        nuevoTipo,
+                      ) {
+                        setModalState(() {
+                          tipoSeleccionado = nuevoTipo;
+                        });
+                      });
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('Crear nuevo tipo'),
@@ -184,8 +182,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
                 TextField(
                   controller: m2ItemController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Cantidad Metros Cuadrados (m²)',
                     prefixIcon: Icon(Icons.square_foot),
@@ -281,9 +280,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         key: _formKey,
         onChanged: () => setState(() {}),
         child: Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: _verdeApp),
-          ),
+          data: Theme.of(
+            context,
+          ).copyWith(colorScheme: ColorScheme.light(primary: _verdeApp)),
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
@@ -296,16 +295,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       backgroundColor: _verdeApp,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text(
-                      _currentStep == 4 ? 'Guardar' : 'Continuar',
-                    ),
+                    child: Text(_currentStep == 4 ? 'Guardar' : 'Continuar'),
                   ),
                   const SizedBox(width: 12),
                   TextButton(
                     onPressed: details.onStepCancel,
-                    child: Text(
-                      _currentStep == 0 ? 'Salir' : 'Atrás',
-                    ),
+                    child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
                   ),
                 ],
               );
@@ -351,13 +346,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 0,
-                content: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'Buscador de clientes por RUT (Sprint 1).',
-                      style: TextStyle(color: Colors.grey),
+                content: TextFormField(
+                  decoration: const InputDecoration(
+                    labelText: 'Buscar cliente',
+                    hintText: 'Buscar por RUT o nombre',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
                     ),
                   ),
                 ),
@@ -409,10 +406,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: _verdeApp,
-                            side: BorderSide(
-                              color: _verdeApp,
-                              width: 1.5,
-                            ),
+                            side: BorderSide(color: _verdeApp, width: 1.5),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
@@ -542,9 +536,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       decoration: BoxDecoration(
                         color: _verdeApp.withOpacity(0.06),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: _verdeApp.withOpacity(0.2),
-                        ),
+                        border: Border.all(color: _verdeApp.withOpacity(0.2)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
