@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/mano_de_obra.dart';
 
 class ManoObraDialog extends StatefulWidget {
-
   final Color verdeApp;
 
   const ManoObraDialog({
@@ -11,168 +10,178 @@ class ManoObraDialog extends StatefulWidget {
   });
 
   @override
-  State<ManoObraDialog> createState() =>
-      _ManoObraDialogState();
-
+  State<ManoObraDialog> createState() => _ManoObraDialogState();
 }
 
-class _ManoObraDialogState
-    extends State<ManoObraDialog> {
-
-  final List<String> cargosDisponibles=[
+class _ManoObraDialogState extends State<ManoObraDialog> {
+  final List<String> cargosDisponibles = [
     'Pintor',
     'Yesero',
     'Supervisor',
+    'Maestro',
+    'Ayudante',
+    'Ceramista',
+    'Electricista',
+    'Gasfíter',
+    'Carpintero',
+    'Albañil',
   ];
 
   late String cargoSeleccionado;
 
-  final _formKey =
-      GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
-  final valorJornadaController =
-      TextEditingController();
-
-  final diasController =
-      TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-
-    cargoSeleccionado = cargosDisponibles.first;
-}
+  final valorJornadaController = TextEditingController();
+  final diasController = TextEditingController();
 
   double subtotal = 0;
 
   @override
+  void initState() {
+    super.initState();
+    cargoSeleccionado = cargosDisponibles.first;
+  }
+
+  @override
   void dispose() {
-
     valorJornadaController.dispose();
-
     diasController.dispose();
-
     super.dispose();
   }
 
   void calcularSubtotal() {
-
-    final valor =
-        double.tryParse(
-              valorJornadaController.text,
-            ) ??
-            0;
-
-    final dias =
-        double.tryParse(
-              diasController.text,
-            ) ??
-            0;
+    final valor = double.tryParse(valorJornadaController.text) ?? 0;
+    final dias = double.tryParse(diasController.text) ?? 0;
 
     setState(() {
       subtotal = valor * dias;
     });
   }
 
+  void _mostrarDialogoCrearCargo() {
+    final nuevoCargoController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Nuevo cargo'),
+        content: TextField(
+          controller: nuevoCargoController,
+          decoration: const InputDecoration(
+            labelText: 'Nombre del cargo',
+            hintText: 'Ej: Instalador, Soldador, Jornal',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.verdeApp,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              final nuevoCargo = nuevoCargoController.text.trim();
+
+              if (nuevoCargo.isEmpty) return;
+
+              setState(() {
+                if (!cargosDisponibles.contains(nuevoCargo)) {
+                  cargosDisponibles.add(nuevoCargo);
+                }
+
+                cargoSeleccionado = nuevoCargo;
+              });
+
+              Navigator.pop(context);
+            },
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-
     return AlertDialog(
-
       shape: RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16),
       ),
-
       title: Row(
         children: [
-
           Icon(
             Icons.engineering,
             color: widget.verdeApp,
           ),
-
           const SizedBox(width: 10),
-
-          const Text(
-            'Agregar Mano de Obra',
+          const Expanded(
+            child: Text(
+              'Agregar Mano de Obra',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
-
       content: Form(
-
         key: _formKey,
-
         child: SingleChildScrollView(
-
           child: Column(
-            mainAxisSize:
-                MainAxisSize.min,
-
+            mainAxisSize: MainAxisSize.min,
             children: [
-
               DropdownButtonFormField<String>(
-
-                initialValue: cargoSeleccionado,
-
+                value: cargoSeleccionado,
                 decoration: const InputDecoration(
                   labelText: 'Cargo',
                   border: OutlineInputBorder(),
                 ),
-
-                items: cargosDisponibles.map(
-                  (cargo) {
-
+                items: cargosDisponibles.map((cargo) {
                   return DropdownMenuItem(
                     value: cargo,
                     child: Text(cargo),
                   );
-                },
-              ).toList(),
+                }).toList(),
+                onChanged: (value) {
+                  if (value == null) return;
 
-              onChanged: (value) {
-                setState(() {
-                  cargoSeleccionado = value!;
-                });
-              },
-            ),
+                  setState(() {
+                    cargoSeleccionado = value;
+                  });
+                },
+              ),
+
+              const SizedBox(height: 8),
+
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: _mostrarDialogoCrearCargo,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Crear nuevo cargo'),
+                ),
+              ),
+
               const SizedBox(height: 16),
 
               TextFormField(
-
-                controller:
-                    valorJornadaController,
-
-                keyboardType:
-                    TextInputType.number,
-
-                onChanged: (_) =>
-                    calcularSubtotal(),
-
-                decoration:
-                    const InputDecoration(
-                  labelText:
-                      'Valor jornada (CLP)',
-
-                  border:
-                      OutlineInputBorder(),
+                controller: valorJornadaController,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => calcularSubtotal(),
+                decoration: const InputDecoration(
+                  labelText: 'Valor jornada (CLP)',
+                  border: OutlineInputBorder(),
                 ),
-
                 validator: (value) {
-
-                  if (value == null ||
-                      value.isEmpty) {
-
+                  if (value == null || value.isEmpty) {
                     return 'Ingrese un valor';
                   }
 
-                  final numero =
-                      double.tryParse(value);
+                  final numero = double.tryParse(value);
 
-                  if (numero == null ||
-                      numero <= 0) {
-
+                  if (numero == null || numero <= 0) {
                     return 'Ingrese un número válido';
                   }
 
@@ -183,39 +192,21 @@ class _ManoObraDialogState
               const SizedBox(height: 16),
 
               TextFormField(
-
-                controller:
-                    diasController,
-
-                keyboardType:
-                    TextInputType.number,
-
-                onChanged: (_) =>
-                    calcularSubtotal(),
-
-                decoration:
-                    const InputDecoration(
-                  labelText:
-                      'Cantidad de días',
-
-                  border:
-                      OutlineInputBorder(),
+                controller: diasController,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => calcularSubtotal(),
+                decoration: const InputDecoration(
+                  labelText: 'Cantidad de días',
+                  border: OutlineInputBorder(),
                 ),
-
                 validator: (value) {
-
-                  if (value == null ||
-                      value.isEmpty) {
-
+                  if (value == null || value.isEmpty) {
                     return 'Ingrese cantidad de días';
                   }
 
-                  final numero =
-                      double.tryParse(value);
+                  final numero = double.tryParse(value);
 
-                  if (numero == null ||
-                      numero <= 0) {
-
+                  if (numero == null || numero <= 0) {
                     return 'Ingrese un número válido';
                   }
 
@@ -226,113 +217,63 @@ class _ManoObraDialogState
               const SizedBox(height: 20),
 
               Container(
-
                 width: double.infinity,
-
-                padding:
-                    const EdgeInsets.all(14),
-
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: widget.verdeApp
-                      .withValues(alpha: 0.08),
-
-                  borderRadius:
-                      BorderRadius.circular(10),
+                  color: widget.verdeApp.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-
                 child: Column(
-
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     const Text(
                       'Subtotal Mano de Obra',
-
                       style: TextStyle(
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     Text(
                       '\$${subtotal.toStringAsFixed(0)} CLP',
-
                       style: TextStyle(
-                        color:
-                            widget.verdeApp,
-
-                        fontWeight:
-                            FontWeight.bold,
-
+                        color: widget.verdeApp,
+                        fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(height: 24),
             ],
           ),
         ),
       ),
-
       actions: [
-
         TextButton(
-          onPressed: () =>
-              Navigator.pop(context),
-
-          child:
-              const Text('Cancelar'),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
         ),
-
         ElevatedButton(
-
           onPressed: () {
-
-            if (!_formKey.currentState!
-                .validate()) {
-
+            if (!_formKey.currentState!.validate()) {
               return;
             }
 
-            final item =
-                ManoDeObra(
+            final item = ManoDeObra(
               cargo: cargoSeleccionado,
-
-              valorJornada:
-                  double.parse(
-                valorJornadaController
-                    .text,
-              ),
-
-              dias:
-                  double.parse(
-                diasController.text,
-              ),
+              valorJornada: double.parse(valorJornadaController.text),
+              dias: double.parse(diasController.text),
             );
 
-            Navigator.pop(
-              context,
-              item,
-            );
+            Navigator.pop(context, item);
           },
-
-          style:
-              ElevatedButton.styleFrom(
-            backgroundColor:
-                widget.verdeApp,
-
-            foregroundColor:
-                Colors.white,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: widget.verdeApp,
+            foregroundColor: Colors.white,
           ),
-
-          child:
-              const Text('Guardar'),
+          child: const Text('Guardar'),
         ),
       ],
     );

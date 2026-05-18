@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project/shared/design_system/app_theme.dart';
+import 'crear_cotizacion_page.dart';
+import 'package:project/features/cotizacion/data/cotizaciones_memoria.dart';
 
 class CotizacionesPage extends StatefulWidget {
   const CotizacionesPage({super.key});
@@ -11,29 +13,8 @@ class CotizacionesPage extends StatefulWidget {
 class _CotizacionesPageState extends State<CotizacionesPage> {
   final TextEditingController searchController = TextEditingController();
 
-  final List<Map<String, String>> cotizaciones = [
-    {
-      'codigo': 'COT-001',
-      'cliente': 'Constructora Andes',
-      'fecha': '12/05/2026',
-      'monto': '\$1.250.000',
-      'estado': 'Pendiente',
-    },
-    {
-      'codigo': 'COT-002',
-      'cliente': 'Obras del Sur',
-      'fecha': '10/05/2026',
-      'monto': '\$850.000',
-      'estado': 'Aceptada',
-    },
-    {
-      'codigo': 'COT-003',
-      'cliente': 'Inmobiliaria Norte',
-      'fecha': '08/05/2026',
-      'monto': '\$640.000',
-      'estado': 'Rechazada',
-    },
-  ];
+  List<Map<String, String>> get cotizaciones =>
+    CotizacionesMemoria.lista;
 
   String searchText = '';
 
@@ -88,6 +69,34 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7F5),
+
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Nueva'),
+        onPressed: () async {
+          final nuevaCotizacion = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const CrearCotizacionPage(),
+            ),
+          );
+
+          if (nuevaCotizacion != null) {
+            setState(() {
+              cotizaciones.insert(0, {
+                'codigo': 'COT-00${cotizaciones.length + 1}',
+                'cliente': nuevaCotizacion['cliente'] ?? 'Cliente Nuevo',
+                'fecha': nuevaCotizacion['fecha'] ?? 'Hoy',
+                'monto': nuevaCotizacion['monto'] ?? '\$0',
+                'estado': 'Pendiente',
+              });
+            });
+          }
+        },
+      ),
+
       appBar: AppBar(
         backgroundColor: AppTheme.primary,
         elevation: 0,
@@ -373,7 +382,9 @@ class _CotizacionCard extends StatelessWidget {
                     ),
                     Text(
                       codigo,
-                      style: const TextStyle(color: AppTheme.textGrey),
+                      style: const TextStyle(
+                        color: AppTheme.textGrey,
+                      ),
                     ),
                   ],
                 ),
@@ -392,7 +403,10 @@ class _CotizacionCard extends StatelessWidget {
 
           Row(
             children: [
-              const Icon(Icons.calendar_today_outlined, size: 18),
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(fecha),
               const Spacer(),
@@ -408,39 +422,118 @@ class _CotizacionCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.warning,
-                    side: BorderSide(color: AppTheme.warning),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.warning,
+                        side: BorderSide(
+                          color: AppTheme.warning,
+                        ),
+                      ),
+                      onPressed: onPendiente,
+                      child: const Text('Pendiente'),
+                    ),
                   ),
-                  onPressed: onPendiente,
-                  child: const Text('Pendiente'),
-                ),
+
+                  const SizedBox(width: 8),
+
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: onAceptada,
+                      child: const Text('Aceptar'),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.danger,
+                        side: BorderSide(
+                          color: AppTheme.danger,
+                        ),
+                      ),
+                      onPressed: onRechazada,
+                      child: const Text('Rechazar'),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    foregroundColor: Colors.white,
+
+              const SizedBox(height: 10),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(
+                        Icons.visibility_outlined,
+                      ),
+                      label: const Text(
+                        'Ver detalle',
+                      ),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: Text(cliente),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text('Código: $codigo'),
+                                Text('Fecha: $fecha'),
+                                Text('Monto: $monto'),
+                                Text('Estado: $estado'),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(context),
+                                child: const Text('Cerrar'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  onPressed: onAceptada,
-                  child: const Text('Aceptar'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.danger,
-                    side: BorderSide(color: AppTheme.danger),
+
+                  const SizedBox(width: 8),
+
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                      ),
+                      label: const Text('Editar'),
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Edición próximamente',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                  onPressed: onRechazada,
-                  child: const Text('Rechazar'),
-                ),
+                ],
               ),
             ],
           ),
