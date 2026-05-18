@@ -398,17 +398,32 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               );
             },
             onStepContinue: () {
+              if (_currentStep == 0) {
+                if (_clienteController.text.trim().isEmpty) {
+                  _mostrarMensaje('Debes ingresar o seleccionar un cliente');
+                  return;
+                }
+              }
+
+              if (_currentStep == 1) {
+                if (_direccionController.text.trim().isEmpty) {
+                  _mostrarMensaje('Debes ingresar la dirección de la obra');
+                  return;
+                }
+
+                if (_trabajosAgregados.isEmpty) {
+                  _mostrarMensaje('Debes agregar al menos un trabajo de obra');
+                  return;
+                }
+              }
+
               if (_currentStep < 4) {
                 setState(() => _currentStep += 1);
               } else {
                 CotizacionesMemoria.lista.insert(0, {
                   'codigo': 'COT-00${CotizacionesMemoria.lista.length + 1}',
-                  'cliente': _clienteController.text.trim().isEmpty
-                      ? 'Cliente sin identificar'
-                      : _clienteController.text.trim(),
-                  'direccion': _direccionController.text.trim().isEmpty
-                      ? 'Dirección no especificada'
-                      : _direccionController.text.trim(),
+                  'cliente': _clienteController.text.trim(),
+                  'direccion': _direccionController.text.trim(),
                   'fecha':
                       '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
                   'monto': '\$${datosEnVivo.calcularTotalFinal()}',
