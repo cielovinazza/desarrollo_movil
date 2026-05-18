@@ -441,16 +441,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 0,
-                content: TextFormField(
-                  controller: _clienteController,
-                  decoration: const InputDecoration(
-                    labelText: 'Buscar cliente',
-                    hintText: 'Buscar por RUT o nombre',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
+                content: SelectorCliente(
+                  controller: _clienteController
                   ),
                 ),
-              ),
+              
               Step(
                 title: const Text(
                   'Detalle de Trabajos de la Obra',
