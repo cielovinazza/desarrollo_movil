@@ -7,20 +7,14 @@ import 'package:project/shared/design_system/app_theme.dart';
 class HomePage extends StatelessWidget {
   final VoidCallback onGoToCotizaciones;
 
-  const HomePage({
-    super.key,
-    required this.onGoToCotizaciones,
-  });
+  const HomePage({super.key, required this.onGoToCotizaciones});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sistema de Cotizaciones'),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {},
-        ),
+        leading: IconButton(icon: const Icon(Icons.menu), onPressed: () {}),
         actions: [
           IconButton(
             icon: const Icon(Icons.account_circle_outlined),
@@ -65,10 +59,7 @@ class HomePage extends StatelessWidget {
                 const Text(
                   'Gestione sus proyectos y clientes con precisión y rapidez profesional.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppTheme.textGrey,
-                  ),
+                  style: TextStyle(fontSize: 16, color: AppTheme.textGrey),
                 ),
 
                 const SizedBox(height: 28),
@@ -101,19 +92,19 @@ class HomePage extends StatelessWidget {
                       const SizedBox(height: 8),
                       const Text(
                         'Inicie una propuesta técnica hoy.',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 15,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 15),
                       ),
                       const SizedBox(height: 18),
                       SizedBox(
                         width: double.infinity,
                         height: 52,
                         child: ElevatedButton.icon(
-                          onPressed: (){
-                            Navigator.push(context,
-                            MaterialPageRoute(builder: (_)=>const CrearCotizacionPage(),),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CrearCotizacionPage(),
+                              ),
                             );
                           },
                           style: ElevatedButton.styleFrom(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/cotizacion_model.dart';
 import '../widgets/manodeobra.dart';
 import 'package:project/features/cotizacion/data/cotizaciones_memoria.dart';
+import 'package:project/features/materiales/domain/entities/material.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -15,15 +16,22 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   int _currentStep = 0;
 
   final List<ManoDeObra> _manoObraAgregada = [];
+  final List<ItemTrabajo> _trabajosAgregados = [];
+  final List<MaterialEntity> _materialesAgregados = [];
 
   final Color _verdeApp = const Color(0xFF2E7D32);
+
   final _clienteController = TextEditingController();
   final _direccionController = TextEditingController();
   final _viaticoController = TextEditingController();
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
 
-  final List<ItemTrabajo> _trabajosAgregados = [];
+  final _nombreMaterialController = TextEditingController();
+  final _unidadMaterialController = TextEditingController();
+  final _costoMaterialController = TextEditingController();
+
+  int? _indexMaterialEditando;
 
   final List<String> _tiposDisponibles = [
     'Pintura',
@@ -45,13 +53,24 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     _viaticoController.dispose();
     _utilidadController.dispose();
     _ivaController.dispose();
+    _nombreMaterialController.dispose();
+    _unidadMaterialController.dispose();
+    _costoMaterialController.dispose();
     super.dispose();
+  }
+
+  double get _totalMateriales {
+    return _materialesAgregados.fold(
+      0.0,
+      (suma, material) => suma + material.costoUnitario,
+    );
   }
 
   CotizacionModel _obtenerEstadoActual() {
     final viaticoTexto = _viaticoController.text.trim();
-    final double? viaticoValor =
-        viaticoTexto.isEmpty ? null : double.tryParse(viaticoTexto);
+    final double? viaticoValor = viaticoTexto.isEmpty
+        ? null
+        : double.tryParse(viaticoTexto);
 
     return CotizacionModel(
       cliente: _clienteController.text.trim(),
@@ -61,7 +80,88 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       viatico: viaticoValor,
       porcentajeUtilidad: double.tryParse(_utilidadController.text) ?? 0.0,
       porcentajeIva: double.tryParse(_ivaController.text) ?? 19.0,
+      costoMaterialesSimulado: _totalMateriales,
     );
+  }
+
+  void _mostrarMensaje(String mensaje) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(mensaje)));
+  }
+
+  void _filtrarCostoMaterial(String value) {
+    final textoFiltrado = value.replaceAll(RegExp(r'[^0-9.]'), '');
+
+    if (textoFiltrado != value) {
+      _costoMaterialController.value = TextEditingValue(
+        text: textoFiltrado,
+        selection: TextSelection.collapsed(offset: textoFiltrado.length),
+      );
+    }
+  }
+
+  void _guardarMaterial() {
+    final nombre = _nombreMaterialController.text.trim();
+    final unidad = _unidadMaterialController.text.trim();
+    final costoTexto = _costoMaterialController.text.trim();
+
+    if (nombre.isEmpty || unidad.isEmpty || costoTexto.isEmpty) {
+      _mostrarMensaje('Completa todos los campos del material');
+      return;
+    }
+
+    final costo = double.tryParse(costoTexto);
+
+    if (costo == null || costo <= 0) {
+      _mostrarMensaje('Ingresa un costo unitario válido');
+      return;
+    }
+
+    final material = MaterialEntity(
+      nombre: nombre,
+      unidadMedida: unidad,
+      costoUnitario: costo,
+    );
+
+    setState(() {
+      if (_indexMaterialEditando == null) {
+        _materialesAgregados.add(material);
+        _mostrarMensaje('Material agregado');
+      } else {
+        _materialesAgregados[_indexMaterialEditando!] = material;
+        _mostrarMensaje('Material actualizado');
+      }
+
+      _limpiarFormularioMaterial();
+    });
+  }
+
+  void _editarMaterial(int index) {
+    final material = _materialesAgregados[index];
+
+    setState(() {
+      _indexMaterialEditando = index;
+      _nombreMaterialController.text = material.nombre;
+      _unidadMaterialController.text = material.unidadMedida;
+      _costoMaterialController.text = material.costoUnitario.toString();
+    });
+  }
+
+  void _eliminarMaterial(int index) {
+    setState(() {
+      _materialesAgregados.removeAt(index);
+      _limpiarFormularioMaterial();
+    });
+
+    _mostrarMensaje('Material eliminado');
+  }
+
+  void _limpiarFormularioMaterial() {
+    _nombreMaterialController.clear();
+    _unidadMaterialController.clear();
+    _costoMaterialController.clear();
+    _indexMaterialEditando = null;
   }
 
   void _mostrarDialogoCrearTipoTrabajo(
@@ -148,10 +248,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   ),
                   items: _tiposDisponibles
                       .map(
-                        (tipo) => DropdownMenuItem(
-                          value: tipo,
-                          child: Text(tipo),
-                        ),
+                        (tipo) =>
+                            DropdownMenuItem(value: tipo, child: Text(tipo)),
                       )
                       .toList(),
                   onChanged: (value) {
@@ -161,42 +259,36 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     });
                   },
                 ),
-
                 const SizedBox(height: 10),
-
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: () {
-                      _mostrarDialogoCrearTipoTrabajo(
-                        setModalState,
-                        (nuevoTipo) {
-                          setModalState(() {
-                            tipoSeleccionado = nuevoTipo;
-                          });
-                        },
-                      );
+                      _mostrarDialogoCrearTipoTrabajo(setModalState, (
+                        nuevoTipo,
+                      ) {
+                        setModalState(() {
+                          tipoSeleccionado = nuevoTipo;
+                        });
+                      });
                     },
                     icon: const Icon(Icons.add),
                     label: const Text('Crear nuevo tipo'),
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
                 TextField(
                   controller: m2ItemController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Cantidad Metros Cuadrados (m²)',
                     prefixIcon: Icon(Icons.square_foot),
                     border: OutlineInputBorder(),
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
                 TextField(
                   controller: precioItemController,
                   keyboardType: TextInputType.number,
@@ -240,9 +332,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: _verdeApp,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
               ),
               child: const Text('Guardar Ítem'),
             ),
@@ -283,9 +372,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         key: _formKey,
         onChanged: () => setState(() {}),
         child: Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: _verdeApp),
-          ),
+          data: Theme.of(
+            context,
+          ).copyWith(colorScheme: ColorScheme.light(primary: _verdeApp)),
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
@@ -298,16 +387,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       backgroundColor: _verdeApp,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text(
-                      _currentStep == 4 ? 'Guardar' : 'Continuar',
-                    ),
+                    child: Text(_currentStep == 4 ? 'Guardar' : 'Continuar'),
                   ),
                   const SizedBox(width: 12),
                   TextButton(
                     onPressed: details.onStepCancel,
-                    child: Text(
-                      _currentStep == 0 ? 'Salir' : 'Atrás',
-                    ),
+                    child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
                   ),
                 ],
               );
@@ -323,7 +408,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       : _clienteController.text.trim(),
                   'direccion': _direccionController.text.trim().isEmpty
                       ? 'Dirección no especificada'
-                      :_direccionController.text.trim(),
+                      : _direccionController.text.trim(),
                   'fecha':
                       '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
                   'monto': '\$${datosEnVivo.calcularTotalFinal()}',
@@ -356,18 +441,16 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 0,
-                content: const Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'Buscador de clientes por RUT (Sprint 1).',
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                content: TextFormField(
+                  controller: _clienteController,
+                  decoration: const InputDecoration(
+                    labelText: 'Buscar cliente',
+                    hintText: 'Buscar por RUT o nombre',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
                   ),
                 ),
               ),
-
               Step(
                 title: const Text(
                   'Detalle de Trabajos de la Obra',
@@ -377,23 +460,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 content: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 4),
-
                     TextFormField(
                       controller: _direccionController,
                       decoration: const InputDecoration(
                         labelText: 'Dirección general del proyecto',
                         prefixIcon: Icon(Icons.location_on_outlined),
                         border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 14,
-                        ),
                       ),
                     ),
-
                     const SizedBox(height: 24),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -402,183 +477,69 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: Colors.black87,
                           ),
                         ),
                         OutlinedButton.icon(
                           onPressed: _mostrarDialogoAgregarTrabajo,
                           icon: const Icon(Icons.add, size: 16),
-                          label: const Text(
-                            'Añadir Ítem',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          label: const Text('Añadir Ítem'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: _verdeApp,
-                            side: BorderSide(
-                              color: _verdeApp,
-                              width: 1.5,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
+                            side: BorderSide(color: _verdeApp),
                           ),
                         ),
                       ],
                     ),
-
-                    const Divider(height: 20, thickness: 1),
-
+                    const Divider(height: 20),
                     if (_trabajosAgregados.isEmpty)
                       const Center(
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.assignment_late_outlined,
-                                color: Colors.grey,
-                                size: 36,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'No has añadido ningún trabajo todavía.',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontStyle: FontStyle.italic,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'No has añadido ningún trabajo todavía.',
+                            style: TextStyle(color: Colors.grey),
                           ),
                         ),
                       ),
-
                     ..._trabajosAgregados.asMap().entries.map((entry) {
                       final index = entry.key;
                       final item = entry.value;
 
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.02),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
+                      return Card(
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
+                          leading: Icon(
+                            Icons.build_circle_outlined,
+                            color: _verdeApp,
                           ),
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: _verdeApp.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.build_circle_outlined,
-                              color: _verdeApp,
-                              size: 22,
-                            ),
+                          title: Text(item.tipo),
+                          subtitle: Text(
+                            '${item.metrosCuadrados} m² × \$${item.precioPorMetro.toStringAsFixed(0)} / m²',
                           ),
-                          title: Text(
-                            item.tipo,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                          trailing: IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
                             ),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              '${item.metrosCuadrados} m²  ×  \$${item.precioPorMetro.toStringAsFixed(0)} / m²',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '\$${item.subtotal.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: Colors.redAccent,
-                                  size: 22,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _trabajosAgregados.removeAt(index);
-                                  });
-                                },
-                              ),
-                            ],
+                            onPressed: () {
+                              setState(() {
+                                _trabajosAgregados.removeAt(index);
+                              });
+                            },
                           ),
                         ),
                       );
                     }),
-
-                    if (_trabajosAgregados.isNotEmpty)
-                      const SizedBox(height: 16),
-
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: _verdeApp.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: _verdeApp.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Subtotal Obra:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _verdeApp,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '\$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _verdeApp,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 12),
+                    Text(
+                      'Subtotal Obra: \$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
+                      style: TextStyle(
+                        color: _verdeApp,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                    const SizedBox(height: 8),
                   ],
                 ),
               ),
-
               Step(
                 title: const Text(
                   'Cargas de Mano de Obra',
@@ -596,25 +557,128 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   },
                 ),
               ),
-
               Step(
                 title: const Text(
                   'Catálogo de Materiales',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 3,
-                content: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Costo calculado materiales (Simulado): \$${datosEnVivo.costoMaterialesSimulado.toStringAsFixed(0)} CLP',
-                      style: const TextStyle(color: Colors.grey),
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _nombreMaterialController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre del material',
+                        hintText: 'Ej: Cemento, Arena, Tubo PVC',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _unidadMaterialController,
+                      decoration: const InputDecoration(
+                        labelText: 'Unidad de medida',
+                        hintText: 'Ej: kg, m², m³, saco, unidad',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _costoMaterialController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Costo unitario',
+                        hintText: 'Ej: 5500',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: _filtrarCostoMaterial,
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _guardarMaterial,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _verdeApp,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: Text(
+                          _indexMaterialEditando == null
+                              ? 'Agregar material'
+                              : 'Actualizar material',
+                        ),
+                      ),
+                    ),
+                    if (_indexMaterialEditando != null) ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _limpiarFormularioMaterial();
+                            });
+                          },
+                          child: const Text('Cancelar edición'),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    if (_materialesAgregados.isEmpty)
+                      const Center(
+                        child: Text(
+                          'No hay materiales registrados',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      )
+                    else
+                      ..._materialesAgregados.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final material = entry.value;
+
+                        return Card(
+                          child: ListTile(
+                            title: Text(material.nombre),
+                            subtitle: Text(
+                              'Unidad: ${material.unidadMedida}\n'
+                              'Costo unitario: \$${material.costoUnitario.toStringAsFixed(0)}',
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Colors.orange,
+                                  ),
+                                  onPressed: () => _editarMaterial(index),
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () => _eliminarMaterial(index),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Total materiales: \$${_totalMateriales.toStringAsFixed(0)} CLP',
+                      style: TextStyle(
+                        color: _verdeApp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-
               Step(
                 title: const Text(
                   'Configuración de Totales',
@@ -623,8 +687,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 isActive: _currentStep >= 4,
                 content: Column(
                   children: [
-                    const SizedBox(height: 4),
-
                     TextFormField(
                       controller: _viaticoController,
                       keyboardType: TextInputType.number,
@@ -634,9 +696,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
                     TextFormField(
                       controller: _utilidadController,
                       keyboardType: TextInputType.number,
@@ -646,9 +706,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
                     TextFormField(
                       controller: _ivaController,
                       keyboardType: TextInputType.number,
@@ -658,22 +716,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         border: OutlineInputBorder(),
                       ),
                     ),
-
                     const SizedBox(height: 24),
-
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: _verdeApp,
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _verdeApp.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -684,36 +733,20 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                               color: Colors.white70,
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
                             ),
                           ),
                           const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Monto Final:',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              Text(
-                                '\$${datosEnVivo.calcularTotalFinal()} CLP',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                          Text(
+                            'Monto Final: \$${datosEnVivo.calcularTotalFinal()} CLP',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 8),
                   ],
                 ),
               ),
