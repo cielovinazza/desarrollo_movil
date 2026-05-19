@@ -72,7 +72,7 @@ class HomePage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primary.withOpacity(0.22),
+                        color: AppTheme.primary.withValues(alpha: 0.22),
                         blurRadius: 16,
                         offset: const Offset(0, 8),
                       ),
@@ -214,7 +214,8 @@ class HomePage extends StatelessWidget {
                   child: Container(
                     height: 160,
                     width: double.infinity,
-                    color: AppTheme.primary.withOpacity(0.12),
+
+                    color: AppTheme.primary.withValues(alpha: 0.12),
                     child: const Center(
                       child: Icon(
                         Icons.apartment,

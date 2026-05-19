@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../data/repositories/material_repository_impl.dart';
 import '../../domain/entities/material.dart';
 import '../../domain/usecases/crear_material.dart';
@@ -6,8 +8,6 @@ import '../../domain/usecases/editar_material.dart';
 import '../../domain/usecases/eliminar_material.dart';
 import '../../domain/usecases/listar_material.dart';
 import '../../utils/csv_parser.dart';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 
 class MaterialesPage extends StatefulWidget {
   const MaterialesPage({super.key});
@@ -24,6 +24,7 @@ class _MaterialesPageState extends State<MaterialesPage> {
 
   final nombreController = TextEditingController();
   final unidadController = TextEditingController();
+  final cantidadController = TextEditingController();
   final costoController = TextEditingController();
 
   List<MaterialEntity> materiales = [];
@@ -48,13 +49,13 @@ class _MaterialesPageState extends State<MaterialesPage> {
   void dispose() {
     nombreController.dispose();
     unidadController.dispose();
+    cantidadController.dispose();
     costoController.dispose();
     super.dispose();
   }
 
   Future<void> cargarMateriales() async {
     final resultado = await listarMaterialesUseCase();
-
     setState(() {
       materiales = resultado;
     });
@@ -63,14 +64,21 @@ class _MaterialesPageState extends State<MaterialesPage> {
   Future<void> guardarMaterial() async {
     final nombre = nombreController.text.trim();
     final unidad = unidadController.text.trim();
+    final cantidadTexto = cantidadController.text.trim();
     final costoTexto = costoController.text.trim();
 
-    if (nombre.isEmpty || unidad.isEmpty || costoTexto.isEmpty) {
+    if (nombre.isEmpty || unidad.isEmpty || cantidadTexto.isEmpty || costoTexto.isEmpty) {
       mostrarMensaje('Completa todos los campos');
       return;
     }
 
+    final cantidad = double.tryParse(cantidadTexto);
     final costo = double.tryParse(costoTexto);
+
+    if (cantidad == null || cantidad <= 0) {
+      mostrarMensaje('Ingresa una cantidad válida');
+      return;
+    }
 
     if (costo == null || costo <= 0) {
       mostrarMensaje('Ingresa un costo válido');
@@ -80,6 +88,7 @@ class _MaterialesPageState extends State<MaterialesPage> {
     final material = MaterialEntity(
       nombre: nombre,
       unidadMedida: unidad,
+      cantidad: cantidad,
       costoUnitario: costo,
     );
 
@@ -98,41 +107,32 @@ class _MaterialesPageState extends State<MaterialesPage> {
   Future<void> eliminarMaterial(int index) async {
     await eliminarMaterialUseCase(index);
     await cargarMateriales();
-
     mostrarMensaje('Material eliminado');
   }
 
   void editarMaterial(int index) {
     final material = materiales[index];
-
     nombreController.text = material.nombre;
     unidadController.text = material.unidadMedida;
+    cantidadController.text = material.cantidad.toString();
     costoController.text = material.costoUnitario.toString();
-
-    setState(() {
-      indexEditando = index;
-    });
+    setState(() => indexEditando = index);
   }
 
   void limpiarFormulario() {
     nombreController.clear();
     unidadController.clear();
+    cantidadController.clear();
     costoController.clear();
-
-    setState(() {
-      indexEditando = null;
-    });
+    setState(() => indexEditando = null);
   }
 
   void mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(mensaje)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
   void filtrarCosto(String value) {
     final textoFiltrado = value.replaceAll(RegExp(r'[^0-9.]'), '');
-
     if (textoFiltrado != value) {
       costoController.value = TextEditingValue(
         text: textoFiltrado,
@@ -141,38 +141,41 @@ class _MaterialesPageState extends State<MaterialesPage> {
     }
   }
 
-  Future<void> importarCSV() async {
-  final result = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: ['csv'],);
+  Future<void> _seleccionarArchivo() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['csv'],
+      withData: true,
+    );
 
-  if (result == null) return;
+    if (result == null || result.files.isEmpty) return;
 
-  final path = result.files.single.path;
+    final archivo = result.files.first;
+    if (archivo.bytes == null) return;
 
-  if (path == null) return;
-
-  final file = File(path);
-  final contenido = await file.readAsString();
-
-  final resultado = parsearCSV(contenido);
-
-  for (final material in resultado.materialesValidos) {
-    await crearMaterialUseCase(material);
+    await _procesarCSV(utf8.decode(archivo.bytes!));
   }
 
-  if (!mounted) return;
-  await cargarMateriales();
+  Future<void> _procesarCSV(String contenido) async {
+    final resultado = parsearCSV(contenido);
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        'Importados: ${resultado.materialesValidos.length} | '
-        'Rechazados: ${resultado.filasRechazadas.length}',
+    for (final material in resultado.materialesValidos) {
+      await crearMaterialUseCase(material);
+    }
+
+    await cargarMateriales();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Importados: ${resultado.materialesValidos.length} | '
+          'Rechazados: ${resultado.filasRechazadas.length}',
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -181,11 +184,12 @@ class _MaterialesPageState extends State<MaterialesPage> {
         centerTitle: true,
         actions: [
           TextButton.icon(
-            onPressed: importarCSV,
+            onPressed: _seleccionarArchivo,
             icon: const Icon(Icons.upload_file),
-            label: const Text('Importar materiales CSV'),),
-            ],
-            ),
+            label: const Text('Importar CSV'),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -213,12 +217,22 @@ class _MaterialesPageState extends State<MaterialesPage> {
             const SizedBox(height: 16),
 
             TextField(
-              controller: costoController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              controller: cantidadController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(
-                labelText: 'Costo unitario',
+                labelText: 'Cantidad',
+                hintText: 'Ej: 10',
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: costoController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Costo unitario (CLP)',
                 hintText: 'Ej: 5500',
                 border: OutlineInputBorder(),
               ),
@@ -232,9 +246,7 @@ class _MaterialesPageState extends State<MaterialesPage> {
               child: ElevatedButton(
                 onPressed: guardarMaterial,
                 child: Text(
-                  indexEditando == null
-                      ? 'Agregar material'
-                      : 'Actualizar material',
+                  indexEditando == null ? 'Agregar material' : 'Actualizar material',
                 ),
               ),
             ),
@@ -265,28 +277,18 @@ class _MaterialesPageState extends State<MaterialesPage> {
                             title: Text(material.nombre),
                             subtitle: Text(
                               'Unidad: ${material.unidadMedida}\n'
-                              'Costo unitario: \$${material.costoUnitario}',
+                              '${material.cantidad.toStringAsFixed(0)} × \$${material.costoUnitario.toStringAsFixed(0)} = \$${material.subtotal.toStringAsFixed(0)}',
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(
-                                    Icons.edit,
-                                    color: Colors.orange,
-                                  ),
-                                  onPressed: () {
-                                    editarMaterial(index);
-                                  },
+                                  icon: const Icon(Icons.edit, color: Colors.orange),
+                                  onPressed: () => editarMaterial(index),
                                 ),
                                 IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                  ),
-                                  onPressed: () {
-                                    eliminarMaterial(index);
-                                  },
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () => eliminarMaterial(index),
                                 ),
                               ],
                             ),

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/cotizacion_model.dart';
 import '../widgets/manodeobra.dart';
+import '../widgets/materiales.dart';
 import 'package:project/features/cotizacion/data/cotizaciones_memoria.dart';
-import 'package:project/features/materiales/domain/entities/material.dart';
+
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -27,12 +28,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
 
-  final _nombreMaterialController = TextEditingController();
-  final _unidadMaterialController = TextEditingController();
-  final _costoMaterialController = TextEditingController();
-
-  int? _indexMaterialEditando;
-
   final List<String> _tiposDisponibles = [
     'Pintura',
     'Yeso',
@@ -53,24 +48,16 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     _viaticoController.dispose();
     _utilidadController.dispose();
     _ivaController.dispose();
-    _nombreMaterialController.dispose();
-    _unidadMaterialController.dispose();
-    _costoMaterialController.dispose();
     super.dispose();
   }
 
-  double get _totalMateriales {
-    return _materialesAgregados.fold(
-      0.0,
-      (suma, material) => suma + material.costoUnitario,
-    );
-  }
+  double get _totalMateriales =>
+      _materialesAgregados.fold(0.0, (suma, m) => suma + m.subtotal);
 
   CotizacionModel _obtenerEstadoActual() {
     final viaticoTexto = _viaticoController.text.trim();
-    final double? viaticoValor = viaticoTexto.isEmpty
-        ? null
-        : double.tryParse(viaticoTexto);
+    final double? viaticoValor =
+        viaticoTexto.isEmpty ? null : double.tryParse(viaticoTexto);
 
     return CotizacionModel(
       cliente: _clienteController.text.trim(),
@@ -85,83 +72,30 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(mensaje)));
-  }
-
-  void _filtrarCostoMaterial(String value) {
-    final textoFiltrado = value.replaceAll(RegExp(r'[^0-9.]'), '');
-
-    if (textoFiltrado != value) {
-      _costoMaterialController.value = TextEditingValue(
-        text: textoFiltrado,
-        selection: TextSelection.collapsed(offset: textoFiltrado.length),
-      );
-    }
-  }
-
-  void _guardarMaterial() {
-    final nombre = _nombreMaterialController.text.trim();
-    final unidad = _unidadMaterialController.text.trim();
-    final costoTexto = _costoMaterialController.text.trim();
-
-    if (nombre.isEmpty || unidad.isEmpty || costoTexto.isEmpty) {
-      _mostrarMensaje('Completa todos los campos del material');
-      return;
-    }
-
-    final costo = double.tryParse(costoTexto);
-
-    if (costo == null || costo <= 0) {
-      _mostrarMensaje('Ingresa un costo unitario válido');
-      return;
-    }
-
-    final material = MaterialEntity(
-      nombre: nombre,
-      unidadMedida: unidad,
-      costoUnitario: costo,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensaje)),
     );
-
-    setState(() {
-      if (_indexMaterialEditando == null) {
-        _materialesAgregados.add(material);
-        _mostrarMensaje('Material agregado');
-      } else {
-        _materialesAgregados[_indexMaterialEditando!] = material;
-        _mostrarMensaje('Material actualizado');
-      }
-
-      _limpiarFormularioMaterial();
-    });
   }
 
-  void _editarMaterial(int index) {
-    final material = _materialesAgregados[index];
-
-    setState(() {
-      _indexMaterialEditando = index;
-      _nombreMaterialController.text = material.nombre;
-      _unidadMaterialController.text = material.unidadMedida;
-      _costoMaterialController.text = material.costoUnitario.toString();
-    });
+  Future<void> _agregarMaterial() async {
+    final resultado = await showDialog<MaterialEntity>(
+      context: context,
+      builder: (_) => MaterialDialog(verdeApp: _verdeApp),
+    );
+    if (resultado != null) setState(() => _materialesAgregados.add(resultado));
   }
 
-  void _eliminarMaterial(int index) {
-    setState(() {
-      _materialesAgregados.removeAt(index);
-      _limpiarFormularioMaterial();
-    });
-
-    _mostrarMensaje('Material eliminado');
-  }
-
-  void _limpiarFormularioMaterial() {
-    _nombreMaterialController.clear();
-    _unidadMaterialController.clear();
-    _costoMaterialController.clear();
-    _indexMaterialEditando = null;
+  Future<void> _editarMaterial(int index) async {
+    final resultado = await showDialog<MaterialEntity>(
+      context: context,
+      builder: (_) => MaterialDialog(
+        verdeApp: _verdeApp,
+        materialEditando: _materialesAgregados[index],
+      ),
+    );
+    if (resultado != null) {
+      setState(() => _materialesAgregados[index] = resultado);
+    }
   }
 
   void _mostrarDialogoCrearTipoTrabajo(
@@ -193,18 +127,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             ),
             onPressed: () {
               final nuevoTipo = nuevoTipoController.text.trim();
-
               if (nuevoTipo.isEmpty) return;
-
               if (!_tiposDisponibles.contains(nuevoTipo)) {
-                setState(() {
-                  _tiposDisponibles.add(nuevoTipo);
-                });
+                setState(() => _tiposDisponibles.add(nuevoTipo));
               }
-
               setModalState(() {});
               onTipoCreado(nuevoTipo);
-
               Navigator.pop(context);
             },
             child: const Text('Crear'),
@@ -223,17 +151,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(
             children: [
               Icon(Icons.add_task, color: _verdeApp),
               const SizedBox(width: 10),
-              const Text(
-                'Añadir Trabajo',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              const Text('Añadir Trabajo', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           content: SingleChildScrollView(
@@ -247,16 +170,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     border: OutlineInputBorder(),
                   ),
                   items: _tiposDisponibles
-                      .map(
-                        (tipo) =>
-                            DropdownMenuItem(value: tipo, child: Text(tipo)),
-                      )
+                      .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
                       .toList(),
                   onChanged: (value) {
                     if (value == null) return;
-                    setModalState(() {
-                      tipoSeleccionado = value;
-                    });
+                    setModalState(() => tipoSeleccionado = value);
                   },
                 ),
                 const SizedBox(height: 10),
@@ -264,12 +182,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: () {
-                      _mostrarDialogoCrearTipoTrabajo(setModalState, (
-                        nuevoTipo,
-                      ) {
-                        setModalState(() {
-                          tipoSeleccionado = nuevoTipo;
-                        });
+                      _mostrarDialogoCrearTipoTrabajo(setModalState, (nuevoTipo) {
+                        setModalState(() => tipoSeleccionado = nuevoTipo);
                       });
                     },
                     icon: const Icon(Icons.add),
@@ -279,9 +193,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: m2ItemController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
                     labelText: 'Cantidad Metros Cuadrados (m²)',
                     prefixIcon: Icon(Icons.square_foot),
@@ -304,17 +216,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(color: Colors.grey),
-              ),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () {
                 final m2 = double.tryParse(m2ItemController.text) ?? 0.0;
-                final precio =
-                    double.tryParse(precioItemController.text) ?? 0.0;
-
+                final precio = double.tryParse(precioItemController.text) ?? 0.0;
                 if (m2 > 0 && precio > 0) {
                   setState(() {
                     _trabajosAgregados.add(
@@ -325,7 +232,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       ),
                     );
                   });
-
                   Navigator.pop(context);
                 }
               },
@@ -346,12 +252,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       context: context,
       builder: (_) => ManoObraDialog(verdeApp: _verdeApp),
     );
-
-    if (resultado != null) {
-      setState(() {
-        _manoObraAgregada.add(resultado);
-      });
-    }
+    if (resultado != null) setState(() => _manoObraAgregada.add(resultado));
   }
 
   @override
@@ -360,10 +261,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Nueva Cotización',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Nueva Cotización', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: _verdeApp,
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -372,32 +270,48 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         key: _formKey,
         onChanged: () => setState(() {}),
         child: Theme(
-          data: Theme.of(
-            context,
-          ).copyWith(colorScheme: ColorScheme.light(primary: _verdeApp)),
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(primary: _verdeApp),
+          ),
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
-            controlsBuilder: (context, details) {
-              return Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: details.onStepContinue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _verdeApp,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(_currentStep == 4 ? 'Guardar' : 'Continuar'),
+            controlsBuilder: (context, details) => Row(
+              children: [
+                ElevatedButton(
+                  onPressed: details.onStepContinue,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _verdeApp,
+                    foregroundColor: Colors.white,
                   ),
-                  const SizedBox(width: 12),
-                  TextButton(
-                    onPressed: details.onStepCancel,
-                    child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
-                  ),
-                ],
-              );
-            },
+                  child: Text(_currentStep == 4 ? 'Guardar' : 'Continuar'),
+                ),
+                const SizedBox(width: 12),
+                TextButton(
+                  onPressed: details.onStepCancel,
+                  child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
+                ),
+              ],
+            ),
             onStepContinue: () {
+              if (_currentStep == 0) {
+                if (_clienteController.text.trim().isEmpty) {
+                  _mostrarMensaje('Debes ingresar o seleccionar un cliente');
+                  return;
+                }
+              }
+
+              if (_currentStep == 1) {
+                if (_direccionController.text.trim().isEmpty) {
+                  _mostrarMensaje('Debes ingresar la dirección de la obra');
+                  return;
+                }
+                if (_trabajosAgregados.isEmpty) {
+                  _mostrarMensaje('Debes agregar al menos un trabajo de obra');
+                  return;
+                }
+              }
+
               if (_currentStep < 4) {
                 setState(() => _currentStep += 1);
               } else {
@@ -409,8 +323,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   'direccion': _direccionController.text.trim().isEmpty
                       ? 'Dirección no especificada'
                       : _direccionController.text.trim(),
-                  'fecha':
-                      '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                  'fecha': '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
                   'monto': '\$${datosEnVivo.calcularTotalFinal()}',
                   'estado': 'Pendiente',
                 });
@@ -441,14 +354,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 0,
-                content: TextFormField(
+                content: SelectorCliente(
                   controller: _clienteController,
-                  decoration: const InputDecoration(
-                    labelText: 'Buscar cliente',
-                    hintText: 'Buscar por RUT o nombre',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                  ),
                 ),
               ),
               Step(
@@ -474,10 +381,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       children: [
                         const Text(
                           'Ítems de Construcción',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         OutlinedButton.icon(
                           onPressed: _mostrarDialogoAgregarTrabajo,
@@ -504,39 +408,51 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     ..._trabajosAgregados.asMap().entries.map((entry) {
                       final index = entry.key;
                       final item = entry.value;
-
                       return Card(
                         child: ListTile(
-                          leading: Icon(
-                            Icons.build_circle_outlined,
-                            color: _verdeApp,
-                          ),
+                          leading: Icon(Icons.build_circle_outlined, color: _verdeApp),
                           title: Text(item.tipo),
                           subtitle: Text(
                             '${item.metrosCuadrados} m² × \$${item.precioPorMetro.toStringAsFixed(0)} / m²',
                           ),
                           trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _trabajosAgregados.removeAt(index);
-                              });
-                            },
+                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                            onPressed: () => setState(() => _trabajosAgregados.removeAt(index)),
                           ),
                         ),
                       );
                     }),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Subtotal Obra: \$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
-                      style: TextStyle(
-                        color: _verdeApp,
-                        fontWeight: FontWeight.bold,
+                    if (_trabajosAgregados.isNotEmpty) const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _verdeApp.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: _verdeApp.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Subtotal Obra:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _verdeApp,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            '\$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _verdeApp,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -550,11 +466,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   items: _manoObraAgregada,
                   verdeApp: _verdeApp,
                   onAgregar: _agregarManoObra,
-                  onEliminar: (index) {
-                    setState(() {
-                      _manoObraAgregada.removeAt(index);
-                    });
-                  },
+                  onEliminar: (index) => setState(() => _manoObraAgregada.removeAt(index)),
                 ),
               ),
               Step(
@@ -563,120 +475,14 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 3,
-                content: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: _nombreMaterialController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nombre del material',
-                        hintText: 'Ej: Cemento, Arena, Tubo PVC',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _unidadMaterialController,
-                      decoration: const InputDecoration(
-                        labelText: 'Unidad de medida',
-                        hintText: 'Ej: kg, m², m³, saco, unidad',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _costoMaterialController,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      decoration: const InputDecoration(
-                        labelText: 'Costo unitario',
-                        hintText: 'Ej: 5500',
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: _filtrarCostoMaterial,
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _guardarMaterial,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _verdeApp,
-                          foregroundColor: Colors.white,
-                        ),
-                        child: Text(
-                          _indexMaterialEditando == null
-                              ? 'Agregar material'
-                              : 'Actualizar material',
-                        ),
-                      ),
-                    ),
-                    if (_indexMaterialEditando != null) ...[
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _limpiarFormularioMaterial();
-                            });
-                          },
-                          child: const Text('Cancelar edición'),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    if (_materialesAgregados.isEmpty)
-                      const Center(
-                        child: Text(
-                          'No hay materiales registrados',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      )
-                    else
-                      ..._materialesAgregados.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final material = entry.value;
-
-                        return Card(
-                          child: ListTile(
-                            title: Text(material.nombre),
-                            subtitle: Text(
-                              'Unidad: ${material.unidadMedida}\n'
-                              'Costo unitario: \$${material.costoUnitario.toStringAsFixed(0)}',
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.edit,
-                                    color: Colors.orange,
-                                  ),
-                                  onPressed: () => _editarMaterial(index),
-                                ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                  ),
-                                  onPressed: () => _eliminarMaterial(index),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Total materiales: \$${_totalMateriales.toStringAsFixed(0)} CLP',
-                      style: TextStyle(
-                        color: _verdeApp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                content: MaterialLista(
+                  items: _materialesAgregados,
+                  verdeApp: _verdeApp,
+                  onAgregar: _agregarMaterial,
+                  onEliminar: (index) => setState(() => _materialesAgregados.removeAt(index)),
+                  onEditar: _editarMaterial,
+                  onImportarCSV: (materiales) =>
+                      setState(() => _materialesAgregados.addAll(materiales)),
                 ),
               ),
               Step(
