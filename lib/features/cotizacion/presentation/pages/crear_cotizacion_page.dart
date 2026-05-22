@@ -3,7 +3,7 @@ import '../../domain/entities/cotizacion_model.dart';
 import '../widgets/manodeobra.dart';
 import '../widgets/materiales.dart';
 import 'package:project/features/cotizacion/data/cotizaciones_memoria.dart';
-
+import '../widgets/previsualizacion_pdf.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -15,6 +15,7 @@ class CrearCotizacionPage extends StatefulWidget {
 class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _formKey = GlobalKey<FormState>();
   int _currentStep = 0;
+  bool _vistaPreviaCargada = false;
 
   final List<ManoDeObra> _manoObraAgregada = [];
   final List<ItemTrabajo> _trabajosAgregados = [];
@@ -56,8 +57,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
   CotizacionModel _obtenerEstadoActual() {
     final viaticoTexto = _viaticoController.text.trim();
-    final double? viaticoValor =
-        viaticoTexto.isEmpty ? null : double.tryParse(viaticoTexto);
+    final double? viaticoValor = viaticoTexto.isEmpty
+        ? null
+        : double.tryParse(viaticoTexto);
 
     return CotizacionModel(
       cliente: _clienteController.text.trim(),
@@ -72,9 +74,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(mensaje)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
   Future<void> _agregarMaterial() async {
@@ -151,12 +153,17 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             children: [
               Icon(Icons.add_task, color: _verdeApp),
               const SizedBox(width: 10),
-              const Text('Añadir Trabajo', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Añadir Trabajo',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           content: SingleChildScrollView(
@@ -170,7 +177,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     border: OutlineInputBorder(),
                   ),
                   items: _tiposDisponibles
-                      .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
+                      .map(
+                        (tipo) =>
+                            DropdownMenuItem(value: tipo, child: Text(tipo)),
+                      )
                       .toList(),
                   onChanged: (value) {
                     if (value == null) return;
@@ -182,7 +192,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
                     onPressed: () {
-                      _mostrarDialogoCrearTipoTrabajo(setModalState, (nuevoTipo) {
+                      _mostrarDialogoCrearTipoTrabajo(setModalState, (
+                        nuevoTipo,
+                      ) {
                         setModalState(() => tipoSeleccionado = nuevoTipo);
                       });
                     },
@@ -193,7 +205,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: m2ItemController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(
                     labelText: 'Cantidad Metros Cuadrados (m²)',
                     prefixIcon: Icon(Icons.square_foot),
@@ -216,12 +230,16 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
             ElevatedButton(
               onPressed: () {
                 final m2 = double.tryParse(m2ItemController.text) ?? 0.0;
-                final precio = double.tryParse(precioItemController.text) ?? 0.0;
+                final precio =
+                    double.tryParse(precioItemController.text) ?? 0.0;
                 if (m2 > 0 && precio > 0) {
                   setState(() {
                     _trabajosAgregados.add(
@@ -261,7 +279,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nueva Cotización', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Nueva Cotización',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: _verdeApp,
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -270,9 +291,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         key: _formKey,
         onChanged: () => setState(() {}),
         child: Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: _verdeApp),
-          ),
+          data: Theme.of(
+            context,
+          ).copyWith(colorScheme: ColorScheme.light(primary: _verdeApp)),
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
@@ -313,7 +334,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               }
 
               if (_currentStep < 4) {
-                setState(() => _currentStep += 1);
+                setState(() {
+                  if (_currentStep == 3) {
+                    _vistaPreviaCargada = false;
+                  }
+
+                  _currentStep += 1;
+                });
               } else {
                 CotizacionesMemoria.lista.insert(0, {
                   'codigo': 'COT-00${CotizacionesMemoria.lista.length + 1}',
@@ -323,7 +350,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   'direccion': _direccionController.text.trim().isEmpty
                       ? 'Dirección no especificada'
                       : _direccionController.text.trim(),
-                  'fecha': '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
+                  'fecha':
+                      '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
                   'monto': '\$${datosEnVivo.calcularTotalFinal()}',
                   'estado': 'Pendiente',
                 });
@@ -354,9 +382,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 0,
-                content: SelectorCliente(
-                  controller: _clienteController,
-                ),
+                content: SelectorCliente(controller: _clienteController),
               ),
               Step(
                 title: const Text(
@@ -381,7 +407,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       children: [
                         const Text(
                           'Ítems de Construcción',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         OutlinedButton.icon(
                           onPressed: _mostrarDialogoAgregarTrabajo,
@@ -410,25 +439,36 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       final item = entry.value;
                       return Card(
                         child: ListTile(
-                          leading: Icon(Icons.build_circle_outlined, color: _verdeApp),
+                          leading: Icon(
+                            Icons.build_circle_outlined,
+                            color: _verdeApp,
+                          ),
                           title: Text(item.tipo),
                           subtitle: Text(
                             '${item.metrosCuadrados} m² × \$${item.precioPorMetro.toStringAsFixed(0)} / m²',
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                            onPressed: () => setState(() => _trabajosAgregados.removeAt(index)),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                            ),
+                            onPressed: () => setState(
+                              () => _trabajosAgregados.removeAt(index),
+                            ),
                           ),
                         ),
                       );
                     }),
-                    if (_trabajosAgregados.isNotEmpty) const SizedBox(height: 16),
+                    if (_trabajosAgregados.isNotEmpty)
+                      const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: _verdeApp.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _verdeApp.withValues(alpha: 0.2)),
+                        border: Border.all(
+                          color: _verdeApp.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -466,7 +506,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   items: _manoObraAgregada,
                   verdeApp: _verdeApp,
                   onAgregar: _agregarManoObra,
-                  onEliminar: (index) => setState(() => _manoObraAgregada.removeAt(index)),
+                  onEliminar: (index) =>
+                      setState(() => _manoObraAgregada.removeAt(index)),
                 ),
               ),
               Step(
@@ -479,7 +520,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   items: _materialesAgregados,
                   verdeApp: _verdeApp,
                   onAgregar: _agregarMaterial,
-                  onEliminar: (index) => setState(() => _materialesAgregados.removeAt(index)),
+                  onEliminar: (index) =>
+                      setState(() => _materialesAgregados.removeAt(index)),
                   onEditar: _editarMaterial,
                   onImportarCSV: (materiales) =>
                       setState(() => _materialesAgregados.addAll(materiales)),
@@ -551,6 +593,33 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    PrevisualizacionPdfWidget(
+                      cotizacion: datosEnVivo,
+                      materiales: _materialesAgregados,
+                      manoObra: _manoObraAgregada,
+                      onListo: () {
+                        setState(() {
+                          _vistaPreviaCargada = true;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _vistaPreviaCargada
+                            ? () {
+                                _mostrarMensaje('PDF listo para generar');
+                              }
+                            : null,
+                        icon: const Icon(Icons.picture_as_pdf),
+                        label: const Text('Generar PDF'),
                       ),
                     ),
                   ],
