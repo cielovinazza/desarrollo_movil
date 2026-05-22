@@ -1,5 +1,5 @@
 class Cliente {
-  final int? id;
+  final String? id;
   final String nombre;
   final String rut;
   final String telefono;
@@ -16,7 +16,7 @@ class Cliente {
   });
 
   Cliente copyWith({
-    int? id,
+    String? id,
     String? nombre,
     String? rut,
     String? telefono,
@@ -34,7 +34,7 @@ class Cliente {
   }
   factory Cliente.fromJson(Map<String, dynamic> json) {
     return Cliente(
-      id: json['id'],
+      id: json['id']?.toString(),
       nombre: json['nombre'],
       rut: json['rut'],
       telefono: json['telefono'],

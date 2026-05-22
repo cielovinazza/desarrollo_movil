@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:project/features/cliente/data/datasources/clientes_local_datasource.dart';
-
+import '../../data/datasources/clientes_remote_datasource.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'editar_cliente_page.dart';
 
 import '../../data/repositories/cliente_repository_impl.dart';
@@ -16,8 +16,7 @@ class ListadoClientesPage extends StatefulWidget {
 
 class _ListadoClientesPageState extends State<ListadoClientesPage> {
   late final ListarClientes listarClientesUseCase;
-  final repository = ClienteRepositoryImpl(ClientesLocalDataSource(),
-  );
+  final repository = ClienteRepositoryImpl(ClientesRemoteDataSource(FirebaseFirestore.instance));
 
   final TextEditingController _buscadorController = TextEditingController();
 

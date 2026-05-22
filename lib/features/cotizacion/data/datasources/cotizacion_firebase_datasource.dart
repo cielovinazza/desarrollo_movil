@@ -14,19 +14,13 @@ class CotizacionFirestoreDataSource {
   CotizacionDto dto,
 ) async {
 
-  final collection =
-      firestore.collection(
-    'cotizaciones',
-  );
+  final collection =firestore.collection('cotizaciones');
 
-  final totalDocs =
-      await collection.get();
+  final totalDocs =await collection.get();
 
-  final numero =
-      totalDocs.docs.length + 1;
+  final numero =totalDocs.docs.length + 1;
 
-  final codigo =
-      'CT-${numero.toString().padLeft(3, '0')}';
+  final codigo ='CT-${numero.toString().padLeft(3, '0')}';
 
   await collection.add({
 
@@ -39,37 +33,23 @@ class CotizacionFirestoreDataSource {
   });
 }
 
-Future<List<CotizacionDto>>
-    obtenerCotizacion() async {
+Future<List<CotizacionDto>>obtenerCotizacion() async {
 
-  final snapshot =
-      await firestore
-          .collection(
-            'cotizaciones',
-          )
-          .get();
+  final snapshot =await firestore.collection(
+    'cotizaciones',).get();
 
   return snapshot.docs.map((doc) {
 
     final data = doc.data();
 
-    return CotizacionDto.fromMap(
-      doc.id,
-      data,
-    );
+    return CotizacionDto.fromMap(doc.id, data);
 
   }).toList();
 }
 
-  Future<void> actualizarEstado(
-  String id,
-  String estado,
-) async {
-
-  await firestore
-      .collection('cotizaciones')
-      .doc(id)
-      .update({
+  Future<void> actualizarEstado(String id,String estado,
+  ) async {
+  await firestore.collection('cotizaciones').doc(id).update({
     'estado': estado,
   });
 }

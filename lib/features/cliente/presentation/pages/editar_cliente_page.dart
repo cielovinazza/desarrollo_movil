@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:project/features/cliente/data/datasources/clientes_local_datasource.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../data/datasources/clientes_remote_datasource.dart';
 import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../widgets/cliente_text_field.dart';
@@ -23,8 +24,7 @@ class _EditarClientePageState
     extends State<EditarClientePage> {
   final _formKey = GlobalKey<FormState>();
 
-  final repository= ClienteRepositoryImpl(ClientesLocalDataSource()
-  );
+  final repository= ClienteRepositoryImpl(ClientesRemoteDataSource(FirebaseFirestore.instance));
 
   late TextEditingController nombreController;
   late TextEditingController rutController;
@@ -103,7 +103,8 @@ class _EditarClientePageState
       rut: rutController.text,
       correo: correoController.text,
       telefono: telefonoController.text,
-      direccion: direccionController.text,
+      direccion: direccionController.text.trim().isEmpty
+       ? null : direccionController.text.trim(),
     );
 
     try{
