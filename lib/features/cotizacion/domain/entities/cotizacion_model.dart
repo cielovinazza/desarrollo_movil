@@ -1,4 +1,5 @@
 import '../entities/mano_de_obra.dart';
+import '../../../materiales/domain/entities/material.dart';
 class ItemTrabajo {
   final String tipo;
   final double metrosCuadrados;
@@ -17,18 +18,11 @@ class ItemTrabajo {
 class CotizacionModel {
   final String cliente;
   final String direccionObra;
-
-  
-  // Tarea A: Lista de trabajos independientes (Pintura, Yeso, etc.)
   final List<ItemTrabajo> listaTrabajos;
-
-  // Tarea B: Costos Adicionales e Impuestos
   final double? viatico; 
   final double porcentajeUtilidad; 
-  final double porcentajeIva;      
-
-  // Mocks requeridos para el Sprint 2 (Simulación de lo que hacen tus compañeros)
-  final double costoMaterialesSimulado;
+  final double porcentajeIva; 
+  final List<MaterialEntity> materiales;     
   final List<ManoDeObra> listaManoObra;
 
   CotizacionModel({
@@ -38,7 +32,7 @@ class CotizacionModel {
     this.viatico,
     required this.porcentajeUtilidad,
     this.porcentajeIva = 19.0,
-    this.costoMaterialesSimulado = 50000.0,
+    required this.materiales,
     required this.listaManoObra,
   });
 
@@ -47,6 +41,13 @@ class CotizacionModel {
     return listaTrabajos.fold(0.0, (suma, item) => suma + item.subtotal);
   }
 
+  double get subtotalMateriales {
+  return materiales.fold(
+    0.0,
+    (suma, item) => suma + item.subtotal,
+  );
+}
+  
   double get subtotalManoObraTotal {
 
   return listaManoObra.fold(
@@ -57,9 +58,9 @@ class CotizacionModel {
 }
 
   // Fórmula: Total = (Suma Mat + Suma MO + Viático) * (1 + %Utilidad) * (1 + %IVA)
-  int calcularTotalFinal() {
+  double calcularTotalFinal() {
     double costoBaseTotal = subtotalObraTotal + 
-        costoMaterialesSimulado + 
+        subtotalMateriales + 
         subtotalManoObraTotal + 
         (viatico ?? 0.0);
 
@@ -69,6 +70,6 @@ class CotizacionModel {
     double totalCalculado = costoBaseTotal * factorUtilidad * factorIva;
 
     // Redondeo tradicional a CLP sin decimales
-    return totalCalculado.round();
+    return totalCalculado;
   }
 }

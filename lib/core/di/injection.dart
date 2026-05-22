@@ -3,7 +3,7 @@ import '../../features/cliente/data/repositories/cliente_repository_impl.dart';
 import '../../features/cliente/domain/usecases/get_clientes_usecase.dart';
 import '../../features/cliente/domain/usecases/registrar_cliente.dart';
 
-import '../../features/auth/data/datasources/auth_mock_datasource.dart';
+import '../../features/auth/data/datasources/auth_firebase_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/auth/domain/usecases/login_usecase.dart';
 
@@ -17,7 +17,7 @@ final registrarClienteUseCase = RegistrarCliente(clienteRepository);
 
 // AUTH / LOGIN
 final authRepository = AuthRepositoryImpl(
-  AuthMockDataSource(),
+  AuthFirebaseDataSource(),
 );
 
 final loginUseCase = LoginUseCase(authRepository);

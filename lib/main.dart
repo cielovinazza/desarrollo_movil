@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:project/features/auth/data/datasources/auth_mock_datasource.dart';
+import 'package:project/features/auth/data/datasources/auth_firebase_datasource.dart';
 import 'package:project/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:project/features/auth/domain/usecases/login_usecase.dart';
 import 'package:project/features/auth/presentation/pages/login_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+);
 
-  final dataSource = AuthMockDataSource();
+  final dataSource = AuthFirebaseDataSource();
   final repository = AuthRepositoryImpl(dataSource);
   final useCase = LoginUseCase(repository);
 

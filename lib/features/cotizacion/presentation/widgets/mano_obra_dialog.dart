@@ -264,7 +264,7 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
             final item = ManoDeObra(
               cargo: cargoSeleccionado,
               valorJornada: double.parse(valorJornadaController.text),
-              dias: double.parse(diasController.text),
+              dias: int.parse(diasController.text),
             );
 
             Navigator.pop(context, item);

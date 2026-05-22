@@ -1,10 +1,10 @@
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
-import '../../data/datasources/auth_mock_datasource.dart';
+import '../../data/datasources/auth_firebase_datasource.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
 
-  final AuthMockDataSource dataSource;
+  final AuthFirebaseDataSource dataSource;
 
   AuthRepositoryImpl(this.dataSource);
 

@@ -7,10 +7,12 @@ import 'package:project/features/cliente/domain/usecases/listar_clientes.dart';
 
 class SelectorCliente extends StatefulWidget {
   final TextEditingController controller;
+  final Function(String) onClienteSeleccionado;
 
   const SelectorCliente({
     super.key,
     required this.controller,
+    required this.onClienteSeleccionado,
   });
 
   @override
@@ -143,6 +145,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
               });
 
               widget.controller.text = cliente.nombre;
+              widget.onClienteSeleccionado(cliente.id!.toString());
             },
           ),
 
