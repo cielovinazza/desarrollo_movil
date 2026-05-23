@@ -1,18 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthFirebaseDataSource {
-
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
-  Future<Map<String, dynamic>?> login(
-    String email,
-    String password,
-  ) async {
-
+  Future<Map<String, dynamic>?> login(String email, String password) async {
     try {
-
-      final credential = await _firebaseAuth
-          .signInWithEmailAndPassword(
+      final credential = await _firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -20,24 +13,20 @@ class AuthFirebaseDataSource {
       final user = credential.user;
 
       if (user != null) {
-        return {
-          "email": user.email,
-          "uid": user.uid,
-        };
+        return {"email": user.email, "uid": user.uid};
       }
 
       return null;
-
     } on FirebaseAuthException {
-
       return null;
     }
   }
 
   Future<void> resetPassword(String email) async {
+    await _firebaseAuth.sendPasswordResetEmail(email: email);
+  }
 
-  await _firebaseAuth.sendPasswordResetEmail(
-    email: email,
-  );
-}
+  Future<void> logout() async {
+    await _firebaseAuth.signOut();
+  }
 }

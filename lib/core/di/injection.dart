@@ -13,11 +13,9 @@ final clienteRepository = ClienteRepositoryImpl(
 );
 
 final getClientesUseCase = GetClientesUseCase(clienteRepository);
+
 final registrarClienteUseCase = RegistrarCliente(clienteRepository);
 
-// AUTH / LOGIN
-final authRepository = AuthRepositoryImpl(
-  AuthFirebaseDataSource(),
-);
+final authRepository = AuthRepositoryImpl(AuthFirebaseDataSource());
 
 final loginUseCase = LoginUseCase(authRepository);
