@@ -289,7 +289,7 @@ get filteredCotizaciones {
                   child: Padding(
                     padding: EdgeInsets.all(30),
                     child: Text(
-                      'Cliente sin historial',
+                      'No se encontraron cotizaciones para su búsqueda.',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,),
