@@ -53,4 +53,28 @@ Future<List<CotizacionDto>>obtenerCotizacion() async {
     'estado': estado,
   });
 }
+
+Future<void> crearNuevaVersion(String cotizacionId) async {
+  final docRef = firestore.collection('cotizaciones').doc(cotizacionId);
+
+  await firestore.runTransaction((transaction) async {
+    final snapshot = await transaction.get(docRef);
+    if (!snapshot.exists) return;
+
+    final data = snapshot.data()!;
+    final versionActual = (data['version'] as int?) ?? 1;
+
+    final versionRef = docRef
+        .collection('versiones')
+        .doc('v$versionActual');
+
+    transaction.set(versionRef, {
+      ...data,
+      'versionGuardada': versionActual,
+      'guardadoEn': FieldValue.serverTimestamp(),
+    });
+
+    transaction.update(docRef, {'version': versionActual + 1});
+  });
+}
 }

@@ -3,6 +3,7 @@ import 'package:project/features/cliente/presentation/pages/registro_cliente_pag
 import 'package:project/features/cliente/presentation/pages/listado_cliente_page.dart';
 import 'package:project/features/cotizacion/presentation/pages/crear_cotizacion_page.dart';
 import 'package:project/shared/design_system/app_theme.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onGoToCotizaciones;
@@ -170,34 +171,45 @@ class HomePage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.black12),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       CircleAvatar(
                         backgroundColor: AppTheme.softBlue,
-                        child: Icon(
+                        child: const Icon(
                           Icons.analytics_outlined,
                           color: AppTheme.primary,
                         ),
                       ),
-                      SizedBox(width: 16),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'Estado del Mes',
                               style: TextStyle(
                                 color: AppTheme.textGrey,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            Text(
-                              '12 Cotizaciones',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textDark,
-                              ),
+                            StreamBuilder<QuerySnapshot>(
+                              stream: FirebaseFirestore.instance
+                                  .collection('cotizaciones')
+                                  .snapshots(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const Text('...');
+                                }
+                                final total = snapshot.data!.docs.length;
+                                return Text(
+                                  '$total Cotizaciones',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textDark,
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),

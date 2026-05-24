@@ -15,6 +15,7 @@ class CotizacionMapper {
 
     required String usuarioId,
 
+    required String estado,
   }) {
 
     return CotizacionDto(
@@ -125,9 +126,11 @@ class CotizacionMapper {
               .calcularTotalFinal()
               .toDouble(),
 
-      estado: 'Pendiente',
+      estado: estado,
 
       usuarioId: usuarioId,
+
+      version: 1,
     );
   }
 }

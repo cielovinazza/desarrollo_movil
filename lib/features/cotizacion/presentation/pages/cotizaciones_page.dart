@@ -19,16 +19,13 @@ class CotizacionesPage extends StatefulWidget {
 
 class _CotizacionesPageState extends State<CotizacionesPage> {
   final TextEditingController searchController = TextEditingController();
-  
-  late final ActualizarEstadoCotizacion
-    actualizarEstadoUseCase;
 
-  late final ObtenerCotizacion
-    obtenerCotizacionesUseCase;
+  late final ActualizarEstadoCotizacion actualizarEstadoUseCase;
+
+  late final ObtenerCotizacion obtenerCotizacionesUseCase;
   List<CotizacionDto> cotizaciones = [];
 
-  late final CotizacionRepositoryImpl
-    repository;
+  late final CotizacionRepositoryImpl repository;
 
   bool cargando = true;
 
@@ -36,45 +33,30 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
 
   @override
   void initState() {
+    super.initState();
 
-  super.initState();
+    final datasource = CotizacionFirestoreDataSource(
+      FirebaseFirestore.instance,
+    );
 
+    repository = CotizacionRepositoryImpl(datasource);
 
-  final datasource =
-    CotizacionFirestoreDataSource(
-    FirebaseFirestore.instance,
-  );
+    actualizarEstadoUseCase = ActualizarEstadoCotizacion(repository);
 
-  repository =
-    CotizacionRepositoryImpl(
-    datasource,
-  );
+    obtenerCotizacionesUseCase = ObtenerCotizacion(repository);
 
-  actualizarEstadoUseCase =
-    ActualizarEstadoCotizacion(
-    repository,
-);
-
-  obtenerCotizacionesUseCase =
-      ObtenerCotizacion(
-    repository,
-  );
-
-  cargarCotizacion();
-}
+    cargarCotizacion();
+  }
 
   Future<void> cargarCotizacion() async {
+    final data = await obtenerCotizacionesUseCase();
 
-  final data =
-      await obtenerCotizacionesUseCase();
+    setState(() {
+      cotizaciones = data;
 
-  setState(() {
-
-    cotizaciones = data;
-
-    cargando = false;
-  });
-}
+      cargando = false;
+    });
+  }
 
   @override
   void dispose() {
@@ -82,48 +64,30 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     super.dispose();
   }
 
-  List<CotizacionDto>
-get filteredCotizaciones {
+  List<CotizacionDto> get filteredCotizaciones {
+    if (searchText.isEmpty) {
+      return cotizaciones;
+    }
 
-  if (searchText.isEmpty) {
-    return cotizaciones;
+    return cotizaciones.where((cotizacion) {
+      final cliente = cotizacion.clienteNombre.toLowerCase();
+
+      final query = searchText.toLowerCase();
+
+      return cliente.contains(query);
+    }).toList();
   }
 
-  return cotizaciones.where((cotizacion) {
+  Future<void> cambiarEstado(String id, String nuevoEstado) async {
+    await actualizarEstadoUseCase(id, nuevoEstado);
 
-    final cliente =
-        cotizacion.clienteNombre
-            .toLowerCase();
+    await cargarCotizacion();
+    if (!mounted) return;
 
-    final query =
-        searchText.toLowerCase();
-
-    return cliente.contains(query);
-
-  }).toList();
-}
-
-  Future<void> cambiarEstado(
-  String id,
-  String nuevoEstado,
-) async {
-
-  await actualizarEstadoUseCase(
-    id,
-    nuevoEstado,
-  );
-
-  await cargarCotizacion();
-
-  ScaffoldMessenger.of(context)
-      .showSnackBar(
-    SnackBar(
-      content: Text(
-        'Cotización marcada como $nuevoEstado',
-      ),
-    ),
-  );
-}
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Cotización marcada como $nuevoEstado')),
+    );
+  }
 
   Color estadoColor(String estado) {
     switch (estado) {
@@ -136,16 +100,11 @@ get filteredCotizaciones {
     }
   }
 
- int contarPorEstado(
-  String estado,
-) {
-
-  return cotizaciones.where((c) {
-
-    return c.estado == estado;
-
-  }).length;
-}
+  int contarPorEstado(String estado) {
+    return cotizaciones.where((c) {
+      return c.estado == estado;
+    }).length;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -162,9 +121,7 @@ get filteredCotizaciones {
         onPressed: () async {
           await Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) =>const CrearCotizacionPage(),
-            ),
+            MaterialPageRoute(builder: (_) => const CrearCotizacionPage()),
           );
           await cargarCotizacion();
         },
@@ -175,165 +132,207 @@ get filteredCotizaciones {
         elevation: 0,
         title: const Text(
           'Cotizaciones',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {},
-        ),
+        leading: IconButton(icon: const Icon(Icons.menu), onPressed: () {}),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Historial de Cotizaciones',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textDark,
-                  ),
+      body: Column(
+        children: [
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('cotizaciones')
+                .snapshots(includeMetadataChanges: true),
+            builder: (context, snapshot) {
+              final hasPending =
+                  snapshot.hasData && snapshot.data!.metadata.hasPendingWrites;
+              if (!hasPending) return const SizedBox.shrink();
+              return Container(
+                color: Colors.orange[100],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-
-                const SizedBox(height: 6),
-
-                const Text(
-                  'Revise, busque y actualice el estado de sus cotizaciones guardadas.',
-                  style: TextStyle(
-                    color: AppTheme.textGrey,
-                    fontSize: 15,
-                  ),
-                ),
-
-                const SizedBox(height: 22),
-
-                Row(
+                child: const Row(
                   children: [
-                    Expanded(
-                      child: _ResumenCard(
-                        title: 'Total',
-                        value: cotizaciones.length.toString(),
-                        icon: Icons.description_outlined,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ResumenCard(
-                        title: 'Pendientes',
-                        value: contarPorEstado('Pendiente').toString(),
-                        icon: Icons.pending_actions,
-                        color: AppTheme.warning,
-                      ),
-                    ),
+                    Icon(Icons.cloud_upload_outlined, color: Colors.orange),
+                    SizedBox(width: 8),
+                    Text('Sincronizando datos...'),
                   ],
                 ),
-
-                const SizedBox(height: 12),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ResumenCard(
-                        title: 'Aceptadas',
-                        value: contarPorEstado('Aceptada').toString(),
-                        icon: Icons.check_circle_outline,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ResumenCard(
-                        title: 'Rechazadas',
-                        value: contarPorEstado('Rechazada').toString(),
-                        icon: Icons.cancel_outlined,
-                        color: AppTheme.danger,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 22),
-
-                TextField(
-                  controller: searchController,
-                  onChanged: (value) {
-                    setState(() {
-                      searchText = value;
-                    });
-                  },
-                  decoration: InputDecoration(
-                    hintText: 'Buscar por cliente o código...',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Colors.black12),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 22),
-
-                if (lista.isEmpty && searchText.isNotEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(30),
-                    child: Text(
-                      'No se encontraron cotizaciones para su búsqueda.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,),
+              );
+            },
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Historial de Cotizaciones',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textDark,
                         ),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      const Text(
+                        'Revise, busque y actualice el estado de sus cotizaciones guardadas.',
+                        style: TextStyle(
+                          color: AppTheme.textGrey,
+                          fontSize: 15,
                         ),
+                      ),
+
+                      const SizedBox(height: 22),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ResumenCard(
+                              title: 'Total',
+                              value: cotizaciones.length.toString(),
+                              icon: Icons.description_outlined,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _ResumenCard(
+                              title: 'Pendientes',
+                              value: contarPorEstado('Pendiente').toString(),
+                              icon: Icons.pending_actions,
+                              color: AppTheme.warning,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ResumenCard(
+                              title: 'Aceptadas',
+                              value: contarPorEstado('Aceptada').toString(),
+                              icon: Icons.check_circle_outline,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _ResumenCard(
+                              title: 'Rechazadas',
+                              value: contarPorEstado('Rechazada').toString(),
+                              icon: Icons.cancel_outlined,
+                              color: AppTheme.danger,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 22),
+
+                      TextField(
+                        controller: searchController,
+                        onChanged: (value) {
+                          setState(() {
+                            searchText = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Buscar por cliente o código...',
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Colors.black12),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 22),
+
+                      if (lista.isEmpty && searchText.isNotEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(30),
+                            child: Text(
+                              'No se encontraron cotizaciones para su búsqueda.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         )
-                else
-                if (cargando)
-                    const Center(
-                      child: CircularProgressIndicator(),
-                    )
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: lista.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
-                    itemBuilder: (context, index) {
-                      final cotizacion = lista[index];
-                      final estado = cotizacion.estado;
-                      
+                      else if (cargando)
+                        const Center(child: CircularProgressIndicator())
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: lista.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 14),
+                          itemBuilder: (context, index) {
+                            final cotizacion = lista[index];
+                            final estado = cotizacion.estado;
 
-                      return _CotizacionCard(
-                        codigo: cotizacion.codigo,
-                        cliente: cotizacion.clienteNombre,
-                        direccion: cotizacion.direccion,
-                        fecha: cotizacion.fechaCreacion != null
-                            ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
-                              '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
-                              '${cotizacion.fechaCreacion!.toDate().year}'
-                            : '',
-                        monto: '${cotizacion.totalFinal.toStringAsFixed(0)}',
-                        estado: estado,
-                        estadoColor: estadoColor(estado),
-                        onAceptada: () => cambiarEstado(cotizacion.id, 'Aceptada'),
-                        onRechazada: () => cambiarEstado(cotizacion.id, 'Rechazada'),
-                        onPendiente: () => cambiarEstado(cotizacion.id, 'Pendiente'),
-                      );
-                    },
+                            return _CotizacionCard(
+                              codigo: cotizacion.codigo,
+                              cliente: cotizacion.clienteNombre,
+                              direccion: cotizacion.direccion,
+                              fecha: cotizacion.fechaCreacion != null
+                                  ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
+                                        '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
+                                        '${cotizacion.fechaCreacion!.toDate().year}'
+                                  : '',
+                              monto:
+                                  '\$${cotizacion.totalFinal.toStringAsFixed(0)}',
+                              estado: estado,
+                              estadoColor: estadoColor(estado),
+                              onAceptada: () =>
+                                  cambiarEstado(cotizacion.id, 'Aceptada'),
+                              onRechazada: () =>
+                                  cambiarEstado(cotizacion.id, 'Rechazada'),
+                              onPendiente: () =>
+                                  cambiarEstado(cotizacion.id, 'Pendiente'),
+                              version: cotizacion.version,
+                              onEditar: () async {
+                                if (cotizacion.estado == 'Rechazada') {
+                                  await repository.crearNuevaVersion(
+                                    cotizacion.id,
+                                  );
+                                }
+
+                                if (!context.mounted) return;
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Edición próximamente'),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                    ],
                   ),
-              ],
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -370,11 +369,7 @@ class _ResumenCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 28,
-          ),
+          Icon(icon, color: Colors.white, size: 28),
 
           const SizedBox(height: 14),
 
@@ -413,6 +408,8 @@ class _CotizacionCard extends StatelessWidget {
   final VoidCallback onAceptada;
   final VoidCallback onRechazada;
   final VoidCallback onPendiente;
+  final VoidCallback onEditar;
+  final int version;
 
   const _CotizacionCard({
     required this.codigo,
@@ -425,6 +422,8 @@ class _CotizacionCard extends StatelessWidget {
     required this.onAceptada,
     required this.onRechazada,
     required this.onPendiente,
+    required this.onEditar,
+    required this.version,
   });
 
   @override
@@ -434,9 +433,7 @@ class _CotizacionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFDFEFE),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppTheme.primary.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -471,10 +468,8 @@ class _CotizacionCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      codigo,
-                      style: const TextStyle(
-                        color: AppTheme.textGrey,
-                      ),
+                      '$codigo  •  V$version',
+                      style: const TextStyle(color: AppTheme.textGrey),
                     ),
                   ],
                 ),
@@ -493,10 +488,7 @@ class _CotizacionCard extends StatelessWidget {
 
           Row(
             children: [
-              const Icon(
-                Icons.calendar_today_outlined,
-                size: 18,
-              ),
+              const Icon(Icons.calendar_today_outlined, size: 18),
               const SizedBox(width: 8),
               Text(fecha),
               const Spacer(),
@@ -520,9 +512,7 @@ class _CotizacionCard extends StatelessWidget {
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.warning,
-                        side: BorderSide(
-                          color: AppTheme.warning,
-                        ),
+                        side: BorderSide(color: AppTheme.warning),
                       ),
                       onPressed: onPendiente,
                       child: const Text('Pendiente'),
@@ -548,9 +538,7 @@ class _CotizacionCard extends StatelessWidget {
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.danger,
-                        side: BorderSide(
-                          color: AppTheme.danger,
-                        ),
+                        side: BorderSide(color: AppTheme.danger),
                       ),
                       onPressed: onRechazada,
                       child: const Text('Rechazar'),
@@ -565,12 +553,8 @@ class _CotizacionCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      icon: const Icon(
-                        Icons.visibility_outlined,
-                      ),
-                      label: const Text(
-                        'Ver detalle',
-                      ),
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Text('Ver detalle'),
                       onPressed: () {
                         showDialog(
                           context: context,
@@ -578,8 +562,7 @@ class _CotizacionCard extends StatelessWidget {
                             title: Text(cliente),
                             content: Column(
                               mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('Código: $codigo'),
                                 Text('Dirección: $direccion'),
@@ -590,8 +573,7 @@ class _CotizacionCard extends StatelessWidget {
                             ),
                             actions: [
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context),
+                                onPressed: () => Navigator.pop(context),
                                 child: const Text('Cerrar'),
                               ),
                             ],
@@ -609,19 +591,9 @@ class _CotizacionCard extends StatelessWidget {
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
                       ),
-                      icon: const Icon(
-                        Icons.edit_outlined,
-                      ),
+                      icon: const Icon(Icons.edit_outlined),
                       label: const Text('Editar'),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Edición próximamente',
-                            ),
-                          ),
-                        );
-                      },
+                      onPressed: onEditar,
                     ),
                   ),
                 ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'firebase_options.dart';
 
@@ -16,6 +17,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
 
   final dataSource = AuthFirebaseDataSource();
   final repository = AuthRepositoryImpl(dataSource);
@@ -45,7 +50,17 @@ class MyApp extends StatelessWidget {
           }
 
           if (snapshot.hasData) {
-            return const InactivityDetector(child: MainNavigation());
+            return FutureBuilder(
+              future: Future.delayed(const Duration(milliseconds: 500)),
+              builder: (context, delaySnapshot) {
+                if (delaySnapshot.connectionState != ConnectionState.done) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                return const InactivityDetector(child: MainNavigation());
+              },
+            );
           }
 
           return LoginPage(useCase: useCase);

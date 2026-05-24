@@ -36,4 +36,7 @@ class CotizacionRepositoryImpl
     estado,
   );
 }
+Future<void> crearNuevaVersion(String cotizacionId) async {
+  await datasource.crearNuevaVersion(cotizacionId);
+}
 }

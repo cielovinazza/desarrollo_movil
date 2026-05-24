@@ -55,13 +55,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       FirebaseFirestore.instance,
     );
 
-    final repository = CotizacionRepositoryImpl(
-      datasource,
-    );
+    final repository = CotizacionRepositoryImpl(datasource);
 
-    guardarCotizacionUseCase = GuardarCotizacion(
-      repository,
-    );
+    guardarCotizacionUseCase = GuardarCotizacion(repository);
   }
 
   @override
@@ -80,8 +76,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         ? null
         : double.tryParse(viaticoTexto);
 
-  
-
     return CotizacionModel(
       cliente: _clienteController.text.trim(),
       direccionObra: _direccionController.text.trim(),
@@ -94,23 +88,23 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     );
   }
 
- Future<void> _guardarCotizacion() async {
+  Future<void> _guardarCotizacion({required String estado}) async {
+    final cotizacion = _obtenerEstadoActual();
 
-  final cotizacion =_obtenerEstadoActual();
+    final dto = CotizacionMapper.toDto(
+      cotizacion: cotizacion,
 
-  final dto =CotizacionMapper.toDto(
+      materiales: _materialesAgregados,
 
-    cotizacion: cotizacion,
+      clienteId: _clienteIdSeleccionado ?? '',
 
-    materiales:_materialesAgregados,
+      usuarioId: _auth.currentUser?.uid ?? '',
 
-    clienteId:_clienteIdSeleccionado ?? '',
+      estado: estado,
+    );
 
-    usuarioId:_auth.currentUser?.uid ?? '',
-  );
-
-  await guardarCotizacionUseCase(dto);
-}
+    await guardarCotizacionUseCase(dto);
+  }
 
   void _mostrarMensaje(String mensaje) {
     ScaffoldMessenger.of(
@@ -336,23 +330,75 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
-            controlsBuilder: (context, details) => Row(
-              children: [
-                ElevatedButton(
-                  onPressed: details.onStepContinue,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _verdeApp,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: Text(_currentStep == 4 ? 'Guardar' : 'Continuar'),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: details.onStepCancel,
-                  child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
-                ),
-              ],
-            ),
+            controlsBuilder: (context, details) {
+              if (_currentStep == 4) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () async {
+                        await _guardarCotizacion(estado: 'En Proceso');
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: Colors.grey[700],
+                            content: const Text('Borrador guardado'),
+                          ),
+                        );
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[700],
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Guardar Borrador'),
+                    ),
+                    const SizedBox(height: 8),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await _guardarCotizacion(estado: 'Lista para Envío');
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: _verdeApp,
+                            content: const Text('Cotización confirmada'),
+                          ),
+                        );
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _verdeApp,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Confirmar Envío'),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: details.onStepCancel,
+                      child: const Text('Atrás'),
+                    ),
+                  ],
+                );
+              } else {
+                return Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: details.onStepContinue,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _verdeApp,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Continuar'),
+                    ),
+                    const SizedBox(width: 12),
+                    TextButton(
+                      onPressed: details.onStepCancel,
+                      child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
+                    ),
+                  ],
+                );
+              }
+            },
             onStepContinue: () async {
               if (_currentStep == 0) {
                 if (_clienteController.text.trim().isEmpty) {
@@ -377,33 +423,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   if (_currentStep == 3) {
                     _vistaPreviaCargada = false;
                   }
-
                   _currentStep += 1;
                 });
-              } else {
-                try {
-                  await _guardarCotizacion();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: _verdeApp,
-                      content: const Text(
-                        'Cotización guardada correctamente',
-                      ),
-                    ),
-                  );
-                  Navigator.pop(context);
-                } catch (e) {
-                  print(e);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: Colors.red,
-                      content: Text(
-                        'Error al guardar: $e',
-                      ),
-                    ),
-                  );
-                }
               }
             },
             onStepCancel: () {
