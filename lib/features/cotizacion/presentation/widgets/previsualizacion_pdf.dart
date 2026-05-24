@@ -1,7 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/cotizacion_model.dart';
 import '../../domain/entities/mano_de_obra.dart';
 import 'package:project/features/materiales/domain/entities/material.dart';
+import '../../data/datasources/cotizacion_firebase_datasource.dart';
+import '../../data/repositories/cotizacion_repository_impl.dart';
 
 class PrevisualizacionPdfWidget extends StatefulWidget {
   final CotizacionModel cotizacion;
@@ -24,6 +31,10 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
 
 class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   bool _cargado = false;
+  bool _subiendo = false;
+  String? _codigoGenerado;
+
+  late final CotizacionRepositoryImpl _repository;
 
   static const Color _verde = Color(0xFF2E7D32);
   static const Color _verdeSuave = Color(0xFFE8F5E9);
@@ -58,22 +69,154 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   @override
   void initState() {
     super.initState();
+    _repository = CotizacionRepositoryImpl(
+      CotizacionFirestoreDataSource(FirebaseFirestore.instance),
+    );
+
+    final fecha = DateTime.now();
+    _codigoGenerado =
+        'COT-${fecha.year}${fecha.month.toString().padLeft(2, '0')}${fecha.day.toString().padLeft(2, '0')}';
 
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
           _cargado = true;
         });
-        widget.onListo();
       }
     });
+  }
+
+  Future<void> _procesarYSubirCotizacion(String docIdInyectado) async {
+    setState(() => _subiendo = true);
+
+    try {
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.letter,
+          build: (pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(15),
+                  decoration: const pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFF2E7D32),
+                  ),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('COTIZACION PROFESIONAL', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                      pw.Text(_codigoGenerado ?? '', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 15),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text('Cliente: ${widget.cotizacion.cliente.isEmpty ? "Sin cliente" : widget.cotizacion.cliente}', style: const pw.TextStyle(fontSize: 11)),
+                    pw.Text('Obra: ${widget.cotizacion.direccionObra.isEmpty ? "Sin direccion" : widget.cotizacion.direccionObra}', style: const pw.TextStyle(fontSize: 11)),
+                  ],
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text('DETALLE DE MATERIALES', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: const PdfColor.fromInt(0xFF2E7D32))),
+                pw.Divider(),
+                ...widget.materiales.map((m) => pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(m.nombre, style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('${m.cantidad} ${m.unidadMedida}', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(_clp(m.subtotal), style: const pw.TextStyle(fontSize: 10)),
+                  ],
+                )),
+                pw.SizedBox(height: 10),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                  children: [pw.Text('Subtotal Materiales: ${_clp(_subtotalMateriales)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))],
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text('DETALLE DE MANO DE OBRA', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: const PdfColor.fromInt(0xFF2E7D32))),
+                pw.Divider(),
+                ...widget.manoObra.map((mo) => pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(mo.cargo, style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('${mo.dias} dias', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(_clp(mo.subtotal), style: const pw.TextStyle(fontSize: 10)),
+                  ],
+                )),
+                pw.SizedBox(height: 10),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                  children: [pw.Text('Subtotal Mano de Obra: ${_clp(_subtotalManoObra)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))],
+                ),
+                pw.SizedBox(height: 25),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: const pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFFE8F5E9),
+                  ),
+                  child: pw.Column(
+                    children: [
+                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Costos Directos:'), pw.Text(_clp(_subtotalCostosDirectos))]),
+                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Utilidad (${widget.cotizacion.porcentajeUtilidad}%):'), pw.Text(_clp(_montoUtilidad))]),
+                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('IVA (${widget.cotizacion.porcentajeIva}%):'), pw.Text(_clp(_montoIva))]),
+                      pw.Divider(),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('TOTAL FINAL:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
+                          pw.Text(_clp(_totalFinal), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
+      final directorio = await getTemporaryDirectory();
+      final rutaArchivo = '${directorio.path}/$docIdInyectado.pdf';
+      final archivoFisico = File(rutaArchivo);
+      await archivoFisico.writeAsBytes(await pdf.save());
+
+      await _repository.gestionarYSubirPdf(docIdInyectado, archivoFisico);
+
+      setState(() => _subiendo = false);
+      widget.onListo();
+    } catch (e) {
+      setState(() => _subiendo = false);
+      _mostrarError('Error de Almacenamiento', e.toString().replaceAll('Exception: ', ''));
+    }
+  }
+
+  void _mostrarError(String titulo, String mensaje) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(mensaje),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cerrar'),
+          )
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 400),
-      child: _cargado ? _buildPreview() : _buildCargando(),
+      child: _subiendo
+          ? _buildSubiendoAStorage()
+          : (_cargado ? _buildPreview() : _buildCargando()),
     );
   }
 
@@ -95,6 +238,24 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     );
   }
 
+  Widget _buildSubiendoAStorage() {
+    return Container(
+      key: const ValueKey('subiendo'),
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      alignment: Alignment.center,
+      child: const Column(
+        children: [
+          CircularProgressIndicator(color: Colors.blue),
+          SizedBox(height: 16),
+          Text(
+            'Subiendo PDF a Firebase Storage (Límite 5s)...',
+            style: TextStyle(color: _texto, fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPreview() {
     return Container(
       key: const ValueKey('preview'),
@@ -104,7 +265,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
         border: Border.all(color: const Color(0xFFD1D5DB)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -125,6 +286,24 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           _buildResumenTotales(),
           _buildDivisor(),
           _buildTotalFinal(),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _verde,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              icon: const Icon(Icons.cloud_upload_outlined),
+              label: const Text('CONFIRMAR Y SUBIR COTIZACIÓN', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () {
+                final simulatedDocId = 'COT_${DateTime.now().millisecondsSinceEpoch}';
+                _procesarYSubirCotizacion(simulatedDocId);
+              },
+            ),
+          ),
           const SizedBox(height: 8),
         ],
       ),
@@ -132,11 +311,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   }
 
   Widget _buildEncabezado() {
-    final fecha = DateTime.now();
-
-    final codigo =
-        'COT-${fecha.year}${fecha.month.toString().padLeft(2, '0')}${fecha.day.toString().padLeft(2, '0')}';
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
@@ -167,11 +341,11 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              codigo,
+              _codigoGenerado ?? '',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,

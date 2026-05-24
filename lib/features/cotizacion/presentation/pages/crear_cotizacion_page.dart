@@ -9,6 +9,7 @@ import '../../data/mappers/cotizacion_mapper.dart';
 import '../../data/repositories/cotizacion_repository_impl.dart';
 import '../../domain/usecases/guardar_cotizacion.dart';
 import '../widgets/previsualizacion_pdf.dart';
+import '../../data/dtos/cotizacion_dtos.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -24,6 +25,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   late final GuardarCotizacion guardarCotizacionUseCase;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _vistaPreviaCargada = false;
+  bool _guardandoEnFirestore = false;
+  String? _idCotizacionCreada;
 
   final List<ManoDeObra> _manoObraAgregada = [];
   final List<ItemTrabajo> _trabajosAgregados = [];
@@ -34,6 +37,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _viaticoController = TextEditingController();
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
+  
   final List<String> _tiposDisponibles = [
     'Pintura',
     'Yeso',
@@ -80,8 +84,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         ? null
         : double.tryParse(viaticoTexto);
 
-  
-
     return CotizacionModel(
       cliente: _clienteController.text.trim(),
       direccionObra: _direccionController.text.trim(),
@@ -94,23 +96,44 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     );
   }
 
- Future<void> _guardarCotizacion() async {
+  //Fase 1 - Registrar documento en Firestore NoSQL
+  Future<String> _guardarCotizacion() async {
+    final cotizacion = _obtenerEstadoActual();
 
-  final cotizacion =_obtenerEstadoActual();
+    final dto = CotizacionMapper.toDto(
+      cotizacion: cotizacion,
+      materiales: _materialesAgregados,
+      clienteId: _clienteIdSeleccionado ?? '',
+      usuarioId: _auth.currentUser?.uid ?? '',
+    );
 
-  final dto =CotizacionMapper.toDto(
+    final docRef = FirebaseFirestore.instance.collection('cotizaciones').doc();
+    
+    // Adaptamos el DTO con el ID correspondiente de forma limpia
+    final dtoConId = CotizacionDto(
+      id: docRef.id,
+      clienteId: dto.clienteId,
+      clienteNombre: dto.clienteNombre,
+      codigo: dto.codigo,
+      direccion: dto.direccion,
+      trabajos: dto.trabajos,
+      manoObra: dto.manoObra,
+      materiales: dto.materiales,
+      subtotalObra: dto.subtotalObra,
+      subtotalMateriales: dto.subtotalMateriales,
+      subtotalManoObra: dto.subtotalManoObra,
+      viatico: dto.viatico,
+      porcentajeUtilidad: dto.porcentajeUtilidad,
+      porcentajeIva: dto.porcentajeIva,
+      totalFinal: dto.totalFinal,
+      estado: 'En Proceso', // Forzado por Requerimiento funcional
+      usuarioId: dto.usuarioId,
+      fechaCreacion: dto.fechaCreacion,
+    );
 
-    cotizacion: cotizacion,
-
-    materiales:_materialesAgregados,
-
-    clienteId:_clienteIdSeleccionado ?? '',
-
-    usuarioId:_auth.currentUser?.uid ?? '',
-  );
-
-  await guardarCotizacionUseCase(dto);
-}
+    await guardarCotizacionUseCase(dtoConId);
+    return docRef.id;
+  }
 
   void _mostrarMensaje(String mensaje) {
     ScaffoldMessenger.of(
@@ -338,19 +361,23 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             currentStep: _currentStep,
             controlsBuilder: (context, details) => Row(
               children: [
-                ElevatedButton(
-                  onPressed: details.onStepContinue,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _verdeApp,
-                    foregroundColor: Colors.white,
+                if (!_guardandoEnFirestore)
+                  ElevatedButton(
+                    onPressed: details.onStepContinue,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _verdeApp,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text(_currentStep == 4 ? 'Guardar y Previsualizar' : 'Continuar'),
                   ),
-                  child: Text(_currentStep == 4 ? 'Guardar' : 'Continuar'),
-                ),
                 const SizedBox(width: 12),
-                TextButton(
-                  onPressed: details.onStepCancel,
-                  child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
-                ),
+                if (!_guardandoEnFirestore)
+                  TextButton(
+                    onPressed: details.onStepCancel,
+                    child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
+                  ),
+                if (_guardandoEnFirestore)
+                  const CircularProgressIndicator(),
               ],
             ),
             onStepContinue: () async {
@@ -377,32 +404,22 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   if (_currentStep == 3) {
                     _vistaPreviaCargada = false;
                   }
-
                   _currentStep += 1;
                 });
               } else {
+                // Ejecución de la Fase 1 NoSQL al presionar Guardar
+                setState(() => _guardandoEnFirestore = true);
                 try {
-                  await _guardarCotizacion();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: _verdeApp,
-                      content: const Text(
-                        'Cotización guardada correctamente',
-                      ),
-                    ),
-                  );
-                  Navigator.pop(context);
+                  final realId = await _guardarCotizacion();
+                  setState(() {
+                    _idCotizacionCreada = realId;
+                    _guardandoEnFirestore = false;
+                    _vistaPreviaCargada = true;
+                  });
+                  _mostrarMensaje('Estructura persistida en Firestore. Proceda al Storage.');
                 } catch (e) {
-                  print(e);
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: Colors.red,
-                      content: Text(
-                        'Error al guardar: $e',
-                      ),
-                    ),
-                  );
+                  setState(() => _guardandoEnFirestore = false);
+                  _mostrarMensaje('Error NoSQL: $e');
                 }
               }
             },
@@ -640,31 +657,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    PrevisualizacionPdfWidget(
-                      cotizacion: datosEnVivo,
-                      materiales: _materialesAgregados,
-                      manoObra: _manoObraAgregada,
-                      onListo: () {
-                        setState(() {
-                          _vistaPreviaCargada = true;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _vistaPreviaCargada
-                            ? () {
-                                _mostrarMensaje('PDF listo para generar');
-                              }
-                            : null,
-                        icon: const Icon(Icons.picture_as_pdf),
-                        label: const Text('Generar PDF'),
+                    //FASE 2: Si el ID ya fue creado por Firestore, se expone el PDF amarrado de forma atómica
+                    if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
+                      PrevisualizacionPdfWidget(
+                        cotizacion: datosEnVivo,
+                        materiales: _materialesAgregados,
+                        manoObra: _manoObraAgregada,
+                        onListo: () {
+                          _mostrarMensaje('PDF sincronizado y subido con éxito.');
+                          Navigator.pop(context);
+                        },
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                    ],
                   ],
                 ),
               ),
