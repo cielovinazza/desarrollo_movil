@@ -195,6 +195,16 @@ class HomePage extends StatelessWidget {
                             StreamBuilder<QuerySnapshot>(
                               stream: FirebaseFirestore.instance
                                   .collection('cotizaciones')
+                                  .where(
+                                    'fechaCreacion',
+                                    isGreaterThanOrEqualTo: Timestamp.fromDate(
+                                      DateTime(
+                                        DateTime.now().year,
+                                        DateTime.now().month,
+                                        1,
+                                      ),
+                                    ),
+                                  )
                                   .snapshots(),
                               builder: (context, snapshot) {
                                 if (!snapshot.hasData) {
