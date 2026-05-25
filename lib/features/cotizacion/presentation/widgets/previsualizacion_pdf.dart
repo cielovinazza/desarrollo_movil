@@ -38,8 +38,13 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
 
   double get _gastoTransporte => widget.cotizacion.viatico ?? 0.0;
 
+  double get _subtotalTrabajosObra => widget.cotizacion.subtotalObraTotal;
+
   double get _subtotalCostosDirectos =>
-      _subtotalMateriales + _subtotalManoObra + _gastoTransporte;
+      _subtotalTrabajosObra +
+      _subtotalMateriales +
+      _subtotalManoObra +
+      _gastoTransporte;
 
   double get _montoUtilidad =>
       _subtotalCostosDirectos * (widget.cotizacion.porcentajeUtilidad / 100);
@@ -116,6 +121,8 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           _buildEncabezado(),
           _buildInfoCliente(),
           _buildDivisor(),
+          _buildSeccionTrabajosObra(),
+          _buildDivisor(),
           _buildSeccionMateriales(),
           _buildDivisor(),
           _buildSeccionManoObra(),
@@ -126,6 +133,37 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           _buildDivisor(),
           _buildTotalFinal(),
           const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeccionTrabajosObra() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _tituloSeccion(Icons.construction_outlined, 'TRABAJOS DE OBRA'),
+          const SizedBox(height: 8),
+
+          if (widget.cotizacion.listaTrabajos.isEmpty)
+            _filaVacia('Sin trabajos registrados')
+          else
+            ...widget.cotizacion.listaTrabajos.map(
+              (trabajo) => _filaItem(
+                trabajo.tipo,
+                '${trabajo.metrosCuadrados.toStringAsFixed(1)} m² × ${_clp(trabajo.precioPorMetro)}',
+                _clp(trabajo.subtotal),
+              ),
+            ),
+
+          const SizedBox(height: 6),
+
+          _filaSubtotal(
+            'Subtotal trabajos de obra',
+            _clp(_subtotalTrabajosObra),
+          ),
         ],
       ),
     );

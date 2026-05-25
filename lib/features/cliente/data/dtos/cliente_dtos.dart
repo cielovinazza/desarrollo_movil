@@ -1,6 +1,6 @@
 class ClienteDto {
 
-  final int? id;
+  final String id;
   final String nombre;
   final String rut;
   final String correo;
@@ -8,7 +8,7 @@ class ClienteDto {
   final String? direccion;
 
   ClienteDto({
-    this.id,
+    required this.id,
     required this.nombre,
     required this.rut,
     required this.correo,
@@ -19,7 +19,6 @@ class ClienteDto {
   Map<String, dynamic> toMap() {
 
     return {
-      'id': id,
       'nombre': nombre,
       'rut':rut,
       'correo': correo,
@@ -28,16 +27,17 @@ class ClienteDto {
     };
   }
 
-  factory ClienteDto.fromMap(
+  factory ClienteDto.fromFirestore(
+    String id,
     Map<String, dynamic> map,
   ) {
 
     return ClienteDto(
-      id: map['id'],
-      nombre: map['nombre'],
-      rut: map['rut'],
-      correo: map['correo'],
-      telefono: map['telefono'],
+      id: id,
+      nombre: map['nombre'] ?? '' ,
+      rut: map['rut'] ?? '',
+      correo: map['correo'] ?? '',
+      telefono: map['telefono'] ?? '',
       direccion: map['direccion'],
     );
   }

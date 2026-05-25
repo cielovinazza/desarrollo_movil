@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:project/features/cliente/data/datasources/clientes_local_datasource.dart';
+import '../../data/datasources/clientes_remote_datasource.dart';
 import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/usecases/registrar_cliente.dart';
 import '../widgets/cliente_text_field.dart';
 import '../formatters/mascara_rut_formatters.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 class RegistroClientePage extends StatefulWidget {
@@ -16,7 +17,8 @@ class RegistroClientePage extends StatefulWidget {
 }
 
 class _RegistroClientePageState extends State<RegistroClientePage> {
-  final repository=ClienteRepositoryImpl(ClientesLocalDataSource(),
+  final repository=ClienteRepositoryImpl(
+    ClientesRemoteDataSource(FirebaseFirestore.instance),
   );
 
   final _formKey = GlobalKey<FormState>();
@@ -69,7 +71,9 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     int multiplo = 2;
 
     for (int i = cuerpo.length - 1; i >= 0; i--) {
-      suma += int.parse(cuerpo[i]) * multiplo;
+      final char = cuerpo[i];
+      if (!RegExp(r'\d').hasMatch(char)) return false;
+      suma += int.parse(char) * multiplo;
 
       multiplo++;
 
@@ -130,11 +134,14 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
     Navigator.pop(context);
 
-  } catch (e) {
+  } catch (e, stack) {
+
+     debugPrint('ERROR: $e');
+    debugPrint('STACK: $stack');
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(e.toString().replaceFirst('Exception: ', '')),
+        content: Text(e.toString()),
       ),
     );
   }

@@ -3,12 +3,9 @@ import '../dtos/cliente_dtos.dart';
 
 class ClienteMapper {
 
-  static ClienteDto toDto(
-    Cliente cliente,
-  ) {
-
+  static ClienteDto toDto(Cliente cliente,) {
     return ClienteDto(
-      id: cliente.id,
+      id: cliente.id.toString(),
       nombre: cliente.nombre,
       rut:cliente.rut,
       correo: cliente.correo,
@@ -17,10 +14,7 @@ class ClienteMapper {
     );
   }
 
-  static Cliente toEntity(
-    ClienteDto dto,
-  ) {
-
+  static Cliente toEntity(ClienteDto dto,) {
     return Cliente(
       id: dto.id,
       nombre: dto.nombre,

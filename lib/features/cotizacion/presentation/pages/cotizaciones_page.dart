@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:project/shared/design_system/app_theme.dart';
 import 'crear_cotizacion_page.dart';
-import 'package:project/features/cotizacion/data/cotizaciones_memoria.dart';
+import '../../domain/usecases/obtener_cotizacion.dart';
+import '../../data/dtos/cotizacion_dtos.dart';
+import '../../data/datasources/cotizacion_firebase_datasource.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../data/repositories/cotizacion_repository_impl.dart';
+
+import '../../domain/usecases/actualizar_estado_cotizacion.dart';
 
 class CotizacionesPage extends StatefulWidget {
   const CotizacionesPage({super.key});
@@ -12,11 +19,62 @@ class CotizacionesPage extends StatefulWidget {
 
 class _CotizacionesPageState extends State<CotizacionesPage> {
   final TextEditingController searchController = TextEditingController();
+  
+  late final ActualizarEstadoCotizacion
+    actualizarEstadoUseCase;
 
-  List<Map<String, String>> get cotizaciones =>
-    CotizacionesMemoria.lista;
+  late final ObtenerCotizacion
+    obtenerCotizacionesUseCase;
+  List<CotizacionDto> cotizaciones = [];
+
+  late final CotizacionRepositoryImpl
+    repository;
+
+  bool cargando = true;
 
   String searchText = '';
+
+  @override
+  void initState() {
+
+  super.initState();
+
+
+  final datasource =
+    CotizacionFirestoreDataSource(
+    FirebaseFirestore.instance,
+  );
+
+  repository =
+    CotizacionRepositoryImpl(
+    datasource,
+  );
+
+  actualizarEstadoUseCase =
+    ActualizarEstadoCotizacion(
+    repository,
+);
+
+  obtenerCotizacionesUseCase =
+      ObtenerCotizacion(
+    repository,
+  );
+
+  cargarCotizacion();
+}
+
+  Future<void> cargarCotizacion() async {
+
+  final data =
+      await obtenerCotizacionesUseCase();
+
+  setState(() {
+
+    cotizaciones = data;
+
+    cargando = false;
+  });
+}
 
   @override
   void dispose() {
@@ -24,29 +82,48 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     super.dispose();
   }
 
-  List<Map<String, String>> get filteredCotizaciones {
-    if (searchText.isEmpty) return cotizaciones;
+  List<CotizacionDto>
+get filteredCotizaciones {
 
-    return cotizaciones.where((cotizacion) {
-      final cliente = cotizacion['cliente']!.toLowerCase();
-      final codigo = cotizacion['codigo']!.toLowerCase();
-      final query = searchText.toLowerCase();
-
-      return cliente.contains(query) || codigo.contains(query);
-    }).toList();
+  if (searchText.isEmpty) {
+    return cotizaciones;
   }
 
-  void cambiarEstado(int index, String nuevoEstado) {
-    setState(() {
-      cotizaciones[index]['estado'] = nuevoEstado;
-    });
+  return cotizaciones.where((cotizacion) {
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Cotización marcada como $nuevoEstado'),
+    final cliente =
+        cotizacion.clienteNombre
+            .toLowerCase();
+
+    final query =
+        searchText.toLowerCase();
+
+    return cliente.contains(query);
+
+  }).toList();
+}
+
+  Future<void> cambiarEstado(
+  String id,
+  String nuevoEstado,
+) async {
+
+  await actualizarEstadoUseCase(
+    id,
+    nuevoEstado,
+  );
+
+  await cargarCotizacion();
+
+  ScaffoldMessenger.of(context)
+      .showSnackBar(
+    SnackBar(
+      content: Text(
+        'Cotización marcada como $nuevoEstado',
       ),
-    );
-  }
+    ),
+  );
+}
 
   Color estadoColor(String estado) {
     switch (estado) {
@@ -59,9 +136,16 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     }
   }
 
-  int contarPorEstado(String estado) {
-    return cotizaciones.where((c) => c['estado'] == estado).length;
-  }
+ int contarPorEstado(
+  String estado,
+) {
+
+  return cotizaciones.where((c) {
+
+    return c.estado == estado;
+
+  }).length;
+}
 
   @override
   Widget build(BuildContext context) {
@@ -79,10 +163,10 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const CrearCotizacionPage(),
+              builder: (_) =>const CrearCotizacionPage(),
             ),
           );
-          setState(() {});
+          await cargarCotizacion();
         },
       ),
 
@@ -205,13 +289,18 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                   child: Padding(
                     padding: EdgeInsets.all(30),
                     child: Text(
-                      'Cliente sin historial',
+                      'No se encontraron cotizaciones para su búsqueda.',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,),
                         ),
                         ),
                         )
+                else
+                if (cargando)
+                    const Center(
+                      child: CircularProgressIndicator(),
+                    )
                 else
                   ListView.separated(
                     shrinkWrap: true,
@@ -220,20 +309,24 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                     separatorBuilder: (_, __) => const SizedBox(height: 14),
                     itemBuilder: (context, index) {
                       final cotizacion = lista[index];
-                      final estado = cotizacion['estado']!;
-                      final realIndex = cotizaciones.indexOf(cotizacion);
+                      final estado = cotizacion.estado;
+                      
 
                       return _CotizacionCard(
-                        codigo: cotizacion['codigo']!,
-                        cliente: cotizacion['cliente']!,
-                        direccion: cotizacion['direccion']!,
-                        fecha: cotizacion['fecha']!,
-                        monto: cotizacion['monto']!,
+                        codigo: cotizacion.codigo,
+                        cliente: cotizacion.clienteNombre,
+                        direccion: cotizacion.direccion,
+                        fecha: cotizacion.fechaCreacion != null
+                            ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
+                              '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
+                              '${cotizacion.fechaCreacion!.toDate().year}'
+                            : '',
+                        monto: '${cotizacion.totalFinal.toStringAsFixed(0)}',
                         estado: estado,
                         estadoColor: estadoColor(estado),
-                        onAceptada: () => cambiarEstado(realIndex, 'Aceptada'),
-                        onRechazada: () => cambiarEstado(realIndex, 'Rechazada'),
-                        onPendiente: () => cambiarEstado(realIndex, 'Pendiente'),
+                        onAceptada: () => cambiarEstado(cotizacion.id, 'Aceptada'),
+                        onRechazada: () => cambiarEstado(cotizacion.id, 'Rechazada'),
+                        onPendiente: () => cambiarEstado(cotizacion.id, 'Pendiente'),
                       );
                     },
                   ),
