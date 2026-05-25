@@ -29,7 +29,6 @@ class _MaterialDialogState extends State<MaterialDialog> {
   void initState() {
     super.initState();
 
-    // Si viene con material, precarga los campos para editar
     if (widget.materialEditando != null) {
       final m = widget.materialEditando!;
       _nombreController.text = m.nombre;
