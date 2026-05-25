@@ -205,7 +205,7 @@ class _LoginPageState extends State<LoginPage> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () {},
+                            onPressed: (){},
                             child: const Text(
                               '¿Olvidaste tu contraseña?',
                               style: TextStyle(

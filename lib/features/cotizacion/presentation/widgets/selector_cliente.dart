@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-
-import 'package:project/features/cliente/data/datasources/clientes_local_datasource.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:project/features/cliente/data/datasources/clientes_remote_datasource.dart';
 import 'package:project/features/cliente/data/repositories/cliente_repository_impl.dart';
 import 'package:project/features/cliente/domain/entities/cliente.dart';
 import 'package:project/features/cliente/domain/usecases/listar_clientes.dart';
 
 class SelectorCliente extends StatefulWidget {
   final TextEditingController controller;
+  final Function(String) onClienteSeleccionado;
 
   const SelectorCliente({
     super.key,
     required this.controller,
+    required this.onClienteSeleccionado,
   });
 
   @override
@@ -30,7 +32,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
     super.initState();
 
     final repository = ClienteRepositoryImpl(
-      ClientesLocalDataSource(),
+      ClientesRemoteDataSource(FirebaseFirestore.instance),
     );
 
     listarClientesUseCase = ListarClientes(repository);
@@ -143,6 +145,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
               });
 
               widget.controller.text = cliente.nombre;
+              widget.onClienteSeleccionado(cliente.id!.toString());
             },
           ),
 

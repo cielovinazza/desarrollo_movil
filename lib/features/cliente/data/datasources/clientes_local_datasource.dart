@@ -1,4 +1,4 @@
-import 'dart:convert';
+/*import 'dart:convert';
 import 'package:flutter/services.dart';
 import '../../domain/entities/cliente.dart';
 
@@ -30,8 +30,8 @@ class ClientesLocalDataSource {
   Future<void> agregarCliente(Cliente cliente) async {
     await _init();
 
-    final nuevoId = _clientes.isEmpty ? 1 : (_clientes.last.id ?? 0) + 1;
-    final clienteConId = cliente.copyWith(id: nuevoId);
+    final nuevoId = _clientes.isEmpty ? 1 : (_clientes.last.id ?? 0) ;
+    //final clienteConId = cliente.copyWith(id: nuevoId);
 
     _clientes.add(clienteConId);
   }
@@ -46,4 +46,4 @@ class ClientesLocalDataSource {
       print("No se encontró el cliente con ID: ${clienteActualizado.id}");
     }
   }
-}
+}*/

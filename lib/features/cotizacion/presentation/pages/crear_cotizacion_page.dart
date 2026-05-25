@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/cotizacion_model.dart';
 import '../widgets/manodeobra.dart';
 import '../widgets/materiales.dart';
-import 'package:project/features/cotizacion/data/cotizaciones_memoria.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../data/datasources/cotizacion_firebase_datasource.dart';
+import '../../data/mappers/cotizacion_mapper.dart';
+import '../../data/repositories/cotizacion_repository_impl.dart';
+import '../../domain/usecases/guardar_cotizacion.dart';
 import '../widgets/previsualizacion_pdf.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
@@ -15,20 +20,20 @@ class CrearCotizacionPage extends StatefulWidget {
 class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _formKey = GlobalKey<FormState>();
   int _currentStep = 0;
+  String? _clienteIdSeleccionado;
+  late final GuardarCotizacion guardarCotizacionUseCase;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _vistaPreviaCargada = false;
 
   final List<ManoDeObra> _manoObraAgregada = [];
   final List<ItemTrabajo> _trabajosAgregados = [];
   final List<MaterialEntity> _materialesAgregados = [];
-
   final Color _verdeApp = const Color(0xFF2E7D32);
-
   final _clienteController = TextEditingController();
   final _direccionController = TextEditingController();
   final _viaticoController = TextEditingController();
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
-
   final List<String> _tiposDisponibles = [
     'Pintura',
     'Yeso',
@@ -43,6 +48,23 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+
+    final datasource = CotizacionFirestoreDataSource(
+      FirebaseFirestore.instance,
+    );
+
+    final repository = CotizacionRepositoryImpl(
+      datasource,
+    );
+
+    guardarCotizacionUseCase = GuardarCotizacion(
+      repository,
+    );
+  }
+
+  @override
   void dispose() {
     _clienteController.dispose();
     _direccionController.dispose();
@@ -52,14 +74,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     super.dispose();
   }
 
-  double get _totalMateriales =>
-      _materialesAgregados.fold(0.0, (suma, m) => suma + m.subtotal);
-
   CotizacionModel _obtenerEstadoActual() {
     final viaticoTexto = _viaticoController.text.trim();
     final double? viaticoValor = viaticoTexto.isEmpty
         ? null
         : double.tryParse(viaticoTexto);
+
+  
 
     return CotizacionModel(
       cliente: _clienteController.text.trim(),
@@ -69,9 +90,27 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       viatico: viaticoValor,
       porcentajeUtilidad: double.tryParse(_utilidadController.text) ?? 0.0,
       porcentajeIva: double.tryParse(_ivaController.text) ?? 19.0,
-      costoMaterialesSimulado: _totalMateriales,
+      materiales: _materialesAgregados,
     );
   }
+
+ Future<void> _guardarCotizacion() async {
+
+  final cotizacion =_obtenerEstadoActual();
+
+  final dto =CotizacionMapper.toDto(
+
+    cotizacion: cotizacion,
+
+    materiales:_materialesAgregados,
+
+    clienteId:_clienteIdSeleccionado ?? '',
+
+    usuarioId:_auth.currentUser?.uid ?? '',
+  );
+
+  await guardarCotizacionUseCase(dto);
+}
 
   void _mostrarMensaje(String mensaje) {
     ScaffoldMessenger.of(
@@ -314,7 +353,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 ),
               ],
             ),
-            onStepContinue: () {
+            onStepContinue: () async {
               if (_currentStep == 0) {
                 if (_clienteController.text.trim().isEmpty) {
                   _mostrarMensaje('Debes ingresar o seleccionar un cliente');
@@ -342,30 +381,29 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   _currentStep += 1;
                 });
               } else {
-                CotizacionesMemoria.lista.insert(0, {
-                  'codigo': 'COT-00${CotizacionesMemoria.lista.length + 1}',
-                  'cliente': _clienteController.text.trim().isEmpty
-                      ? 'Cliente sin identificar'
-                      : _clienteController.text.trim(),
-                  'direccion': _direccionController.text.trim().isEmpty
-                      ? 'Dirección no especificada'
-                      : _direccionController.text.trim(),
-                  'fecha':
-                      '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                  'monto': '\$${datosEnVivo.calcularTotalFinal()}',
-                  'estado': 'Pendiente',
-                });
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: _verdeApp,
-                    content: Text(
-                      'Cotización guardada. Total: \$${datosEnVivo.calcularTotalFinal()} CLP',
+                try {
+                  await _guardarCotizacion();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: _verdeApp,
+                      content: const Text(
+                        'Cotización guardada correctamente',
+                      ),
                     ),
-                  ),
-                );
+                  );
+                  Navigator.pop(context);
+                } catch (e) {
+                  print(e);
 
-                Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: Colors.red,
+                      content: Text(
+                        'Error al guardar: $e',
+                      ),
+                    ),
+                  );
+                }
               }
             },
             onStepCancel: () {
@@ -382,7 +420,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 0,
-                content: SelectorCliente(controller: _clienteController),
+                content: SelectorCliente(
+                  controller: _clienteController,
+                  onClienteSeleccionado: (clienteId) {
+                    _clienteIdSeleccionado = clienteId;
+                  },
+                ),
               ),
               Step(
                 title: const Text(
@@ -585,7 +628,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Monto Final: \$${datosEnVivo.calcularTotalFinal()} CLP',
+                            'Monto Final: \$${datosEnVivo.calcularTotalFinal().toStringAsFixed(0)} CLP',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,

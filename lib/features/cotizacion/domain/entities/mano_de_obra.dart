@@ -1,7 +1,7 @@
 class ManoDeObra {
   final String cargo;
   final double valorJornada;
-  final double dias;
+  final int dias;
 
   ManoDeObra({
     required this.cargo,
