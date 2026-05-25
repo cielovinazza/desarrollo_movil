@@ -3,6 +3,7 @@ import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_firebase_datasource.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
+  @override
   final AuthFirebaseDataSource dataSource;
 
   AuthRepositoryImpl(this.dataSource);

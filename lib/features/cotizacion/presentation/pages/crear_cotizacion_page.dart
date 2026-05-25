@@ -9,6 +9,7 @@ import '../../data/mappers/cotizacion_mapper.dart';
 import '../../data/repositories/cotizacion_repository_impl.dart';
 import '../../domain/usecases/guardar_cotizacion.dart';
 import '../widgets/previsualizacion_pdf.dart';
+import 'package:flutter/services.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -55,13 +56,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       FirebaseFirestore.instance,
     );
 
-    final repository = CotizacionRepositoryImpl(
-      datasource,
-    );
+    final repository = CotizacionRepositoryImpl(datasource);
 
-    guardarCotizacionUseCase = GuardarCotizacion(
-      repository,
-    );
+    guardarCotizacionUseCase = GuardarCotizacion(repository);
   }
 
   @override
@@ -80,8 +77,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         ? null
         : double.tryParse(viaticoTexto);
 
-  
-
     return CotizacionModel(
       cliente: _clienteController.text.trim(),
       direccionObra: _direccionController.text.trim(),
@@ -94,23 +89,21 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     );
   }
 
- Future<void> _guardarCotizacion() async {
+  Future<void> _guardarCotizacion() async {
+    final cotizacion = _obtenerEstadoActual();
 
-  final cotizacion =_obtenerEstadoActual();
+    final dto = CotizacionMapper.toDto(
+      cotizacion: cotizacion,
 
-  final dto =CotizacionMapper.toDto(
+      materiales: _materialesAgregados,
 
-    cotizacion: cotizacion,
+      clienteId: _clienteIdSeleccionado ?? '',
 
-    materiales:_materialesAgregados,
+      usuarioId: _auth.currentUser?.uid ?? '',
+    );
 
-    clienteId:_clienteIdSeleccionado ?? '',
-
-    usuarioId:_auth.currentUser?.uid ?? '',
-  );
-
-  await guardarCotizacionUseCase(dto);
-}
+    await guardarCotizacionUseCase(dto);
+  }
 
   void _mostrarMensaje(String mensaje) {
     ScaffoldMessenger.of(
@@ -187,6 +180,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     String tipoSeleccionado = _tiposDisponibles.first;
     final m2ItemController = TextEditingController();
     final precioItemController = TextEditingController();
+    String? errorM2;
+    String? errorPrecio;
 
     showDialog(
       context: context,
@@ -247,20 +242,30 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                  ],
+                  decoration: InputDecoration(
                     labelText: 'Cantidad Metros Cuadrados (m²)',
-                    prefixIcon: Icon(Icons.square_foot),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.square_foot),
+                    border: const OutlineInputBorder(),
+                    errorText: errorM2,
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: precioItemController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                  ],
+                  decoration: InputDecoration(
                     labelText: 'Precio por m² (CLP)',
-                    prefixIcon: Icon(Icons.sell_outlined),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.sell_outlined),
+                    border: const OutlineInputBorder(),
+                    errorText: errorPrecio,
                   ),
                 ),
               ],
@@ -276,21 +281,52 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             ),
             ElevatedButton(
               onPressed: () {
-                final m2 = double.tryParse(m2ItemController.text) ?? 0.0;
-                final precio =
-                    double.tryParse(precioItemController.text) ?? 0.0;
-                if (m2 > 0 && precio > 0) {
-                  setState(() {
-                    _trabajosAgregados.add(
-                      ItemTrabajo(
-                        tipo: tipoSeleccionado,
-                        metrosCuadrados: m2,
-                        precioPorMetro: precio,
+                final m2Texto = m2ItemController.text.trim();
+                final precioTexto = precioItemController.text.trim();
+
+                final m2 = double.tryParse(m2Texto);
+                final precio = double.tryParse(precioTexto);
+
+                setModalState(() {
+                  errorM2 = null;
+                  errorPrecio = null;
+
+                  if (m2Texto.isEmpty) {
+                    errorM2 = 'Debe ingresar la cantidad de metros cuadrados';
+                  } else if (m2 == null || m2 <= 0) {
+                    errorM2 = 'Ingrese un número positivo válido';
+                  }
+
+                  if (precioTexto.isEmpty) {
+                    errorPrecio = 'Debe ingresar el precio por m²';
+                  } else if (precio == null || precio <= 0) {
+                    errorPrecio = 'Ingrese un precio positivo válido';
+                  }
+                });
+
+                if (errorM2 != null || errorPrecio != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Formulario incompleto, debe rellenar los campos para continuar',
                       ),
-                    );
-                  });
-                  Navigator.pop(context);
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
                 }
+
+                setState(() {
+                  _trabajosAgregados.add(
+                    ItemTrabajo(
+                      tipo: tipoSeleccionado,
+                      metrosCuadrados: m2!,
+                      precioPorMetro: precio!,
+                    ),
+                  );
+                });
+
+                Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: _verdeApp,
@@ -386,9 +422,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       backgroundColor: _verdeApp,
-                      content: const Text(
-                        'Cotización guardada correctamente',
-                      ),
+                      content: const Text('Cotización guardada correctamente'),
                     ),
                   );
                   Navigator.pop(context);
@@ -398,9 +432,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       backgroundColor: Colors.red,
-                      content: Text(
-                        'Error al guardar: $e',
-                      ),
+                      content: Text('Error al guardar: $e'),
                     ),
                   );
                 }
@@ -581,6 +613,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _viaticoController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d*'),
+                        ),
+                      ],
                       decoration: const InputDecoration(
                         labelText: 'Viático adicional (Opcional - CLP)',
                         prefixIcon: Icon(Icons.payments_outlined),
@@ -591,6 +628,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _utilidadController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d*'),
+                        ),
+                      ],
                       decoration: const InputDecoration(
                         labelText: '% Porcentaje de Utilidad',
                         prefixIcon: Icon(Icons.trending_up),
@@ -601,6 +643,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _ivaController,
                       keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d*'),
+                        ),
+                      ],
                       decoration: const InputDecoration(
                         labelText: '% IVA Legal',
                         prefixIcon: Icon(Icons.percent),
