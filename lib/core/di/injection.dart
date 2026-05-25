@@ -11,6 +11,7 @@ import '../../features/auth/domain/usecases/login_usecase.dart';
 final clienteRepository = ClienteRepositoryImpl(
   ClientesRemoteDataSource(FirebaseFirestore.instance),
 );
+final clienteRepository = ClienteRepositoryImpl(ClientesLocalDataSource());
 
 final getClientesUseCase = GetClientesUseCase(clienteRepository);
 
