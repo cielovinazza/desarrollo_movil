@@ -76,25 +76,13 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
         icon: const Icon(Icons.add),
         label: const Text('Nueva'),
         onPressed: () async {
-          final nuevaCotizacion = await Navigator.push(
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => const CrearCotizacionPage(),
             ),
           );
-
-          if (nuevaCotizacion != null) {
-            setState(() {
-              cotizaciones.insert(0, {
-                'codigo': 'COT-00${cotizaciones.length + 1}',
-                'cliente': nuevaCotizacion['cliente'] ?? 'Cliente Nuevo',
-                'direccion': nuevaCotizacion['direccion']?? 'Dirección Nueva',
-                'fecha': nuevaCotizacion['fecha'] ?? 'Hoy',
-                'monto': nuevaCotizacion['monto'] ?? '\$0',
-                'estado': 'Pendiente',
-              });
-            });
-          }
+          setState(() {});
         },
       ),
 
