@@ -59,13 +59,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       FirebaseFirestore.instance,
     );
 
-    final repository = CotizacionRepositoryImpl(
-      datasource,
-    );
+    final repository = CotizacionRepositoryImpl(datasource);
 
-    guardarCotizacionUseCase = GuardarCotizacion(
-      repository,
-    );
+    guardarCotizacionUseCase = GuardarCotizacion(repository);
   }
 
   @override
@@ -104,6 +100,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       materiales: _materialesAgregados,
       clienteId: _clienteIdSeleccionado ?? '',
       usuarioId: _auth.currentUser?.uid ?? '',
+      estado: 'En Proceso',
     );
 
     final docRef = FirebaseFirestore.instance.collection('cotizaciones').doc();
@@ -127,6 +124,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       estado: 'En Proceso', 
       usuarioId: dto.usuarioId,
       fechaCreacion: dto.fechaCreacion,
+      version: dto.version,
     );
 
     await guardarCotizacionUseCase(dtoConId);

@@ -29,17 +29,15 @@ class CotizacionFirestoreDataSource {
     DateTime? fechaInicio,
     DateTime? fechaFin,
   }) async {
-    if (idBusqueda != null && idBusqueda.trim().isNotEmpty) {
-      final doc = await firestore.collection('cotizaciones').doc(idBusqueda.trim()).get();
-      if (doc.exists && doc.data() != null) {
-        final data = doc.data() as Map<String, dynamic>; 
-        return [CotizacionDto.fromMap(doc.id, data)];
-      }
-      return [];
-    }
-
+    // 1. Inicializamos la Query apuntando a la colección siempre
     Query query = firestore.collection('cotizaciones');
 
+    // 2. NUEVO CAMBIO: Si viene idBusqueda, filtramos por el campo manual 'codigo'
+    if (idBusqueda != null && idBusqueda.trim().isNotEmpty) {
+      query = query.where('codigo', isEqualTo: idBusqueda.trim());
+    }
+
+    // 3. Filtro por nombre del cliente (Búsqueda por prefijo)
     if (nombreCliente != null && nombreCliente.trim().isNotEmpty) {
       final str = nombreCliente.trim();
       query = query
@@ -47,10 +45,12 @@ class CotizacionFirestoreDataSource {
           .where('clienteNombre', isLessThanOrEqualTo: '$str\uf8ff');
     }
 
+    // 4. Filtro por Estado
     if (estado != null && estado.isNotEmpty) {
       query = query.where('estado', isEqualTo: estado);
     }
 
+    // 5. Filtros de Fechas
     if (fechaInicio != null) {
       query = query.where('fechaCreacion', isGreaterThanOrEqualTo: Timestamp.fromDate(fechaInicio));
     }
@@ -60,8 +60,10 @@ class CotizacionFirestoreDataSource {
       query = query.where('fechaCreacion', isLessThanOrEqualTo: Timestamp.fromDate(finDelDia));
     }
 
+    // 6. Ordenamos los resultados por fecha de creación descendente
     query = query.orderBy('fechaCreacion', descending: true);
 
+    // 7. Lanzamos la petición combinada a Firestore
     final snapshot = await query.get();
 
     return snapshot.docs.map((doc) {
@@ -104,4 +106,28 @@ class CotizacionFirestoreDataSource {
       'pdfUrl': url,
     });
   }
+
+  Future<void> crearNuevaVersion(String cotizacionId) async {
+  final docRef = firestore.collection('cotizaciones').doc(cotizacionId);
+
+  await firestore.runTransaction((transaction) async {
+    final snapshot = await transaction.get(docRef);
+    if (!snapshot.exists) return;
+
+    final data = snapshot.data()!;
+    final versionActual = (data['version'] as int?) ?? 1;
+
+    final versionRef = docRef
+        .collection('versiones')
+        .doc('v$versionActual');
+
+    transaction.set(versionRef, {
+      ...data,
+      'versionGuardada': versionActual,
+      'guardadoEn': FieldValue.serverTimestamp(),
+    });
+
+    transaction.update(docRef, {'version': versionActual + 1});
+  });
+}
 }

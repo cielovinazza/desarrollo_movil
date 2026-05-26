@@ -74,4 +74,8 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
     await datasource.vincularPdfACotizacion(id, urlDescarga);
     return urlDescarga;
   }
+  
+  Future<void> crearNuevaVersion(String cotizacionId) async {
+    await datasource.crearNuevaVersion(cotizacionId);
+  }
 }

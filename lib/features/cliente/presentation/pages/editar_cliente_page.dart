@@ -111,6 +111,7 @@ class _EditarClientePageState
       await repository.editarCliente(
         clienteActualizado,
       );
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

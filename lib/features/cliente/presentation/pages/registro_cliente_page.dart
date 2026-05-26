@@ -125,6 +125,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
    try {
 
     await registrarClienteUseCase(cliente);
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

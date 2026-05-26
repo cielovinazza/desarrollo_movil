@@ -38,17 +38,11 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
       FirebaseFirestore.instance,
     );
 
-    repository = CotizacionRepositoryImpl(
-      datasource,
-    );
+    repository = CotizacionRepositoryImpl(datasource);
 
-    actualizarEstadoUseCase = ActualizarEstadoCotizacion(
-      repository,
-    );
+    actualizarEstadoUseCase = ActualizarEstadoCotizacion(repository);
 
-    obtenerCotizacionesUseCase = ObtenerCotizacion(
-      repository,
-    );
+    obtenerCotizacionesUseCase = ObtenerCotizacion(repository);
 
     cargarCotizacion();
   }
@@ -108,20 +102,20 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   }
 
   void _mostrarDialogoError(String titulo, String mensaje) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(mensaje),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido'),
-          )
-        ],
-      ),
-    );
-  }
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+      content: SelectableText(mensaje), // 👈 Cambia 'Text' por 'SelectableText'
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Entendido'),
+        )
+      ],
+    ),
+  );
+}
 
   Color estadoColor(String estado) {
     switch (estado) {
@@ -168,10 +162,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
         elevation: 0,
         title: const Text(
           'Cotizaciones',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         leading: IconButton(
@@ -185,179 +176,190 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
           )
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Historial de Cotizaciones',
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textDark,
-                  ),
+      body: Column(
+        children: [
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('cotizaciones')
+                .snapshots(includeMetadataChanges: true),
+            builder: (context, snapshot) {
+              final hasPending =
+                  snapshot.hasData && snapshot.data!.metadata.hasPendingWrites;
+              if (!hasPending) return const SizedBox.shrink();
+              return Container(
+                width: double.infinity,
+                color: Colors.orange[100],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Revise, filtre y actualice el flujo de estados de sus cotizaciones en tiempo real.',
-                  style: TextStyle(
-                    color: AppTheme.textGrey,
-                    fontSize: 15,
-                  ),
+                child: const Text(
+                  'Sincronizando cambios locales con el servidor...',
+                  style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 22),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ResumenCard(
-                        title: 'Total',
-                        value: cotizaciones.length.toString(),
-                        icon: Icons.description_outlined,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ResumenCard(
-                        title: 'En Proceso',
-                        value: (contarPorEstado('En Proceso') + contarPorEstado('Pendiente')).toString(),
-                        icon: Icons.pending_actions,
-                        color: AppTheme.warning,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ResumenCard(
-                        title: 'Aprobadas',
-                        value: (contarPorEstado('Aprobada por el Cliente') + contarPorEstado('Aceptada')).toString(),
-                        icon: Icons.check_circle_outline,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ResumenCard(
-                        title: 'Rechazadas',
-                        value: (contarPorEstado('Rechazada por el Cliente') + contarPorEstado('Rechazada')).toString(),
-                        icon: Icons.cancel_outlined,
-                        color: AppTheme.danger,
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 22),
-
-                Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: ExpansionTile(
-                      title: const Text('Filtros Avanzados', style: TextStyle(fontWeight: FontWeight.bold)),
-                      initiallyExpanded: true,
-                      children: [
-                        TextField(
-                          controller: idSearchController,
-                          onChanged: (value) {
-                            filterId = value;
-                            cargarCotizacion();
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Buscar por ID de documento único',
-                            prefixIcon: Icon(Icons.key),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        TextField(
-                          controller: searchController,
-                          onChanged: (value) {
-                            filterCliente = value;
-                            cargarCotizacion();
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Buscar por nombre del cliente',
-                            prefixIcon: Icon(Icons.person),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        DropdownButtonFormField<String>(
-                          initialValue: estadoFiltro,
-                          decoration: const InputDecoration(labelText: 'Filtrar por Estado', border: OutlineInputBorder()),
-                          items: const [
-                            DropdownMenuItem(value: null, child: Text('Todos los estados')),
-                            DropdownMenuItem(value: 'En Proceso', child: Text('En Proceso')),
-                            DropdownMenuItem(value: 'Lista para Envío', child: Text('Lista para Envío')),
-                            DropdownMenuItem(value: 'Enviada', child: Text('Enviada')),
-                            DropdownMenuItem(value: 'Aprobada por el Cliente', child: Text('Aprobada por el Cliente')),
-                            DropdownMenuItem(value: 'Rechazada por el Cliente', child: Text('Rechazada por el Cliente')),
-                          ],
-                          onChanged: (val) {
-                            setState(() => estadoFiltro = val);
-                            cargarCotizacion();
-                          },
-                        ),
-                      ],
+              );
+            },
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Revise, filtre y actualice el flujo de estados de sus cotizaciones en tiempo real.',
+                    style: TextStyle(
+                      color: AppTheme.textGrey,
+                      fontSize: 15,
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 22),
-
-                if (cargando)
-                  const Center(
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ResumenCard(
+                          title: 'Total',
+                          value: cotizaciones.length.toString(),
+                          icon: Icons.description_outlined,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _ResumenCard(
+                          title: 'En Proceso',
+                          value: (contarPorEstado('En Proceso') + contarPorEstado('Pendiente')).toString(),
+                          icon: Icons.pending_actions,
+                          color: AppTheme.warning,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ResumenCard(
+                          title: 'Aprobadas',
+                          value: (contarPorEstado('Aprobada por el Cliente') + contarPorEstado('Aceptada')).toString(),
+                          icon: Icons.check_circle_outline,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _ResumenCard(
+                          title: 'Rechazadas',
+                          value: (contarPorEstado('Rechazada por el Cliente') + contarPorEstado('Rechazada')).toString(),
+                          icon: Icons.cancel_outlined,
+                          color: AppTheme.danger,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
+                  Card(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     child: Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (cotizaciones.isEmpty)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(30),
-                      child: Text(
-                        'No se encontraron cotizaciones en la base de datos.',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                      padding: const EdgeInsets.all(12.0),
+                      child: ExpansionTile(
+                        title: const Text('Filtros Avanzados', style: TextStyle(fontWeight: FontWeight.bold)),
+                        initiallyExpanded: true,
+                        children: [
+                          TextField(
+                            controller: idSearchController,
+                            onChanged: (value) {
+                              filterId = value;
+                              cargarCotizacion();
+                            },
+                            decoration: const InputDecoration(
+                              labelText: 'Buscar por ID de documento único',
+                              prefixIcon: Icon(Icons.key),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: searchController,
+                            onChanged: (value) {
+                              filterCliente = value;
+                              cargarCotizacion();
+                            },
+                            decoration: const InputDecoration(
+                              labelText: 'Buscar por nombre del cliente',
+                              prefixIcon: Icon(Icons.person),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          DropdownButtonFormField<String>(
+                            value: estadoFiltro,
+                            decoration: const InputDecoration(labelText: 'Filtrar por Estado', border: OutlineInputBorder()),
+                            items: const [
+                              DropdownMenuItem(value: null, child: Text('Todos los estados')),
+                              DropdownMenuItem(value: 'En Proceso', child: Text('En Proceso')),
+                              DropdownMenuItem(value: 'Lista para Envío', child: Text('Lista para Envío')),
+                              DropdownMenuItem(value: 'Enviada', child: Text('Enviada')),
+                              DropdownMenuItem(value: 'Aprobada por el Cliente', child: Text('Aprobada por el Cliente')),
+                              DropdownMenuItem(value: 'Rechazada por el Cliente', child: Text('Rechazada por el Cliente')),
+                            ],
+                            onChanged: (val) {
+                              setState(() => estadoFiltro = val);
+                              cargarCotizacion();
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: cotizaciones.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 14),
-                    itemBuilder: (context, index) {
-                      final cotizacion = cotizaciones[index];
-
-                      return _CotizacionCard(
-                        codigo: cotizacion.codigo,
-                        cliente: cotizacion.clienteNombre,
-                        direccion: cotizacion.direccion,
-                        fecha: cotizacion.fechaCreacion != null
-                            ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
-                              '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
-                              '${cotizacion.fechaCreacion!.toDate().year}'
-                            : 'Sin Fecha',
-                        monto: '\$${cotizacion.totalFinal.toStringAsFixed(0)} CLP',
-                        estado: cotizacion.estado,
-                        estadoColor: estadoColor(cotizacion.estado),
-                        onEstadoCambiado: (nuevoEstado) => cambiarEstado(cotizacion, nuevoEstado),
-                      );
-                    },
                   ),
-              ],
+                  const SizedBox(height: 22),
+                  if (cargando)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(40.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (cotizaciones.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(30),
+                        child: Text(
+                          'No se encontraron cotizaciones en la base de datos.',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: cotizaciones.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final cotizacion = cotizaciones[index];
+
+                        return _CotizacionCard(
+                          codigo: cotizacion.codigo,
+                          cliente: cotizacion.clienteNombre,
+                          direccion: cotizacion.direccion,
+                          fecha: cotizacion.fechaCreacion != null
+                              ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
+                                '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
+                                '${cotizacion.fechaCreacion!.toDate().year}'
+                              : 'Sin Fecha',
+                          monto: '\$${cotizacion.totalFinal.toStringAsFixed(0)} CLP',
+                          estado: cotizacion.estado,
+                          estadoColor: estadoColor(cotizacion.estado),
+                          onEstadoCambiado: (nuevoEstado) => cambiarEstado(cotizacion, nuevoEstado),
+                        );
+                      },
+                    ),
+                  const SizedBox(height: 25),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -441,7 +443,6 @@ class _CotizacionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Normalización de strings antiguos para evitar romper el Dropdown
     String estadoNormalizado = estado;
     if (estado == 'Pendiente') estadoNormalizado = 'En Proceso';
     if (estado == 'Aceptada') estadoNormalizado = 'Aprobada por el Cliente';
@@ -452,9 +453,7 @@ class _CotizacionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFDFEFE),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppTheme.primary.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -521,7 +520,7 @@ class _CotizacionCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  initialValue: estadoNormalizado, // Usa el valor sanitizado sin colisiones
+                  value: estadoNormalizado,
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

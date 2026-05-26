@@ -8,10 +8,13 @@ class CotizacionMapper {
     required List<MaterialEntity> materiales,
     required String clienteId,
     required String usuarioId,
+
+    required String estado,
   }) {
     return CotizacionDto(
       id: '',
       clienteId: clienteId,
+      usuarioId: usuarioId,
       clienteNombre: cotizacion.cliente,
       codigo: '',
       direccion: cotizacion.direccionObra,
@@ -31,6 +34,7 @@ class CotizacionMapper {
           'subtotal': mano.subtotal.toDouble(),
         };
       }).toList(),
+      version: 1,
       materiales: materiales.map((material) {
         return {
           'nombre': material.nombre,
@@ -47,8 +51,7 @@ class CotizacionMapper {
       porcentajeUtilidad: cotizacion.porcentajeUtilidad.toDouble(),
       porcentajeIva: cotizacion.porcentajeIva.toDouble(),
       totalFinal: cotizacion.calcularTotalFinal().toDouble(),
-      estado: 'En Proceso',
-      usuarioId: usuarioId,
+      estado: estado,
     );
   }
 }
