@@ -9,14 +9,14 @@ class ObtenerCotizacion {
   // Definimos los parámetros nombrados opcionales para que la UI pueda filtrar
   Future<List<CotizacionDto>> call({
     String? idBusqueda,
-    String? nombreCliente,
+    String? clienteNombre,
     String? estado,
     DateTime? fechaInicio,
     DateTime? fechaFin,
   }) async {
     return await repository.obtenerCotizaciones(
       idBusqueda: idBusqueda,
-      nombreCliente: nombreCliente,
+      clienteNombre: clienteNombre,
       estado: estado,
       fechaInicio: fechaInicio,
       fechaFin: fechaFin,

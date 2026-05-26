@@ -55,7 +55,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     try {
       final data = await obtenerCotizacionesUseCase(
         idBusqueda: filterId.isEmpty ? null : filterId,
-        nombreCliente: filterCliente.isEmpty ? null : filterCliente,
+        clienteNombre: filterCliente.isEmpty ? null : filterCliente,
         estado: estadoFiltro,
         fechaInicio: fechaInicioFiltro,
         fechaFin: fechaFinFiltro,
@@ -269,17 +269,21 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       padding: const EdgeInsets.all(12.0),
                       child: ExpansionTile(
                         title: const Text('Filtros Avanzados', style: TextStyle(fontWeight: FontWeight.bold)),
-                        initiallyExpanded: true,
+                        initiallyExpanded: false,
                         children: [
                           TextField(
                             controller: idSearchController,
+                            textCapitalization: TextCapitalization.characters,
+                            enableSuggestions: false,
+                            autocorrect: false,
                             onChanged: (value) {
-                              filterId = value;
+                              filterId = value.trim().toUpperCase();
                               cargarCotizacion();
                             },
-                            decoration: const InputDecoration(
-                              labelText: 'Buscar por ID de documento único',
+                            decoration: InputDecoration(
+                              labelText: 'Buscar por codigo de documento único',
                               prefixIcon: Icon(Icons.key),
+                              hintText: 'Ej: CT-001, CT-002, etc.',
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -296,7 +300,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                           ),
                           const SizedBox(height: 10),
                           DropdownButtonFormField<String>(
-                            value: estadoFiltro,
+                            initialValue: estadoFiltro,
                             decoration: const InputDecoration(labelText: 'Filtrar por Estado', border: OutlineInputBorder()),
                             items: const [
                               DropdownMenuItem(value: null, child: Text('Todos los estados')),

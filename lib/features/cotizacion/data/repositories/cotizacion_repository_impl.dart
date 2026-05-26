@@ -45,14 +45,14 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
   @override
   Future<List<CotizacionDto>> obtenerCotizaciones({
     String? idBusqueda,
-    String? nombreCliente,
+    String? clienteNombre,
     String? estado,
     DateTime? fechaInicio,
     DateTime? fechaFin,
   }) async {
     return await datasource.obtenerCotizacion(
       idBusqueda: idBusqueda,
-      nombreCliente: nombreCliente,
+      clienteNombre: clienteNombre,
       estado: estado,
       fechaInicio: fechaInicio,
       fechaFin: fechaFin,

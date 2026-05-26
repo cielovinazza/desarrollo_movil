@@ -6,7 +6,7 @@ abstract class CotizacionRepository {
   
   Future<List<CotizacionDto>> obtenerCotizaciones({
     String? idBusqueda,
-    String? nombreCliente,
+    String? clienteNombre,
     String? estado,
     DateTime? fechaInicio,
     DateTime? fechaFin,

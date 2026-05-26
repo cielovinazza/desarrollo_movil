@@ -27,54 +27,43 @@ class CotizacionFirestoreDataSource {
   }
 
   Future<List<CotizacionDto>> obtenerCotizacion({
-    String? idBusqueda,
-    String? nombreCliente,
-    String? estado,
-    DateTime? fechaInicio,
-    DateTime? fechaFin,
-  }) async {
-    // 1. Inicializamos la Query apuntando a la colección siempre
-    Query query = firestore.collection('cotizaciones');
+  String? idBusqueda,
+  String? clienteNombre,
+  String? estado,
+  DateTime? fechaInicio,
+  DateTime? fechaFin,
+}) async {
+  Query query = firestore.collection('cotizaciones');
 
-    // 2. NUEVO CAMBIO: Si viene idBusqueda, filtramos por el campo manual 'codigo'
-    if (idBusqueda != null && idBusqueda.trim().isNotEmpty) {
-      query = query.where('codigo', isEqualTo: idBusqueda.trim());
-    }
+  // 1. SI HAY ID O CÓDIGO, HACEMOS BÚSQUEDA DIRECTA Y RETORNAMOS
+ if (idBusqueda != null && idBusqueda.isNotEmpty) {
+  // .trim() elimina espacios vacíos al inicio o al final
+  final codigoLimpio = idBusqueda.trim().toUpperCase(); 
+  
+  final snapshot = await query.where('codigo', isEqualTo: codigoLimpio).get();
+  return snapshot.docs.map((doc) => CotizacionDto.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
+}
 
-    // 3. Filtro por nombre del cliente (Búsqueda por prefijo)
-    if (nombreCliente != null && nombreCliente.trim().isNotEmpty) {
-      final str = nombreCliente.trim();
-      query = query
-          .where('clienteNombre', isGreaterThanOrEqualTo: str)
-          .where('clienteNombre', isLessThanOrEqualTo: '$str\uf8ff');
-    }
-
-    // 4. Filtro por Estado
-    if (estado != null && estado.isNotEmpty) {
-      query = query.where('estado', isEqualTo: estado);
-    }
-
-    // 5. Filtros de Fechas
-    if (fechaInicio != null) {
-      query = query.where('fechaCreacion', isGreaterThanOrEqualTo: Timestamp.fromDate(fechaInicio));
-    }
-    
-    if (fechaFin != null) {
-      final finDelDia = DateTime(fechaFin.year, fechaFin.month, fechaFin.day, 23, 59, 59);
-      query = query.where('fechaCreacion', isLessThanOrEqualTo: Timestamp.fromDate(finDelDia));
-    }
-
-    // 6. Ordenamos los resultados por fecha de creación descendente
-    query = query.orderBy('fechaCreacion', descending: true);
-
-    // 7. Lanzamos la petición combinada a Firestore
-    final snapshot = await query.get();
-
-    return snapshot.docs.map((doc) {
-      final data = doc.data() as Map<String, dynamic>; 
-      return CotizacionDto.fromMap(doc.id, data);
-    }).toList();
+  // 2. SI NO HAY ID, RECIÉN AHÍ APLICAMOS LOS FILTROS DE LISTADO MASIVO
+  if (clienteNombre != null && clienteNombre.isNotEmpty) {
+    query = query.where('clienteNombre', isGreaterThanOrEqualTo: clienteNombre)
+      .where('clienteNombre', isLessThanOrEqualTo: '$clienteNombre\uf8ff');
   }
+
+  if (estado != null) {
+    query = query.where('estado', isEqualTo: estado);
+  }
+
+  if (fechaInicio != null) {
+    query = query.where('fechaCreacion', isGreaterThanOrEqualTo: Timestamp.fromDate(fechaInicio));
+  }
+  if (fechaFin != null) {
+    query = query.where('fechaCreacion', isLessThanOrEqualTo: Timestamp.fromDate(fechaFin));
+  }
+  query = query.orderBy('fechaCreacion', descending: true);
+  final snapshot = await query.get();
+  return snapshot.docs.map((doc) => CotizacionDto.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
+}
 
   Future<void> actualizarEstado(String id, String estado) async {
     await firestore.collection('cotizaciones').doc(id).update({
@@ -136,15 +125,13 @@ class CotizacionFirestoreDataSource {
 }
   Future<void> procesarEnvioCotizacion(CotizacionDto cotizacion) async {
   final docCotizacionRef = firestore.collection('cotizaciones').doc(cotizacion.id);
-  
-  // 1. CONFIGURACIÓN DEL SERVIDOR SMTP (Ejemplo con Gmail)
-  // ⚠️ Tip: Para Gmail debes usar una "Contraseña de aplicación" generada desde tu cuenta Google, no tu clave normal.
-  final smtpServer = gmail('desarrollo.movil123@gmail.com', 'inhv wdve dtuf hkns');
+
+  final smtpServer = gmail('derick9103@gmail.com', 'inhv wdve dtuf hkns');
 
   // 2. ESTRUCTURA DEL CORREO (RF17)
   final message = Message()
-    ..from = Address('desarrollo.movil123@gmail.com', 'Nombre contratista')
-    ..recipients.add(cotizacion.clienteEmail) // Email extraído de tu DTO
+    ..from = Address('derick9103@gmail.com', 'Nombre contratista')
+    ..recipients.add(cotizacion.clienteEmail)
     ..subject = 'Cotización N°${cotizacion.codigo}' // Formato estricto RF17
     ..html = '''
       <h3>Estimado/a ${cotizacion.clienteNombre},</h3>
