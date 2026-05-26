@@ -2,6 +2,10 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../dtos/cotizacion_dtos.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 
 class CotizacionFirestoreDataSource {
   final FirebaseFirestore firestore;
@@ -130,4 +134,75 @@ class CotizacionFirestoreDataSource {
     transaction.update(docRef, {'version': versionActual + 1});
   });
 }
+  Future<void> procesarEnvioCotizacion(CotizacionDto cotizacion) async {
+  final docCotizacionRef = firestore.collection('cotizaciones').doc(cotizacion.id);
+  
+  // 1. CONFIGURACIÓN DEL SERVIDOR SMTP (Ejemplo con Gmail)
+  // ⚠️ Tip: Para Gmail debes usar una "Contraseña de aplicación" generada desde tu cuenta Google, no tu clave normal.
+  final smtpServer = gmail('desarrollo.movil123@gmail.com', 'inhv wdve dtuf hkns');
+
+  // 2. ESTRUCTURA DEL CORREO (RF17)
+  final message = Message()
+    ..from = Address('desarrollo.movil123@gmail.com', 'Nombre contratista')
+    ..recipients.add(cotizacion.clienteEmail) // Email extraído de tu DTO
+    ..subject = 'Cotización N°${cotizacion.codigo}' // Formato estricto RF17
+    ..html = '''
+      <h3>Estimado/a ${cotizacion.clienteNombre},</h3>
+      <p>Junto con saludar, adjuntamos la propuesta correspondiente al proyecto ubicado en <strong>${cotizacion.direccion}</strong>.</p>
+      <p>Quedamos atentos a sus comentarios o aprobación.</p>
+      <br>
+      <p>Saludos cordiales,</p>
+    ''';
+
+  // Adjuntar el archivo PDF mediante su URL de red de Firebase Storage (RF17)
+  if (cotizacion.pdfUrl != null && cotizacion.pdfUrl!.isNotEmpty) {
+    final archivoAdjunto=await _descargarArchivoTemporal(
+      cotizacion.pdfUrl!, 
+      'Cotizacion_${cotizacion.codigo}.pdf'
+    );
+    message.attachments.add(FileAttachment(archivoAdjunto));
+  }
+
+  // 3. CAMBIO DE ESTADO ASÍNCRONO E INTENTO DE ENVÍO
+  try {
+    // Marcamos inmediatamente en base de datos que pasó a "Enviada"
+    await docCotizacionRef.update({'estado': 'Enviada'});
+
+    // Enviar el correo de forma asíncrona
+    await send(message, smtpServer);
+    print('Correo enviado con éxito.');
+
+  } catch (e) {
+    // 4. IMPLEMENTAR MANEJO DE ERRORES Y REVERSIÓN (RF17)
+    print('El envío falló. Iniciando reversión...');
+    
+    final batch = firestore.batch();
+
+    // A. Revertir el estado a "Lista para Envío"
+    batch.update(docCotizacionRef, {'estado': 'Lista para Envío'});
+
+    // B. Registrar el intento fallido con fecha, hora y causa exacta
+    final logErrorRef = firestore.collection('historial_errores_envio').doc();
+    batch.set(logErrorRef, {
+      'cotizacionId': cotizacion.id,
+      'fechaHora': FieldValue.serverTimestamp(), // Fecha y hora del servidor
+      'causa': e.toString(),
+      'notificadoAlContratista': true,
+    });
+
+    await batch.commit();
+
+    // C. Lanzar excepción para notificar a la interfaz de usuario (Contratista)
+    throw Exception('Error al enviar correo: El estado volvió a "Lista para Envío". Causa: $e');
+  }
+}
+
+// Función auxiliar necesaria para descargar el PDF de Storage a la memoria del fono y poder adjuntarlo
+Future<File> _descargarArchivoTemporal(String url, String nombreArchivo) async {
+  final response = await http.get(Uri.parse(url));
+  final directory = await getTemporaryDirectory(); // Requiere path_provider
+  final file = File('${directory.path}/$nombreArchivo');
+  return await file.writeAsBytes(response.bodyBytes);
+}
+
 }

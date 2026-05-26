@@ -6,16 +6,23 @@ class CotizacionMapper {
   static CotizacionDto toDto({
     required CotizacionModel cotizacion,
     required List<MaterialEntity> materiales,
-    required String clienteId,
+    
     required String usuarioId,
+    
 
     required String estado,
   }) {
+    final cliente=cotizacion.cliente;
+
     return CotizacionDto(
       id: '',
-      clienteId: clienteId,
+      clienteId: cliente.id ?? '',
+      clienteNombre: cliente.nombre,
+      clienteRut: cliente.rut,
+      clienteTelefono: cliente.telefono,
+      clienteEmail: cliente.correo,
+      clienteDireccion: cliente.direccion ?? '',
       usuarioId: usuarioId,
-      clienteNombre: cotizacion.cliente,
       codigo: '',
       direccion: cotizacion.direccionObra,
       trabajos: cotizacion.listaTrabajos.map((trabajo) {

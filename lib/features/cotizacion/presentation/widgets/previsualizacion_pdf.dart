@@ -120,7 +120,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Cliente: ${widget.cotizacion.cliente.isEmpty ? "Sin cliente" : widget.cotizacion.cliente}', style: const pw.TextStyle(fontSize: 11)),
+                    pw.Text('Cliente: ${widget.cotizacion.cliente}', style: const pw.TextStyle(fontSize: 11)),
                     pw.Text('Obra: ${widget.cotizacion.direccionObra.isEmpty ? "Sin direccion" : widget.cotizacion.direccionObra}', style: const pw.TextStyle(fontSize: 11)),
                   ],
                 ),
@@ -406,9 +406,9 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
             child: _infoItem(
               Icons.person_outline,
               'Cliente',
-              widget.cotizacion.cliente.isEmpty
+              widget.cotizacion.cliente.nombre.isEmpty
                   ? 'Sin cliente'
-                  : widget.cotizacion.cliente,
+                  : widget.cotizacion.cliente.nombre,
             ),
           ),
           Expanded(

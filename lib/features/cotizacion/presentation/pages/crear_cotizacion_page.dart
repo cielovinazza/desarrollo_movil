@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:project/features/cliente/domain/entities/cliente.dart';
 import '../../domain/entities/cotizacion_model.dart';
 import '../widgets/manodeobra.dart';
 import '../widgets/materiales.dart';
@@ -11,6 +11,7 @@ import '../../data/repositories/cotizacion_repository_impl.dart';
 import '../../domain/usecases/guardar_cotizacion.dart';
 import '../widgets/previsualizacion_pdf.dart';
 import '../../data/dtos/cotizacion_dtos.dart';
+import 'package:flutter/services.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -22,7 +23,7 @@ class CrearCotizacionPage extends StatefulWidget {
 class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _formKey = GlobalKey<FormState>();
   int _currentStep = 0;
-  String? _clienteIdSeleccionado;
+  Cliente? _clienteSeleccionado;
   late final GuardarCotizacion guardarCotizacionUseCase;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _vistaPreviaCargada = false;
@@ -52,17 +53,22 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     'Instalación de piso',
   ];
 
+  late final CotizacionFirestoreDataSource datasource;
+
   @override
   void initState() {
     super.initState();
 
-    final datasource = CotizacionFirestoreDataSource(
+    datasource = CotizacionFirestoreDataSource(
       FirebaseFirestore.instance,
     );
+
 
     final repository = CotizacionRepositoryImpl(datasource);
 
     guardarCotizacionUseCase = GuardarCotizacion(repository);
+
+          
   }
 
   @override
@@ -79,10 +85,18 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final viaticoTexto = _viaticoController.text.trim();
     final double? viaticoValor = viaticoTexto.isEmpty
         ? null
-        : double.tryParse(viaticoTexto);
+        : double.tryParse(viaticoTexto); //esta linea de codigo es para que cliente no entre como null, acepten el cambio entrante
+    final clienteSeguro = _clienteSeleccionado ?? Cliente(
+    id: '',
+    nombre: '',
+    correo: '',
+    rut: '',
+    telefono: '',
+    direccion: '',
+  );
 
     return CotizacionModel(
-      cliente: _clienteController.text.trim(),
+      cliente: clienteSeguro,
       direccionObra: _direccionController.text.trim(),
       listaTrabajos: _trabajosAgregados,
       listaManoObra: _manoObraAgregada,
@@ -99,7 +113,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final dto = CotizacionMapper.toDto(
       cotizacion: cotizacion,
       materiales: _materialesAgregados,
-      clienteId: _clienteIdSeleccionado ?? '',
       usuarioId: _auth.currentUser?.uid ?? '',
       estado: 'En Proceso',
     );
@@ -110,6 +123,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       id: docRef.id,
       clienteId: dto.clienteId,
       clienteNombre: dto.clienteNombre,
+      clienteEmail: dto.clienteEmail,
+      clienteRut: dto.clienteRut,
+      clienteTelefono: dto.clienteTelefono,
+      clienteDireccion: dto.clienteDireccion,
       codigo: dto.codigo,
       direccion: dto.direccion,
       trabajos: dto.trabajos,
@@ -164,21 +181,45 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     void Function(String) onTipoCreado,
   ) {
     final nuevoTipoController = TextEditingController();
+    final _formkey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Nuevo tipo de trabajo'),
-        content: TextField(
-          controller: nuevoTipoController,
-          decoration: const InputDecoration(
-            labelText: 'Nombre del tipo de trabajo',
-            border: OutlineInputBorder(),
+        content: Form(
+          key: _formkey,
+          child: TextFormField(
+            controller: nuevoTipoController,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Por favor, ingrese un nombre';
+              }
+              if (value.trim().length < 3) {
+                return 'El nombre debe tener al menos 3 caracteres';
+              }
+              if (value.trim().length > 100) {
+                return 'El nombre no puede exceder los 100 caracteres';
+              }
+              return null;
+            },
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]'),
+              ),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Nombre del tipo de trabajo',
+              border: OutlineInputBorder(),
+            ),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              nuevoTipoController.dispose(); 
+              Navigator.pop(context);
+            },
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -187,14 +228,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              final nuevoTipo = nuevoTipoController.text.trim();
-              if (nuevoTipo.isEmpty) return;
-              if (!_tiposDisponibles.contains(nuevoTipo)) {
-                setState(() => _tiposDisponibles.add(nuevoTipo));
+              if (_formkey.currentState!.validate()) {
+                final nuevoTipo = nuevoTipoController.text.trim();
+                Navigator.pop(context);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!_tiposDisponibles.contains(nuevoTipo)) {
+                    setState(() {
+                      _tiposDisponibles.add(nuevoTipo);
+                    });
+                  }
+                  onTipoCreado(nuevoTipo);
+                  nuevoTipoController.dispose();
+                });
               }
-              setModalState(() {});
-              onTipoCreado(nuevoTipo);
-              Navigator.pop(context);
             },
             child: const Text('Crear'),
           ),
@@ -542,8 +588,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 isActive: _currentStep >= 0,
                 content: SelectorCliente(
                   controller: _clienteController,
-                  onClienteSeleccionado: (clienteId) {
-                    _clienteIdSeleccionado = clienteId;
+                  onClienteSeleccionado: (Cliente cliente) {
+                    setState(() => _clienteSeleccionado = cliente);
                   },
                 ),
               ),
@@ -702,6 +748,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       controller: _viaticoController,
                       keyboardType: TextInputType.number,
                       validator: (val) => _validarCampoNumerico(val, 'Viático'),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d*'),
+                        ),
+                      ],
                       decoration: const InputDecoration(
                         labelText: 'Viático adicional (Opcional - CLP)',
                         prefixIcon: Icon(Icons.payments_outlined),
@@ -713,6 +764,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       controller: _utilidadController,
                       keyboardType: TextInputType.number,
                       validator: (val) => _validarCampoNumerico(val, '% de utilidad'),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d*'),
+                        ),
+                      ],
                       decoration: const InputDecoration(
                         labelText: '% Porcentaje de Utilidad',
                         prefixIcon: Icon(Icons.trending_up),
@@ -724,6 +780,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       controller: _ivaController,
                       keyboardType: TextInputType.number,
                       validator: (val) => _validarCampoNumerico(val, '% IVA Legal'),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d*'),
+                        ),
+                      ],
                       decoration: const InputDecoration(
                         labelText: '% IVA Legal',
                         prefixIcon: Icon(Icons.percent),
@@ -768,9 +829,69 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         cotizacion: datosEnVivo,
                         materiales: _materialesAgregados,
                         manoObra: _manoObraAgregada,
-                        onListo: () {
-                          _mostrarMensaje('PDF sincronizado y subido con éxito.');
-                          Navigator.pop(context);
+                        onListo: () async {
+                          setState(() => _guardandoEnFirestore = true);
+
+                          try{
+                            final dtoFinal = CotizacionMapper.toDto(
+                              cotizacion: datosEnVivo,
+                              materiales: _materialesAgregados,
+                              usuarioId: _auth.currentUser?.uid ?? '',
+                              estado: 'En Proceso',
+                            );
+
+                            final dtoParaEnvio = CotizacionDto(
+                              id: _idCotizacionCreada!,
+                              clienteId: dtoFinal.clienteId,
+                              clienteNombre: dtoFinal.clienteNombre,
+                              clienteEmail: dtoFinal.clienteEmail,
+                              clienteRut: dtoFinal.clienteRut,
+                              clienteTelefono: dtoFinal.clienteTelefono,
+                              clienteDireccion: dtoFinal.clienteDireccion,
+                              codigo: dtoFinal.codigo,
+                              direccion: dtoFinal.direccion,
+                              trabajos: dtoFinal.trabajos,
+                              manoObra: dtoFinal.manoObra,
+                              materiales: dtoFinal.materiales,
+                              subtotalObra: dtoFinal.subtotalObra,
+                              subtotalMateriales: dtoFinal.subtotalMateriales,
+                              subtotalManoObra: dtoFinal.subtotalManoObra,
+                              viatico: dtoFinal.viatico,
+                              porcentajeUtilidad: dtoFinal.porcentajeUtilidad,
+                              porcentajeIva: dtoFinal.porcentajeIva,
+                              totalFinal: dtoFinal.totalFinal,
+                              estado: 'En Proceso', 
+                              usuarioId: dtoFinal.usuarioId,
+                              fechaCreacion: dtoFinal.fechaCreacion,
+                              version: dtoFinal.version,
+                            );
+
+                            final docActualizado = await FirebaseFirestore.instance
+                              .collection('cotizaciones')
+                              .doc(_idCotizacionCreada!)
+                              .get();
+
+                            final datosFirebase = docActualizado.data();
+                            final urlPdfAsignado = datosFirebase?['pdfUrl'] as String?;
+
+                            if (urlPdfAsignado == null || urlPdfAsignado.isEmpty){
+                              throw Exception('El PDF aún no ha sido generado o subido aún. Por favor, intenta nuevamente en unos segundos.');
+                            }
+                            final dtoListoParaEnvio = dtoParaEnvio.copyWith(pdfUrl: urlPdfAsignado);
+                            await datasource.procesarEnvioCotizacion(dtoListoParaEnvio);
+
+                            _mostrarMensaje('Cotización enviada por correo con éxito.');
+
+                            if (mounted){
+                              Navigator.pop(context);
+                            }
+                          } catch(e){
+                            _mostrarMensaje('Error al enviar correo: $e');
+                          } finally{
+                            if(mounted){
+                              setState(()=> _guardandoEnFirestore = false);
+                            }
+                          }
                         },
                       ),
                       const SizedBox(height: 16),
