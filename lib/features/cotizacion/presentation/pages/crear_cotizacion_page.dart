@@ -181,21 +181,45 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     void Function(String) onTipoCreado,
   ) {
     final nuevoTipoController = TextEditingController();
+    final _formkey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Nuevo tipo de trabajo'),
-        content: TextField(
-          controller: nuevoTipoController,
-          decoration: const InputDecoration(
-            labelText: 'Nombre del tipo de trabajo',
-            border: OutlineInputBorder(),
+        content: Form(
+          key: _formkey,
+          child: TextFormField(
+            controller: nuevoTipoController,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Por favor, ingrese un nombre';
+              }
+              if (value.trim().length < 3) {
+                return 'El nombre debe tener al menos 3 caracteres';
+              }
+              if (value.trim().length > 100) {
+                return 'El nombre no puede exceder los 100 caracteres';
+              }
+              return null;
+            },
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]'),
+              ),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Nombre del tipo de trabajo',
+              border: OutlineInputBorder(),
+            ),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              nuevoTipoController.dispose(); 
+              Navigator.pop(context);
+            },
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -204,14 +228,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              final nuevoTipo = nuevoTipoController.text.trim();
-              if (nuevoTipo.isEmpty) return;
-              if (!_tiposDisponibles.contains(nuevoTipo)) {
-                setState(() => _tiposDisponibles.add(nuevoTipo));
+              if (_formkey.currentState!.validate()) {
+                final nuevoTipo = nuevoTipoController.text.trim();
+                Navigator.pop(context);
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!_tiposDisponibles.contains(nuevoTipo)) {
+                    setState(() {
+                      _tiposDisponibles.add(nuevoTipo);
+                    });
+                  }
+                  onTipoCreado(nuevoTipo);
+                  nuevoTipoController.dispose();
+                });
               }
-              setModalState(() {});
-              onTipoCreado(nuevoTipo);
-              Navigator.pop(context);
             },
             child: const Text('Crear'),
           ),
