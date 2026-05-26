@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/features/cliente/domain/entities/cliente.dart';
 import '../../domain/entities/cotizacion_model.dart';
 import '../widgets/manodeobra.dart';
 import '../widgets/materiales.dart';
@@ -22,7 +23,7 @@ class CrearCotizacionPage extends StatefulWidget {
 class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _formKey = GlobalKey<FormState>();
   int _currentStep = 0;
-  String? _clienteIdSeleccionado;
+  Cliente? _clienteSeleccionado;
   late final GuardarCotizacion guardarCotizacionUseCase;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _vistaPreviaCargada = false;
@@ -52,17 +53,22 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     'Instalación de piso',
   ];
 
+  late final CotizacionFirestoreDataSource datasource;
+
   @override
   void initState() {
     super.initState();
 
-    final datasource = CotizacionFirestoreDataSource(
+    datasource = CotizacionFirestoreDataSource(
       FirebaseFirestore.instance,
     );
+
 
     final repository = CotizacionRepositoryImpl(datasource);
 
     guardarCotizacionUseCase = GuardarCotizacion(repository);
+
+          
   }
 
   @override
@@ -79,10 +85,18 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final viaticoTexto = _viaticoController.text.trim();
     final double? viaticoValor = viaticoTexto.isEmpty
         ? null
-        : double.tryParse(viaticoTexto);
+        : double.tryParse(viaticoTexto); //esta linea de codigo es para que cliente no entre como null, acepten el cambio entrante
+    final clienteSeguro = _clienteSeleccionado ?? Cliente(
+    id: '',
+    nombre: '',
+    correo: '',
+    rut: '',
+    telefono: '',
+    direccion: '',
+  );
 
     return CotizacionModel(
-      cliente: _clienteController.text.trim(),
+      cliente: clienteSeguro,
       direccionObra: _direccionController.text.trim(),
       listaTrabajos: _trabajosAgregados,
       listaManoObra: _manoObraAgregada,
@@ -99,7 +113,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final dto = CotizacionMapper.toDto(
       cotizacion: cotizacion,
       materiales: _materialesAgregados,
-      clienteId: _clienteIdSeleccionado ?? '',
       usuarioId: _auth.currentUser?.uid ?? '',
       estado: 'En Proceso',
     );
@@ -110,6 +123,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       id: docRef.id,
       clienteId: dto.clienteId,
       clienteNombre: dto.clienteNombre,
+      clienteEmail: dto.clienteEmail,
+      clienteRut: dto.clienteRut,
+      clienteTelefono: dto.clienteTelefono,
+      clienteDireccion: dto.clienteDireccion,
       codigo: dto.codigo,
       direccion: dto.direccion,
       trabajos: dto.trabajos,
@@ -542,8 +559,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 isActive: _currentStep >= 0,
                 content: SelectorCliente(
                   controller: _clienteController,
-                  onClienteSeleccionado: (clienteId) {
-                    _clienteIdSeleccionado = clienteId;
+                  onClienteSeleccionado: (Cliente cliente) {
+                    setState(() => _clienteSeleccionado = cliente);
                   },
                 ),
               ),
@@ -783,9 +800,69 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         cotizacion: datosEnVivo,
                         materiales: _materialesAgregados,
                         manoObra: _manoObraAgregada,
-                        onListo: () {
-                          _mostrarMensaje('PDF sincronizado y subido con éxito.');
-                          Navigator.pop(context);
+                        onListo: () async {
+                          setState(() => _guardandoEnFirestore = true);
+
+                          try{
+                            final dtoFinal = CotizacionMapper.toDto(
+                              cotizacion: datosEnVivo,
+                              materiales: _materialesAgregados,
+                              usuarioId: _auth.currentUser?.uid ?? '',
+                              estado: 'En Proceso',
+                            );
+
+                            final dtoParaEnvio = CotizacionDto(
+                              id: _idCotizacionCreada!,
+                              clienteId: dtoFinal.clienteId,
+                              clienteNombre: dtoFinal.clienteNombre,
+                              clienteEmail: dtoFinal.clienteEmail,
+                              clienteRut: dtoFinal.clienteRut,
+                              clienteTelefono: dtoFinal.clienteTelefono,
+                              clienteDireccion: dtoFinal.clienteDireccion,
+                              codigo: dtoFinal.codigo,
+                              direccion: dtoFinal.direccion,
+                              trabajos: dtoFinal.trabajos,
+                              manoObra: dtoFinal.manoObra,
+                              materiales: dtoFinal.materiales,
+                              subtotalObra: dtoFinal.subtotalObra,
+                              subtotalMateriales: dtoFinal.subtotalMateriales,
+                              subtotalManoObra: dtoFinal.subtotalManoObra,
+                              viatico: dtoFinal.viatico,
+                              porcentajeUtilidad: dtoFinal.porcentajeUtilidad,
+                              porcentajeIva: dtoFinal.porcentajeIva,
+                              totalFinal: dtoFinal.totalFinal,
+                              estado: 'En Proceso', 
+                              usuarioId: dtoFinal.usuarioId,
+                              fechaCreacion: dtoFinal.fechaCreacion,
+                              version: dtoFinal.version,
+                            );
+
+                            final docActualizado = await FirebaseFirestore.instance
+                              .collection('cotizaciones')
+                              .doc(_idCotizacionCreada!)
+                              .get();
+
+                            final datosFirebase = docActualizado.data();
+                            final urlPdfAsignado = datosFirebase?['pdfUrl'] as String?;
+
+                            if (urlPdfAsignado == null || urlPdfAsignado.isEmpty){
+                              throw Exception('El PDF aún no ha sido generado o subido aún. Por favor, intenta nuevamente en unos segundos.');
+                            }
+                            final dtoListoParaEnvio = dtoParaEnvio.copyWith(pdfUrl: urlPdfAsignado);
+                            await datasource.procesarEnvioCotizacion(dtoListoParaEnvio);
+
+                            _mostrarMensaje('Cotización enviada por correo con éxito.');
+
+                            if (mounted){
+                              Navigator.pop(context);
+                            }
+                          } catch(e){
+                            _mostrarMensaje('Error al enviar correo: $e');
+                          } finally{
+                            if(mounted){
+                              setState(()=> _guardandoEnFirestore = false);
+                            }
+                          }
                         },
                       ),
                       const SizedBox(height: 16),

@@ -1,5 +1,6 @@
 import '../entities/mano_de_obra.dart';
 import '../../../materiales/domain/entities/material.dart';
+import '../../../cliente/domain/entities/cliente.dart';
 class ItemTrabajo {
   final String tipo;
   final double metrosCuadrados;
@@ -16,7 +17,7 @@ class ItemTrabajo {
 }
 
 class CotizacionModel {
-  final String cliente;
+  final Cliente cliente;
   final String direccionObra;
   final List<ItemTrabajo> listaTrabajos;
   final double? viatico; 

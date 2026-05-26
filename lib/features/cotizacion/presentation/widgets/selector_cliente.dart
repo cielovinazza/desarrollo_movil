@@ -7,7 +7,7 @@ import 'package:project/features/cliente/domain/usecases/listar_clientes.dart';
 
 class SelectorCliente extends StatefulWidget {
   final TextEditingController controller;
-  final Function(String) onClienteSeleccionado;
+  final Function(Cliente) onClienteSeleccionado;
 
   const SelectorCliente({
     super.key,
@@ -56,11 +56,11 @@ class _SelectorClienteState extends State<SelectorCliente> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: verdeApp.withValues(alpha:0.15),
+          color: verdeApp.withValues(alpha: 0.15),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -82,9 +82,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     SizedBox(height: 2),
-
                     Text(
                       'Selecciona el cliente para la cotización',
                       style: TextStyle(
@@ -97,66 +95,72 @@ class _SelectorClienteState extends State<SelectorCliente> {
               ),
             ],
           ),
-
           const SizedBox(height: 20),
+          
+          // Muestra un indicador de carga si Firebase aún no devuelve la lista
+          clientes.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              : DropdownButtonFormField<Cliente>(
+                  initialValue: clienteSeleccionado,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Seleccionar cliente',
+                    prefixIcon: Icon(
+                      Icons.person,
+                      color: verdeApp,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: verdeApp.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: verdeApp,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                  items: clientes.map((cliente) {
+                    return DropdownMenuItem<Cliente>(
+                      value: cliente,
+                      child: Text(
+                        '${cliente.nombre} - ${cliente.rut}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (cliente) {
+                    if (cliente == null) return;
 
-          DropdownButtonFormField<Cliente>(
-            initialValue: clienteSeleccionado,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: 'Seleccionar cliente',
-              prefixIcon: Icon(
-                Icons.person,
-                color: verdeApp,
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: verdeApp.withValues(alpha:0.25),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: verdeApp,
-                  width: 2,
-                ),
-              ),
-            ),
-            items: clientes.map((cliente) {
-              return DropdownMenuItem<Cliente>(
-                value: cliente,
-                child: Text(
-                  '${cliente.nombre} - ${cliente.rut}',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              );
-            }).toList(),
-            onChanged: (cliente) {
-              if (cliente == null) return;
+                    setState(() {
+                      clienteSeleccionado = cliente;
+                    });
 
-              setState(() {
-                clienteSeleccionado = cliente;
-              });
-
-              widget.controller.text = cliente.nombre;
-              widget.onClienteSeleccionado(cliente.id!.toString());
-            },
-          ),
+                    widget.controller.text = cliente.nombre;
+                    widget.onClienteSeleccionado(cliente);
+                  },
+                ),
 
           if (clienteSeleccionado != null) ...[
             const SizedBox(height: 16),
-
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: verdeApp.withValues(alpha:0.08),
+                color: verdeApp.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -166,9 +170,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
                     color: verdeApp,
                     size: 20,
                   ),
-
                   const SizedBox(width: 10),
-
                   Expanded(
                     child: Text(
                       'Cliente seleccionado: ${clienteSeleccionado!.nombre}',
