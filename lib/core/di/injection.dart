@@ -12,7 +12,6 @@ final clienteRepository = ClienteRepositoryImpl(
   ClientesRemoteDataSource(FirebaseFirestore.instance),
 );
 
-
 final getClientesUseCase = GetClientesUseCase(clienteRepository);
 
 final registrarClienteUseCase = RegistrarCliente(clienteRepository);

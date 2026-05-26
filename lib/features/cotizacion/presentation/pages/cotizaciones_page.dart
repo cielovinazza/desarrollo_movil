@@ -29,6 +29,8 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   String filterCliente = '';
   String filterId = '';
   String? estadoFiltro;
+  DateTime? fechaInicioFiltro;
+  DateTime? fechaFinFiltro;
 
   @override
   void initState() {
@@ -55,6 +57,8 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
         idBusqueda: filterId.isEmpty ? null : filterId,
         nombreCliente: filterCliente.isEmpty ? null : filterCliente,
         estado: estadoFiltro,
+        fechaInicio: fechaInicioFiltro,
+        fechaFin: fechaFinFiltro,
       );
 
       if (!mounted) return;
@@ -307,6 +311,68 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                               cargarCotizacion();
                             },
                           ),
+
+                          const SizedBox(height: 12),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.date_range),
+                                  label: Text(
+                                    fechaInicioFiltro == null
+                                        ? 'Desde'
+                                        : '${fechaInicioFiltro!.day}/${fechaInicioFiltro!.month}/${fechaInicioFiltro!.year}',
+                                  ),
+                                    onPressed: () async {
+                                      final fecha = await showDatePicker(
+                                        context: context,
+                                        initialDate: DateTime.now(),
+                                        firstDate: DateTime(2020),
+                                        lastDate: DateTime(2100),
+                                      );
+
+                                      if (fecha != null) {
+                                        setState(() {
+                                          fechaInicioFiltro = fecha;
+                                        });
+
+                                        cargarCotizacion();
+                                      }
+                                    },
+                                  ),
+                                ),
+
+                              const SizedBox(width: 12),
+
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.date_range),
+                                  label: Text(
+                                    fechaFinFiltro == null
+                                        ? 'Hasta'
+                                        : '${fechaFinFiltro!.day}/${fechaFinFiltro!.month}/${fechaFinFiltro!.year}',
+                                  ),
+                                  onPressed: () async {
+                                    final fecha = await showDatePicker(
+                                      context: context,
+                                      initialDate: DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2100),
+                                    );
+
+                                    if (fecha != null) {
+                                      setState(() {
+                                        fechaFinFiltro = fecha;
+                                      });
+                  
+                                      cargarCotizacion();
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ), ///aqui termina el row
                         ],
                       ),
                     ),

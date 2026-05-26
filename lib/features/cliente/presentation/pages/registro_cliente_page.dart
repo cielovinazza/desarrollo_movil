@@ -22,6 +22,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   );
 
   final _formKey = GlobalKey<FormState>();
+  bool _formValido = false;
 
   final _nombreController = TextEditingController();
 
@@ -40,6 +41,14 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     super.initState();
 
     registrarClienteUseCase = RegistrarCliente(repository);
+  }
+
+  void _validarFormulario() {
+  final valido = _formKey.currentState?.validate() ?? false;
+
+  setState(() {
+    _formValido = valido;
+    });
   }
 
   @override
@@ -177,6 +186,8 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          onChanged: _validarFormulario,
 
           child: Column(
             children: [
@@ -330,7 +341,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: _submitForm,
+                      onPressed: _formValido ? _submitForm : null,
 
                       icon: const Icon(Icons.send),
 

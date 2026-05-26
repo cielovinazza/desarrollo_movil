@@ -23,6 +23,7 @@ class EditarClientePage extends StatefulWidget {
 class _EditarClientePageState
     extends State<EditarClientePage> {
   final _formKey = GlobalKey<FormState>();
+  bool _formValido = true;
 
   final repository= ClienteRepositoryImpl(ClientesRemoteDataSource(FirebaseFirestore.instance));
 
@@ -53,6 +54,15 @@ class _EditarClientePageState
           text: widget.cliente.direccion ?? '',
         );
   }
+
+  void _validarFormulario() {
+    final valido = _formKey.currentState?.validate() ?? false;
+
+    setState(() {
+      _formValido = valido;
+    });
+  }
+
 
   bool validaRut(String rut) {
     rut = rut.replaceAll('.', '').replaceAll('-', '').toUpperCase();
@@ -145,6 +155,8 @@ class _EditarClientePageState
 
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          onChanged: _validarFormulario,
 
           child: Column(
             children: [
@@ -271,7 +283,7 @@ class _EditarClientePageState
               const SizedBox(height: 24),
 
               ElevatedButton(
-                onPressed: guardarCambios,
+                onPressed: _formValido ? guardarCambios : null,
 
                 child: const Text(
                   'Guardar cambios',
