@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -13,13 +14,17 @@ import '../../data/repositories/cotizacion_repository_impl.dart';
 class PrevisualizacionPdfWidget extends StatefulWidget {
   final CotizacionModel cotizacion;
   final List<MaterialEntity> materiales;
+  final String codigoCotizacion;
   final List<ManoDeObra> manoObra;
-  final VoidCallback onListo;
+  final Future<void> Function() onListo;
+  final String idCotizacion;
 
   const PrevisualizacionPdfWidget({
     super.key,
     required this.cotizacion,
+    required this.idCotizacion,
     required this.materiales,
+    required this.codigoCotizacion,
     required this.manoObra,
     required this.onListo,
   });
@@ -77,11 +82,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     _repository = CotizacionRepositoryImpl(
       CotizacionFirestoreDataSource(FirebaseFirestore.instance),
     );
-
-    final fecha = DateTime.now();
-    _codigoGenerado =
-        'COT-${fecha.year}${fecha.month.toString().padLeft(2, '0')}${fecha.day.toString().padLeft(2, '0')}';
-
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
@@ -96,6 +96,8 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
 
     try {
       final pdf = pw.Document();
+      final codigoCotizacion = widget.codigoCotizacion;
+      final cliente =widget.cotizacion.cliente;
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.letter,
@@ -112,16 +114,43 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('COTIZACION PROFESIONAL', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 14)),
-                      pw.Text(_codigoGenerado ?? '', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                      pw.Text(codigoCotizacion, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 12)),
                     ],
                   ),
                 ),
                 pw.SizedBox(height: 15),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: pw.CrossAxisAlignment.start, // Alinea ambos bloques desde arriba
                   children: [
-                    pw.Text('Cliente: ${widget.cotizacion.cliente}', style: const pw.TextStyle(fontSize: 11)),
-                    pw.Text('Obra: ${widget.cotizacion.direccionObra.isEmpty ? "Sin direccion" : widget.cotizacion.direccionObra}', style: const pw.TextStyle(fontSize: 11)),
+                    // --- COLUMNA IZQUIERDA: DATOS DEL CLIENTE ---
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text('Datos del Cliente:', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                        pw.SizedBox(height: 4),
+                        pw.Text('Cliente: ${cliente.nombre}', style: const pw.TextStyle(fontSize: 11)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('Rut: ${cliente.rut}', style: const pw.TextStyle(fontSize: 11)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('Correo: ${cliente.correo}', style: const pw.TextStyle(fontSize: 11)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('Teléfono: ${cliente.telefono}', style: const pw.TextStyle(fontSize: 11)),
+                      ],
+                    ),
+
+                    // --- COLUMNA DERECHA: DATOS DE LA OBRA ---
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end, // Alinea los textos de la obra a la derecha
+                      children: [
+                        pw.Text('Lugar de la Obra:', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                        pw.SizedBox(height: 4),
+                        pw.Text(
+                          widget.cotizacion.direccionObra.isEmpty ? "Sin dirección" : widget.cotizacion.direccionObra, 
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
                 pw.SizedBox(height: 20),
@@ -192,7 +221,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       await _repository.gestionarYSubirPdf(docIdInyectado, archivoFisico);
 
       setState(() => _subiendo = false);
-      widget.onListo();
+      await widget.onListo();
     } catch (e) {
       setState(() => _subiendo = false);
       _mostrarError('Error de Almacenamiento', e.toString().replaceAll('Exception: ', ''));
@@ -306,8 +335,8 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               icon: const Icon(Icons.cloud_upload_outlined),
               label: const Text('CONFIRMAR Y SUBIR COTIZACIÓN', style: TextStyle(fontWeight: FontWeight.bold)),
               onPressed: () {
-                final simulatedDocId = 'COT_${DateTime.now().millisecondsSinceEpoch}';
-                _procesarYSubirCotizacion(simulatedDocId);
+                
+                _procesarYSubirCotizacion(widget.idCotizacion);
               },
             ),
           ),

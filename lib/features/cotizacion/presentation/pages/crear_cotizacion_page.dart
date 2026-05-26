@@ -109,6 +109,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
   Future<String> _guardarCotizacion() async {
     final cotizacion = _obtenerEstadoActual();
+    final docRef = FirebaseFirestore.instance.collection('cotizaciones').doc();
+    final String idReal = docRef.id;
+
 
     final dto = CotizacionMapper.toDto(
       cotizacion: cotizacion,
@@ -117,10 +120,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       estado: 'En Proceso',
     );
 
-    final docRef = FirebaseFirestore.instance.collection('cotizaciones').doc();
     
     final dtoConId = CotizacionDto(
-      id: docRef.id,
+      id: idReal,
       clienteId: dto.clienteId,
       clienteNombre: dto.clienteNombre,
       clienteEmail: dto.clienteEmail,
@@ -146,7 +148,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     );
 
     await guardarCotizacionUseCase(dtoConId);
-    return docRef.id;
+    return idReal;
   }
 
   void _mostrarMensaje(String mensaje) {
@@ -557,18 +559,20 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   if (!deseaContinuar) return; 
                 }
 
+                if (_guardandoEnFirestore) return;
+
                 setState(() => _guardandoEnFirestore = true);
+
                 try {
                   final realId = await _guardarCotizacion();
                   setState(() {
                     _idCotizacionCreada = realId;
-                    _guardandoEnFirestore = false;
                     _vistaPreviaCargada = true;
                   });
-                  _mostrarMensaje('Estructura persistida en Firestore. Proceda al Storage.');
+                  _mostrarMensaje('Cotización creada con exito.');
                 } catch (e) {
                   setState(() => _guardandoEnFirestore = false);
-                  _mostrarMensaje('Error NoSQL: $e');
+                  _mostrarMensaje('Error de persistencia: $e');
                 }
               }
             },
@@ -824,79 +828,29 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
-                      PrevisualizacionPdfWidget(
-                        cotizacion: datosEnVivo,
-                        materiales: _materialesAgregados,
-                        manoObra: _manoObraAgregada,
-                        onListo: () async {
-                          setState(() => _guardandoEnFirestore = true);
+                   if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
+  PrevisualizacionPdfWidget(
+    cotizacion: datosEnVivo,
+    materiales: _materialesAgregados,
+    idCotizacion: _idCotizacionCreada!,
+    manoObra: _manoObraAgregada,
+    codigoCotizacion: CotizacionMapper.toDto(
+      cotizacion: datosEnVivo,
+      materiales: _materialesAgregados,
+      usuarioId: _auth.currentUser?.uid ?? '',
+      estado: 'En Proceso',
+    ).codigo,
+    onListo: () async {
+      if (!mounted) return;
 
-                          try{
-                            final dtoFinal = CotizacionMapper.toDto(
-                              cotizacion: datosEnVivo,
-                              materiales: _materialesAgregados,
-                              usuarioId: _auth.currentUser?.uid ?? '',
-                              estado: 'En Proceso',
-                            );
+      _mostrarMensaje('¡Cotización creada con éxito!');
 
-                            final dtoParaEnvio = CotizacionDto(
-                              id: _idCotizacionCreada!,
-                              clienteId: dtoFinal.clienteId,
-                              clienteNombre: dtoFinal.clienteNombre,
-                              clienteEmail: dtoFinal.clienteEmail,
-                              clienteRut: dtoFinal.clienteRut,
-                              clienteTelefono: dtoFinal.clienteTelefono,
-                              clienteDireccion: dtoFinal.clienteDireccion,
-                              codigo: dtoFinal.codigo,
-                              direccion: dtoFinal.direccion,
-                              trabajos: dtoFinal.trabajos,
-                              manoObra: dtoFinal.manoObra,
-                              materiales: dtoFinal.materiales,
-                              subtotalObra: dtoFinal.subtotalObra,
-                              subtotalMateriales: dtoFinal.subtotalMateriales,
-                              subtotalManoObra: dtoFinal.subtotalManoObra,
-                              viatico: dtoFinal.viatico,
-                              porcentajeUtilidad: dtoFinal.porcentajeUtilidad,
-                              porcentajeIva: dtoFinal.porcentajeIva,
-                              totalFinal: dtoFinal.totalFinal,
-                              estado: 'En Proceso', 
-                              usuarioId: dtoFinal.usuarioId,
-                              fechaCreacion: dtoFinal.fechaCreacion,
-                              version: dtoFinal.version,
-                            );
-
-                            final docActualizado = await FirebaseFirestore.instance
-                              .collection('cotizaciones')
-                              .doc(_idCotizacionCreada!)
-                              .get();
-
-                            final datosFirebase = docActualizado.data();
-                            final urlPdfAsignado = datosFirebase?['pdfUrl'] as String?;
-
-                            if (urlPdfAsignado == null || urlPdfAsignado.isEmpty){
-                              throw Exception('El PDF aún no ha sido generado o subido aún. Por favor, intenta nuevamente en unos segundos.');
-                            }
-                            final dtoListoParaEnvio = dtoParaEnvio.copyWith(pdfUrl: urlPdfAsignado);
-                            await datasource.procesarEnvioCotizacion(dtoListoParaEnvio);
-
-                            _mostrarMensaje('Cotización enviada por correo con éxito.');
-
-                            if (mounted){
-                              Navigator.pop(context);
-                            }
-                          } catch(e){
-                            _mostrarMensaje('Error al enviar correo: $e');
-                          } finally{
-                            if(mounted){
-                              setState(()=> _guardandoEnFirestore = false);
-                            }
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  ],
+      Navigator.of(context).pop();
+    },
+  ),
+  const SizedBox(height: 16),
+],
+                                    ],
                 ),
               ),
             ],

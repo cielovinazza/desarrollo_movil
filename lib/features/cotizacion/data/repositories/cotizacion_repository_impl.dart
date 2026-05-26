@@ -12,7 +12,7 @@ class FlujoEstados {
   static const String rechazada = 'Rechazada por el Cliente';
 
   static bool validarTransicion(String actual, String nueva) {
-    if (actual == 'Pendiente') return true; // Permite inicializar estados viejos de tu mapper
+    if (actual == 'Pendiente') return true;
     
     switch (actual) {
       case enProceso:
@@ -23,7 +23,7 @@ class FlujoEstados {
         return nueva == aprobada || nueva == rechazada;
       case aprobada:
       case rechazada:
-        return false; // Estados de cierre, bloqueados
+        return false;
       default:
         return false;
     }
@@ -36,10 +36,9 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
   CotizacionRepositoryImpl(this.datasource);
 
   @override
-  Future<void> guardarCotizacion(CotizacionDto dto) async {
-    // Al crearse por primera vez, forzamos que inicie estrictamente "En Proceso"
+  Future<String> guardarCotizacion(CotizacionDto dto) async {
     final dtoInicial = dto.copyWith(estado: FlujoEstados.enProceso);
-    await datasource.guardarCotizacion(dtoInicial);
+    return await datasource.guardarCotizacion(dtoInicial);
   }
 
   @override
@@ -61,7 +60,6 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
 
   @override
   Future<void> actualizarEstado(String id, String estadoActual, String estadoNuevo) async {
-    // Validamos estrictamente el flujo de estados antes de mandar la petición de actualización
     if (!FlujoEstados.validarTransicion(estadoActual, estadoNuevo)) {
       throw Exception('Transición inválida: No se puede cambiar de "$estadoActual" a "$estadoNuevo"');
     }
