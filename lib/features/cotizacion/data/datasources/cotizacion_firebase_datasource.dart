@@ -6,6 +6,7 @@ import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import '../../../../shared/widgets/strings_extensions.dart';
 
 class CotizacionFirestoreDataSource {
   final FirebaseFirestore firestore;
@@ -45,9 +46,10 @@ class CotizacionFirestoreDataSource {
 }
 
   // 2. SI NO HAY ID, RECIÉN AHÍ APLICAMOS LOS FILTROS DE LISTADO MASIVO
-  if (clienteNombre != null && clienteNombre.isNotEmpty) {
-    query = query.where('clienteNombre', isGreaterThanOrEqualTo: clienteNombre)
-      .where('clienteNombre', isLessThanOrEqualTo: '$clienteNombre\uf8ff');
+  if (clienteNombre != null && clienteNombre.trim().isNotEmpty) {
+    final busqueda=clienteNombre.toTitleCase();
+    query = query.where('clienteNombre', isGreaterThanOrEqualTo: busqueda)
+      .where('clienteNombre', isLessThanOrEqualTo: '$busqueda\uf8ff');
   }
 
   if (estado != null) {

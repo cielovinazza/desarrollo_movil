@@ -7,6 +7,7 @@ import '../../domain/usecases/registrar_cliente.dart';
 import '../widgets/cliente_text_field.dart';
 import '../formatters/mascara_rut_formatters.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../../shared/widgets/strings_extensions.dart';
 
 
 class RegistroClientePage extends StatefulWidget {
@@ -118,7 +119,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     }
 
     Cliente cliente = Cliente(
-      nombre: _nombreController.text.trim(),
+      nombre: _nombreController.text.toTitleCase(),
 
       rut: _rutController.text.trim(),
 
