@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../domain/entities/cotizacion_model.dart';
 import '../widgets/manodeobra.dart';
 import '../widgets/materiales.dart';
@@ -9,7 +10,7 @@ import '../../data/mappers/cotizacion_mapper.dart';
 import '../../data/repositories/cotizacion_repository_impl.dart';
 import '../../domain/usecases/guardar_cotizacion.dart';
 import '../widgets/previsualizacion_pdf.dart';
-import 'package:flutter/services.dart';
+import '../../data/dtos/cotizacion_dtos.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -25,6 +26,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   late final GuardarCotizacion guardarCotizacionUseCase;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _vistaPreviaCargada = false;
+  bool _guardandoEnFirestore = false;
+  String? _idCotizacionCreada;
 
   final List<ManoDeObra> _manoObraAgregada = [];
   final List<ItemTrabajo> _trabajosAgregados = [];
@@ -35,6 +38,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _viaticoController = TextEditingController();
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
+  
   final List<String> _tiposDisponibles = [
     'Pintura',
     'Yeso',
@@ -89,20 +93,43 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     );
   }
 
-  Future<void> _guardarCotizacion() async {
+  Future<String> _guardarCotizacion() async {
     final cotizacion = _obtenerEstadoActual();
 
     final dto = CotizacionMapper.toDto(
       cotizacion: cotizacion,
-
       materiales: _materialesAgregados,
-
       clienteId: _clienteIdSeleccionado ?? '',
-
       usuarioId: _auth.currentUser?.uid ?? '',
+      estado: 'En Proceso',
     );
 
-    await guardarCotizacionUseCase(dto);
+    final docRef = FirebaseFirestore.instance.collection('cotizaciones').doc();
+    
+    final dtoConId = CotizacionDto(
+      id: docRef.id,
+      clienteId: dto.clienteId,
+      clienteNombre: dto.clienteNombre,
+      codigo: dto.codigo,
+      direccion: dto.direccion,
+      trabajos: dto.trabajos,
+      manoObra: dto.manoObra,
+      materiales: dto.materiales,
+      subtotalObra: dto.subtotalObra,
+      subtotalMateriales: dto.subtotalMateriales,
+      subtotalManoObra: dto.subtotalManoObra,
+      viatico: dto.viatico,
+      porcentajeUtilidad: dto.porcentajeUtilidad,
+      porcentajeIva: dto.porcentajeIva,
+      totalFinal: dto.totalFinal,
+      estado: 'En Proceso', 
+      usuarioId: dto.usuarioId,
+      fechaCreacion: dto.fechaCreacion,
+      version: dto.version,
+    );
+
+    await guardarCotizacionUseCase(dtoConId);
+    return docRef.id;
   }
 
   void _mostrarMensaje(String mensaje) {
@@ -348,6 +375,58 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     if (resultado != null) setState(() => _manoObraAgregada.add(resultado));
   }
 
+  String? _validarCampoNumerico(String? value, String nombreCampo) {
+    if (value == null || value.trim().isEmpty) {
+      if (nombreCampo == 'Viático') return null; 
+      return 'El campo $nombreCampo es obligatorio';
+    }
+    
+    final numero = double.tryParse(value.trim());
+    if (numero == null) {
+      return 'Ingrese solo caracteres numéricos válidos';
+    }
+    
+    if (numero < 0) {
+      return 'No se permiten importes o tasas negativas';
+    }
+    
+    return null;
+  }
+
+  Future<bool> _mostrarAlertaRentabilidadBaja() async {
+    return await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+                SizedBox(width: 10),
+                Text('Alerta de Rentabilidad', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: const Text(
+              '¡Atención contratista! El margen de utilidad ingresado es inferior al 10% mínimo recomendado. '
+              '¿Está seguro de que desea continuar con esta tasa de ganancia para el proyecto?',
+              style: TextStyle(fontSize: 15),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Modificar Margen', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Sí, continuar', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final datosEnVivo = _obtenerEstadoActual();
@@ -364,6 +443,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       ),
       body: Form(
         key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         onChanged: () => setState(() {}),
         child: Theme(
           data: Theme.of(
@@ -374,19 +454,23 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             currentStep: _currentStep,
             controlsBuilder: (context, details) => Row(
               children: [
-                ElevatedButton(
-                  onPressed: details.onStepContinue,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _verdeApp,
-                    foregroundColor: Colors.white,
+                if (!_guardandoEnFirestore)
+                  ElevatedButton(
+                    onPressed: details.onStepContinue,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _verdeApp,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text(_currentStep == 4 ? 'Guardar y Previsualizar' : 'Continuar'),
                   ),
-                  child: Text(_currentStep == 4 ? 'Guardar' : 'Continuar'),
-                ),
                 const SizedBox(width: 12),
-                TextButton(
-                  onPressed: details.onStepCancel,
-                  child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
-                ),
+                if (!_guardandoEnFirestore)
+                  TextButton(
+                    onPressed: details.onStepCancel,
+                    child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
+                  ),
+                if (_guardandoEnFirestore)
+                  const CircularProgressIndicator(),
               ],
             ),
             onStepContinue: () async {
@@ -413,28 +497,32 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   if (_currentStep == 3) {
                     _vistaPreviaCargada = false;
                   }
-
                   _currentStep += 1;
                 });
               } else {
-                try {
-                  await _guardarCotizacion();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: _verdeApp,
-                      content: const Text('Cotización guardada correctamente'),
-                    ),
-                  );
-                  Navigator.pop(context);
-                } catch (e) {
-                  print(e);
+                if (!_formKey.currentState!.validate()) {
+                  _mostrarMensaje('Formulario inválido. Corrija los campos en rojo antes de guardar.');
+                  return;
+                }
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: Colors.red,
-                      content: Text('Error al guardar: $e'),
-                    ),
-                  );
+                final margenUtilidad = double.tryParse(_utilidadController.text) ?? 0.0;
+                if (margenUtilidad < 10.0) {
+                  final deseaContinuar = await _mostrarAlertaRentabilidadBaja();
+                  if (!deseaContinuar) return; 
+                }
+
+                setState(() => _guardandoEnFirestore = true);
+                try {
+                  final realId = await _guardarCotizacion();
+                  setState(() {
+                    _idCotizacionCreada = realId;
+                    _guardandoEnFirestore = false;
+                    _vistaPreviaCargada = true;
+                  });
+                  _mostrarMensaje('Estructura persistida en Firestore. Proceda al Storage.');
+                } catch (e) {
+                  setState(() => _guardandoEnFirestore = false);
+                  _mostrarMensaje('Error NoSQL: $e');
                 }
               }
             },
@@ -613,11 +701,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _viaticoController,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
-                        ),
-                      ],
+                      validator: (val) => _validarCampoNumerico(val, 'Viático'),
                       decoration: const InputDecoration(
                         labelText: 'Viático adicional (Opcional - CLP)',
                         prefixIcon: Icon(Icons.payments_outlined),
@@ -628,11 +712,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _utilidadController,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
-                        ),
-                      ],
+                      validator: (val) => _validarCampoNumerico(val, '% de utilidad'),
                       decoration: const InputDecoration(
                         labelText: '% Porcentaje de Utilidad',
                         prefixIcon: Icon(Icons.trending_up),
@@ -643,11 +723,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _ivaController,
                       keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
-                        ),
-                      ],
+                      validator: (val) => _validarCampoNumerico(val, '% IVA Legal'),
                       decoration: const InputDecoration(
                         labelText: '% IVA Legal',
                         prefixIcon: Icon(Icons.percent),
@@ -687,31 +763,18 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    PrevisualizacionPdfWidget(
-                      cotizacion: datosEnVivo,
-                      materiales: _materialesAgregados,
-                      manoObra: _manoObraAgregada,
-                      onListo: () {
-                        setState(() {
-                          _vistaPreviaCargada = true;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _vistaPreviaCargada
-                            ? () {
-                                _mostrarMensaje('PDF listo para generar');
-                              }
-                            : null,
-                        icon: const Icon(Icons.picture_as_pdf),
-                        label: const Text('Generar PDF'),
+                    if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
+                      PrevisualizacionPdfWidget(
+                        cotizacion: datosEnVivo,
+                        materiales: _materialesAgregados,
+                        manoObra: _manoObraAgregada,
+                        onListo: () {
+                          _mostrarMensaje('PDF sincronizado y subido con éxito.');
+                          Navigator.pop(context);
+                        },
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                    ],
                   ],
                 ),
               ),

@@ -20,9 +20,7 @@ ResultadoCSV parsearCSV(String contenido) {
   if (lineas.isEmpty) {
     return ResultadoCSV(
       materialesValidos: [],
-      filasRechazadas: [
-        'El archivo CSV está vacío',
-      ],
+      filasRechazadas: ['El archivo CSV está vacío'],
     );
   }
 
@@ -31,18 +29,13 @@ ResultadoCSV parsearCSV(String contenido) {
       .map((h) => h.trim())
       .toList();
 
-  final idxNombre =
-      encabezados.indexWhere((h) => h == 'Nombre_Material');
+  final idxNombre = encabezados.indexWhere((h) => h == 'Nombre_Material');
 
-  final idxUnidad =
-      encabezados.indexWhere((h) => h == 'Unidad_Medida');
+  final idxUnidad = encabezados.indexWhere((h) => h == 'Unidad_Medida');
 
-  final idxCosto =
-      encabezados.indexWhere((h) => h == 'Costo_Unitario_CLP');
+  final idxCosto = encabezados.indexWhere((h) => h == 'Costo_Unitario_CLP');
 
-  if (idxNombre == -1 ||
-      idxUnidad == -1 ||
-      idxCosto == -1) {
+  if (idxNombre == -1 || idxUnidad == -1 || idxCosto == -1) {
     return ResultadoCSV(
       materialesValidos: [],
       filasRechazadas: [
@@ -68,9 +61,7 @@ ResultadoCSV parsearCSV(String contenido) {
     if (celdas.length <= idxNombre ||
         celdas.length <= idxUnidad ||
         celdas.length <= idxCosto) {
-      rechazadas.add(
-        'Fila $numFila: columnas insuficientes',
-      );
+      rechazadas.add('Fila $numFila: columnas insuficientes');
       continue;
     }
 
@@ -78,21 +69,23 @@ ResultadoCSV parsearCSV(String contenido) {
     final unidad = celdas[idxUnidad].trim();
     final costoStr = celdas[idxCosto].trim();
 
-    if (nombre.isEmpty ||
-        unidad.isEmpty ||
-        costoStr.isEmpty) {
-      rechazadas.add(
-        'Fila $numFila: contiene celdas vacías',
-      );
+    if (nombre.isEmpty) {
+      rechazadas.add('Fila $numFila: el campo Nombre_Material está vacío');
+      continue;
+    }
+    if (unidad.isEmpty) {
+      rechazadas.add('Fila $numFila: el campo Unidad_Medida está vacío');
+      continue;
+    }
+    if (costoStr.isEmpty) {
+      rechazadas.add('Fila $numFila: el campo Costo_Unitario_CLP está vacío');
       continue;
     }
 
     final costo = double.tryParse(costoStr);
 
     if (costo == null) {
-      rechazadas.add(
-        'Fila $numFila: "$costoStr" no es un valor numérico',
-      );
+      rechazadas.add('Fila $numFila: "$costoStr" no es un valor numérico');
       continue;
     }
 
@@ -104,11 +97,8 @@ ResultadoCSV parsearCSV(String contenido) {
       continue;
     }
 
-
     if (costo % 1 != 0) {
-      rechazadas.add(
-        'Fila $numFila: el costo debe ser un número entero',
-      );
+      rechazadas.add('Fila $numFila: el costo debe ser un número entero');
       continue;
     }
 
@@ -122,8 +112,5 @@ ResultadoCSV parsearCSV(String contenido) {
     );
   }
 
-  return ResultadoCSV(
-    materialesValidos: validos,
-    filasRechazadas: rechazadas,
-  );
+  return ResultadoCSV(materialesValidos: validos, filasRechazadas: rechazadas);
 }

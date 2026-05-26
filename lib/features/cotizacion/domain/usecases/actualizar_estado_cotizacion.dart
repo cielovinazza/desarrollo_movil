@@ -1,21 +1,12 @@
-import '../../data/repositories/cotizacion_repository_impl.dart';
+import '../repositories/cotizacion_repository.dart';
 
 class ActualizarEstadoCotizacion {
+  final CotizacionRepository repository;
 
-  final CotizacionRepositoryImpl repository;
+  ActualizarEstadoCotizacion(this.repository);
 
-  ActualizarEstadoCotizacion(
-    this.repository,
-  );
-
-  Future<void> call(
-    String id,
-    String estado,
-  ) async {
-
-    await repository.actualizarEstado(
-      id,
-      estado,
-    );
+  //call recibe los 3 parámetros para que se conecte sin chocar con el repositorio actualizado
+  Future<void> call(String id, String estadoActual, String estadoNuevo) async {
+    await repository.actualizarEstado(id, estadoActual, estadoNuevo);
   }
 }

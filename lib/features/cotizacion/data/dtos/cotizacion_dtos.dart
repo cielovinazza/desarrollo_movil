@@ -25,6 +25,7 @@ class CotizacionDto {
   final String usuarioId;
 
   final Timestamp? fechaCreacion;
+  final int version;
 
   CotizacionDto({
     required this.id,
@@ -45,6 +46,7 @@ class CotizacionDto {
     required this.estado,
     required this.usuarioId,
     this.fechaCreacion,
+    required this.version,
   });
 
   Map<String, dynamic> toMap() {
@@ -86,6 +88,8 @@ class CotizacionDto {
       'fechaCreacion':
           fechaCreacion ??
           FieldValue.serverTimestamp(),
+
+      'version': version,
     };
   }
 
@@ -155,12 +159,16 @@ class CotizacionDto {
 
       fechaCreacion:
           map['fechaCreacion'],
+
+      version: (
+          map['version'] as int?) ?? 1,
     );
   }
 
   CotizacionDto copyWith({
   String? codigo,
   String? estado,
+  int? version,
 }) {
 
   return CotizacionDto(
@@ -182,6 +190,7 @@ class CotizacionDto {
     usuarioId: usuarioId,
     estado: estado ?? this.estado,
     fechaCreacion: fechaCreacion,
+    version: version ?? this.version,
   );
 }
 }
