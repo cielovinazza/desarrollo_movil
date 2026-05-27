@@ -829,34 +829,34 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     const SizedBox(height: 24),
 
                    if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
-  PrevisualizacionPdfWidget(
-    cotizacion: datosEnVivo,
-    materiales: _materialesAgregados,
-    idCotizacion: _idCotizacionCreada!,
-    manoObra: _manoObraAgregada,
-    codigoCotizacion: CotizacionMapper.toDto(
-      cotizacion: datosEnVivo,
-      materiales: _materialesAgregados,
-      usuarioId: _auth.currentUser?.uid ?? '',
-      estado: 'En Proceso',
-    ).codigo,
-    onListo: () async {
-      if (!mounted) return;
+                    PrevisualizacionPdfWidget(
+                      cotizacion: datosEnVivo,
+                      materiales: _materialesAgregados,
+                      idCotizacion: _idCotizacionCreada!,
+                      manoObra: _manoObraAgregada,
+                      codigoCotizacion: CotizacionMapper.toDto(
+                        cotizacion: datosEnVivo,
+                        materiales: _materialesAgregados,
+                        usuarioId: _auth.currentUser?.uid ?? '',
+                        estado: 'En Proceso',
+                      ).codigo,
+                      onListo: () async {
+                        if (!mounted) return;
 
-      _mostrarMensaje('¡Cotización creada con éxito!');
+                        _mostrarMensaje('¡Cotización creada con éxito!');
 
-      Navigator.of(context).pop();
-    },
-  ),
-  const SizedBox(height: 16),
-],
-                                    ],
-                ),
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
