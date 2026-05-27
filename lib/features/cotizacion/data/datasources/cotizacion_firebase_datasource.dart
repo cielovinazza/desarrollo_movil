@@ -11,37 +11,60 @@ class CotizacionFirestoreDataSource {
   CotizacionFirestoreDataSource(this.firestore);
 
   Future<String> guardarCotizacion(CotizacionDto dto) async {
-    final collection = firestore.collection('cotizaciones');
+  final collection = firestore.collection('cotizaciones');
 
-    // 1. SI EL DTO YA TIENE ID: Flujo de actualización (evita duplicar y soluciona el 'not-found')
-    if (dto.id.isNotEmpty) {
-      await collection.doc(dto.id).set(
-        {
-          ...dto.toMap(),
-          'fechaCreacion': dto.fechaCreacion ?? FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true), // Fusiona de forma segura la URL del PDF y los cambios sin romper nada
-      );
-      return dto.id;
+  // GENERAR CÓDIGO SI VIENE VACÍO
+  String codigo = dto.codigo;
+
+  if (codigo.trim().isEmpty) {
+    final snapshot = await collection
+        .orderBy('fechaCreacion', descending: true)
+        .limit(1)
+        .get();
+
+    int numero = 1;
+
+    if (snapshot.docs.isNotEmpty) {
+      final ultimoCodigo = snapshot.docs.first.data()['codigo'] ?? 'CT-000';
+
+      final match = RegExp(r'CT-(\d+)').firstMatch(ultimoCodigo);
+
+      if (match != null) {
+        numero = int.parse(match.group(1)!) + 1;
+      }
     }
 
-    // 2. SI EL DTO NO TIENE ID: Flujo de creación por primera vez
-    final totalDocs = await collection.get();
-    final numero = totalDocs.docs.length + 1;
-    final codigo = 'CT-${numero.toString().padLeft(3, '0')}';
-
-    final nuevoDocRef = collection.doc();
-    final nuevoId = nuevoDocRef.id;
-
-    await nuevoDocRef.set({
-      ...dto.toMap(),
-      'id': nuevoId,
-      'codigo': codigo,
-      'fechaCreacion': FieldValue.serverTimestamp(),
-    });
-
-    return nuevoId;
+    codigo = 'CT-${numero.toString().padLeft(3, '0')}';
   }
+
+  // ACTUALIZAR
+  if (dto.id.isNotEmpty) {
+    await collection.doc(dto.id).set(
+      {
+        ...dto.toMap(),
+        'codigo': codigo,
+        'fechaCreacion':
+            dto.fechaCreacion ?? FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    return dto.id;
+  }
+
+  // CREAR
+  final nuevoDocRef = collection.doc();
+  final nuevoId = nuevoDocRef.id;
+
+  await nuevoDocRef.set({
+    ...dto.toMap(),
+    'id': nuevoId,
+    'codigo': codigo,
+    'fechaCreacion': FieldValue.serverTimestamp(),
+  });
+
+  return nuevoId;
+}
 
   Future<List<CotizacionDto>> obtenerCotizacion({
     String? idBusqueda,
