@@ -44,6 +44,7 @@ dependencies:
   pdf: ^3.12.0
   printing: ^5.14.3
   path_provider: ^2.1.5
+  intl: ^0.20.2
 
 
   mailer: ^6.1.1

@@ -199,7 +199,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                 hint: 'Ingrese su nombre',
 
-                icon: Icons.person,
+                icon: Icons.person_outline,
 
                 inputFormatters:[
 
@@ -230,7 +230,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
               
                 hint: 'Ingrese su rut.', 
               
-                icon: Icons.contact_page,
+                icon: Icons.contact_page_outlined,
                 
                 keyboardType: TextInputType.text,
                 
@@ -269,7 +269,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                 hint: 'usuario@correo.com',
 
-                icon: Icons.email,
+                icon: Icons.email_outlined,
 
                 keyboardType: TextInputType.emailAddress,
 
@@ -299,7 +299,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                 hint: 'ej: 912345678',
 
-                icon: Icons.phone,
+                icon: Icons.phone_outlined,
 
                 keyboardType: TextInputType.number,
 
@@ -333,7 +333,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
                 hint: 'Opcional',
 
-                icon: Icons.home,
+                icon: Icons.location_on_outlined,
               ),
 
               const SizedBox(height: 24),

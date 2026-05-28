@@ -12,6 +12,7 @@ import 'package:project/features/auth/presentation/pages/login_page.dart';
 
 import 'package:project/shared/widgets/inactivity_detector.dart';
 import 'package:project/navigation/main_navigation.dart';
+import 'shared/design_system/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      themeMode: ThemeMode.light,
 
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
