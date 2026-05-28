@@ -500,25 +500,33 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
-            controlsBuilder: (context, details) => Row(
+           controlsBuilder: (context, details) => Row(
               children: [
-                if (!_guardandoEnFirestore)
-                  ElevatedButton(
-                    onPressed: details.onStepContinue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _verdeApp,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text(_currentStep == 4 ? 'Guardar y Previsualizar' : 'Continuar'),
+                ElevatedButton(
+                  onPressed: _guardandoEnFirestore
+                      ? null
+                      : details.onStepContinue,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _verdeApp,
+                    foregroundColor: Colors.white,
                   ),
+                  child: Text(
+                    _currentStep == 4
+                        ? 'Guardar y Previsualizar'
+                        : 'Continuar',
+                  ),
+                ),
                 const SizedBox(width: 12),
-                if (!_guardandoEnFirestore)
-                  TextButton(
-                    onPressed: details.onStepCancel,
-                    child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
+                TextButton(
+                  onPressed: _guardandoEnFirestore
+                      ? null
+                      : details.onStepCancel,
+                  child: Text(
+                    _currentStep == 0
+                        ? 'Salir'
+                        : 'Atrás',
                   ),
-                if (_guardandoEnFirestore)
-                  const CircularProgressIndicator(),
+                ),
               ],
             ),
             onStepContinue: () async {

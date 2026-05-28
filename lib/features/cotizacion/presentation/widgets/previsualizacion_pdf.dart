@@ -140,7 +140,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
 
                     // --- COLUMNA DERECHA: DATOS DE LA OBRA ---
                     pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end, // Alinea los textos de la obra a la derecha
+                      crossAxisAlignment: pw.CrossAxisAlignment.end, 
                       children: [
                         pw.Text('Lugar de la Obra:', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
                         pw.SizedBox(height: 4),
@@ -151,6 +151,30 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                       ],
                     ),
                   ],
+                ),
+                pw.SizedBox(height: 20),
+
+                pw.Text('DETALLE DE TRABAJOS DE OBRA', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: const PdfColor.fromInt(0xFF2E7D32))),
+                pw.Divider(),
+                if (widget.cotizacion.listaTrabajos.isEmpty)
+                  pw.Text('Sin trabajos registrados', style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic))
+                else
+                  ...widget.cotizacion.listaTrabajos.map((t) => pw.Padding(
+                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                    child: pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Expanded(flex: 5, child: pw.Text(t.tipo, style: const pw.TextStyle(fontSize: 10))),
+                        pw.Expanded(flex: 4, child: pw.Text('${t.metrosCuadrados.toStringAsFixed(1)} m² × ${_clp(t.precioPorMetro)}', style: const pw.TextStyle(fontSize: 10), textAlign: pw.TextAlign.center)),
+                        pw.Expanded(flex: 3, child: pw.Text(_clp(t.subtotal), style: const pw.TextStyle(fontSize: 10), textAlign: pw.TextAlign.end)),
+                      ],
+                    ),
+                  )),
+
+                pw.SizedBox(height: 10),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                  children: [pw.Text('Subtotal Trabajos de Obra: ${_clp(_subtotalTrabajosObra)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))],
                 ),
                 pw.SizedBox(height: 20),
                 pw.Text('DETALLE DE MATERIALES', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: const PdfColor.fromInt(0xFF2E7D32))),
@@ -213,7 +237,9 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       );
 
       final directorio = await getTemporaryDirectory();
-      final rutaArchivo = '${directorio.path}/$docIdInyectado.pdf';
+      final nombreSeguro = widget.codigoCotizacion.replaceAll('/', '-');
+      final nombrePdf = '$nombreSeguro.pdf';
+      final rutaArchivo = '${directorio.path}/$nombrePdf';
       final archivoFisico = File(rutaArchivo);
       await archivoFisico.writeAsBytes(await pdf.save());
 
