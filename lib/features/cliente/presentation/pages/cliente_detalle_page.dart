@@ -20,7 +20,6 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
   @override
   void initState() {
     super.initState();
-
     _cotizacionDataSource = CotizacionFirestoreDataSource(FirebaseFirestore.instance);
     _historialCotizacionesFuture = _cotizacionDataSource.obtenerCotizacion(
       clienteNombre: widget.cliente.nombre,
@@ -42,14 +41,13 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildClienteCard(context),
-            
             const SizedBox(height: 24),
             Text(
               'Historial de Cotizaciones',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.textTheme.bodyLarge?.color
-                  ),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.textTheme.bodyLarge?.color,
+              ),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -62,9 +60,12 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
                   
                   if (snapshot.hasError) {
                     return Center(
-                      child: Text(
-                        'Error al cargar cotizaciones: ${snapshot.error}',
-                        style: const TextStyle(color: Colors.red),
+                      child: SingleChildScrollView(
+                        child: Text(
+                          'Error al cargar cotizaciones: ${snapshot.error}',
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     );
                   }
@@ -76,6 +77,7 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
                       child: Text(
                         'Cliente sin historial de cotizaciones.',
                         style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 16),
+                        textAlign: TextAlign.center,
                       ),
                     );
                   }
@@ -96,12 +98,10 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
     );
   }
 
-  
   Widget _buildClienteCard(BuildContext context) {
-    final theme=Theme.of(context);
+    final theme = Theme.of(context);
     
     return Card(
-      
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -115,7 +115,13 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
                 Expanded(
                   child: Text(
                     widget.cliente.nombre,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: theme.textTheme.bodyLarge?.color),
+                    style: TextStyle(
+                      fontSize: 20, 
+                      fontWeight: FontWeight.bold, 
+                      color: theme.textTheme.bodyLarge?.color,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -135,27 +141,32 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
     );
   }
 
- 
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 18, color: Colors.grey[600]),
           const SizedBox(width: 8),
           Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(width: 6),
-          Expanded(child: Text(value, style: TextStyle(color: Colors.grey[800]))),
+          Expanded(
+            child: Text(
+              value, 
+              style: TextStyle(color: Colors.grey[800]),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );
   }
 
-
   Widget _buildCotizacionItem(CotizacionDto cotizacion) {
-    
     final totalFormateado = '\$${cotizacion.totalFinal.toStringAsFixed(0)}';
-    final theme=Theme.of(context);
+    final theme = Theme.of(context);
     
     Color estadoColor = Colors.grey;
     if (cotizacion.estado == 'Aprobada por el Cliente') estadoColor = Colors.green;
@@ -164,28 +175,34 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
     if (cotizacion.estado == 'Enviada') estadoColor = Colors.purple;
     if (cotizacion.estado == 'Lista para Envío') estadoColor = Colors.blue;
 
-
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6.0),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.indigo.withValues(alpha:0.1),
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.description_rounded, color: theme.primaryColor,),
+          child: Icon(Icons.description_rounded, color: theme.colorScheme.primary),
         ),
         title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              cotizacion.codigo.isNotEmpty ? cotizacion.codigo : 'Sin Código',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                cotizacion.codigo.isNotEmpty ? cotizacion.codigo : 'Sin Código',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+            const SizedBox(width: 8),
             Text(
               totalFormateado,
-              style:  TextStyle(fontWeight: FontWeight.bold, color: theme.textTheme.bodyMedium?.color),
+              style: TextStyle(
+                fontWeight: FontWeight.bold, 
+                color: theme.colorScheme.primary,
+              ),
             ),
           ],
         ),
@@ -194,20 +211,27 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Obra: ${cotizacion.direccion}'),
-              const SizedBox(height: 4),
+              Text(
+                'Obra: ${cotizacion.direccion}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 6),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: estadoColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: estadoColor),
-                    ),
-                    child: Text(
-                      cotizacion.estado,
-                      style: TextStyle(color: estadoColor, fontSize: 11, fontWeight: FontWeight.bold),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: estadoColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: estadoColor),
+                      ),
+                      child: Text(
+                        cotizacion.estado,
+                        style: TextStyle(color: estadoColor, fontSize: 11, fontWeight: FontWeight.bold),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -220,12 +244,10 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
             ],
           ),
         ),
-        trailing: cotizacion.pdfUrl != null 
+        trailing: cotizacion.pdfUrl != null //implementar visualizacion de pdf, con opcion para enviar correo automatico
             ? IconButton(
                 icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
-                onPressed: () {
-                  //añadir lógica para abrir la url del pdf
-                },
+                onPressed: () {},
               )
             : null,
       ),
