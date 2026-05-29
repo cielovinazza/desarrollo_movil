@@ -167,8 +167,11 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 controller: _nombreController,
                 label: 'Nombre',
                 hint: 'Ingrese su nombre',
-                icon: Icons.person,
-                inputFormatters: [
+
+                icon: Icons.person_outline,
+
+                inputFormatters:[
+
                   FilteringTextInputFormatter.allow(
                     RegExp(r'[a-zA-ZñÑÁÉÍÓÚáéíóú ]'),
                   ),
@@ -185,10 +188,14 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
               ),
               const SizedBox(height: 16),
               ClienteTextField(
-                controller: _rutController,
-                label: 'Rut',
-                hint: 'Ingrese su rut.',
-                icon: Icons.contact_page,
+                controller: 
+                    _rutController, 
+                label: 'Rut', 
+              
+                hint: 'Ingrese su rut.', 
+              
+                icon: Icons.contact_page_outlined,
+                
                 keyboardType: TextInputType.text,
                 textCapitalization: TextCapitalization.characters,
                 inputFormatters: [
@@ -212,7 +219,9 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 controller: _correoController,
                 label: 'Correo',
                 hint: 'usuario@correo.com',
-                icon: Icons.email,
+
+                icon: Icons.email_outlined,
+
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -232,7 +241,9 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 controller: _telefonoController,
                 label: 'Teléfono',
                 hint: 'ej: 912345678',
-                icon: Icons.phone,
+
+                icon: Icons.phone_outlined,
+
                 keyboardType: TextInputType.number,
                 prefixText: '+56 ',
                 inputFormatters: [
@@ -255,7 +266,8 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 controller: _direccionController,
                 label: 'Dirección',
                 hint: 'Opcional',
-                icon: Icons.home,
+
+                icon: Icons.location_on_outlined,
               ),
               const SizedBox(height: 24),
               Row(

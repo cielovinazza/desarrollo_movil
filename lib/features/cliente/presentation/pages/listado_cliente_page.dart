@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/features/cliente/presentation/pages/cliente_detalle_page.dart';
 import '../../data/datasources/clientes_remote_datasource.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'editar_cliente_page.dart';
@@ -138,6 +139,13 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                               'Dirección: ${cliente.direccion ?? "Sin dirección"}',
                             ),
                             isThreeLine: true,
+                            onTap:() {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_)=>DetalleClientePage(cliente: cliente))
+                              );
+                            },
+                            
                             trailing: IconButton(
                               icon: const Icon(Icons.edit),
                               onPressed: () => _abrirEditarCliente(cliente),
