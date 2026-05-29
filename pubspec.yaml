@@ -73,7 +73,7 @@ flutter:
 
   assets:
   - assets/data/
-  #- assets/images/
+  - assets/images/
   #- assets/icons/
 
 
