@@ -112,9 +112,9 @@ class CotizacionFirestoreDataSource {
     });
   }
 
-  Future<String> subirPdfCotizacion(String id, File archivoPdf) async {
+  Future<String> subirPdfCotizacion(String codigo, File archivoPdf) async {
     try {
-      final ref = storage.ref().child('cotizaciones/$id/documento.pdf');
+      final ref = storage.ref().child('cotizaciones/$codigo/documento.pdf');
       
       final uploadTask = ref.putFile(
         archivoPdf,
@@ -122,10 +122,10 @@ class CotizacionFirestoreDataSource {
       );
 
       final TaskSnapshot snapshot = await uploadTask.timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 5),
         onTimeout: () {
           uploadTask.cancel();
-          throw Exception('Timeout: La subida superó los 15 segundos.');
+          throw Exception('Timeout: La subida superó los 5 segundos.');
         },
       );
 
@@ -166,7 +166,6 @@ class CotizacionFirestoreDataSource {
   }
 
   Future<void> enviarCorreoDesdeFirebase(CotizacionDto cotizacion) async {
-    // Usamos la instancia local 'firestore' inyectada en la clase
     await firestore.collection('historial_correos').add({
       'to': cotizacion.clienteEmail,
       'message': {

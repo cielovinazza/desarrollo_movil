@@ -66,10 +66,17 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
     await datasource.actualizarEstado(id, estadoNuevo);
   }
 
-  @override
-  Future<String> gestionarYSubirPdf(String id, File archivo) async {
-    final urlDescarga = await datasource.subirPdfCotizacion(id, archivo);
+ @override
+  Future<String> gestionarYSubirPdf({
+    required String id,
+    required String codigo,
+    required File archivo,
+  }) async {
+    //evita que el archivo quede suelto en la raíz de storage y se sobrescriba.
+    final carpetaDestino = codigo.trim().isEmpty ? id : codigo;
+    final urlDescarga = await datasource.subirPdfCotizacion(carpetaDestino, archivo);
     await datasource.vincularPdfACotizacion(id, urlDescarga);
+    
     return urlDescarga;
   }
   
