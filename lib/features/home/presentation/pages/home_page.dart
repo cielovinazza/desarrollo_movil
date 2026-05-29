@@ -30,37 +30,52 @@ class HomePage extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 480),
             child: Column(
               children: [
+                const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.all(26),
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary,
-                    borderRadius: BorderRadius.circular(22),
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: AppTheme.primary,
+                      width: 3,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.home,
-                    color: AppTheme.lightGreen,
-                    size: 64,
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logoapp.png',
+                      height: 152,
+                      width: 152,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 24),
 
                 const Text(
-                  'Bienvenido al sistema',
+                  'App de Cotizaciones',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.textDark,
+                    color: AppTheme.primary,
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
                 const Text(
                   'Gestione sus proyectos y clientes con precisión y rapidez profesional.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: AppTheme.textGrey),
+                  style: TextStyle(fontSize: 15, color: AppTheme.textGrey),
                 ),
 
                 const SizedBox(height: 28),
@@ -69,13 +84,20 @@ class HomePage extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(22),
                   decoration: BoxDecoration(
-                    color: AppTheme.primary,
-                    borderRadius: BorderRadius.circular(18),
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.primary,
+                        AppTheme.primary.withValues(alpha: 0.85),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primary.withValues(alpha: 0.22),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
+                        color: AppTheme.primary.withValues(alpha: 0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
@@ -86,19 +108,19 @@ class HomePage extends StatelessWidget {
                         'Nueva Cotización',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 24,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       const Text(
                         'Inicie una propuesta técnica hoy.',
-                        style: TextStyle(color: Colors.white70, fontSize: 15),
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
-                        height: 52,
+                        height: 50,
                         child: ElevatedButton.icon(
                           onPressed: () {
                             Navigator.push(
@@ -111,12 +133,16 @@ class HomePage extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: AppTheme.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
                           ),
                           icon: const Icon(Icons.add_circle_outline),
                           label: const Text(
                             'Crear Ahora',
                             style: TextStyle(
-                              fontSize: 17,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -126,7 +152,7 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 22),
+                const SizedBox(height: 20),
 
                 Row(
                   children: [
@@ -162,19 +188,28 @@ class HomePage extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 22),
+                const SizedBox(height: 20),
 
                 Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.black12),
+                    border: Border.all(
+                      color: AppTheme.primary.withValues(alpha: 0.1),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: AppTheme.softBlue,
+                        backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                         child: const Icon(
                           Icons.analytics_outlined,
                           color: AppTheme.primary,
@@ -214,7 +249,7 @@ class HomePage extends StatelessWidget {
                                 return Text(
                                   '$total Cotizaciones',
                                   style: const TextStyle(
-                                    fontSize: 20,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.textDark,
                                   ),
@@ -224,29 +259,12 @@ class HomePage extends StatelessWidget {
                           ],
                         ),
                       ),
-                      Icon(Icons.chevron_right),
+                      const Icon(Icons.chevron_right, color: AppTheme.textGrey),
                     ],
                   ),
                 ),
-
-                const SizedBox(height: 22),
-
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  child: Container(
-                    height: 160,
-                    width: double.infinity,
-
-                    color: AppTheme.primary.withValues(alpha: 0.12),
-                    child: const Center(
-                      child: Icon(
-                        Icons.apartment,
-                        size: 72,
-                        color: AppTheme.primary,
-                      ),
-                    ),
-                  ),
-                ),
+                
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -276,24 +294,34 @@ class _ActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Container(
-          height: 125,
+          height: 120,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.black12),
+            border: Border.all(
+              color: AppTheme.primary.withValues(alpha: 0.1),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.01),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircleAvatar(
-                backgroundColor: AppTheme.softBlue,
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                 child: Icon(icon, color: AppTheme.primary),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textDark,
                 ),
