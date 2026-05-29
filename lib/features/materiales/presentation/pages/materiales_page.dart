@@ -8,6 +8,7 @@ import '../../domain/usecases/editar_material.dart';
 import '../../domain/usecases/eliminar_material.dart';
 import '../../domain/usecases/listar_material.dart';
 import '../../utils/csv_parser.dart';
+import '../../../../core/utils/currency_formatter.dart';
 
 class MaterialesPage extends StatefulWidget {
   const MaterialesPage({super.key});
@@ -67,7 +68,10 @@ class _MaterialesPageState extends State<MaterialesPage> {
     final cantidadTexto = cantidadController.text.trim();
     final costoTexto = costoController.text.trim();
 
-    if (nombre.isEmpty || unidad.isEmpty || cantidadTexto.isEmpty || costoTexto.isEmpty) {
+    if (nombre.isEmpty ||
+        unidad.isEmpty ||
+        cantidadTexto.isEmpty ||
+        costoTexto.isEmpty) {
       mostrarMensaje('Completa todos los campos');
       return;
     }
@@ -128,7 +132,9 @@ class _MaterialesPageState extends State<MaterialesPage> {
   }
 
   void mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mensaje)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(mensaje)));
   }
 
   void filtrarCosto(String value) {
@@ -218,7 +224,9 @@ class _MaterialesPageState extends State<MaterialesPage> {
 
             TextField(
               controller: cantidadController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Cantidad',
                 hintText: 'Ej: 10',
@@ -230,7 +238,9 @@ class _MaterialesPageState extends State<MaterialesPage> {
 
             TextField(
               controller: costoController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'Costo unitario (CLP)',
                 hintText: 'Ej: 5500',
@@ -246,7 +256,9 @@ class _MaterialesPageState extends State<MaterialesPage> {
               child: ElevatedButton(
                 onPressed: guardarMaterial,
                 child: Text(
-                  indexEditando == null ? 'Agregar material' : 'Actualizar material',
+                  indexEditando == null
+                      ? 'Agregar material'
+                      : 'Actualizar material',
                 ),
               ),
             ),
@@ -277,17 +289,23 @@ class _MaterialesPageState extends State<MaterialesPage> {
                             title: Text(material.nombre),
                             subtitle: Text(
                               'Unidad: ${material.unidadMedida}\n'
-                              '${material.cantidad.toStringAsFixed(0)} × \$${material.costoUnitario.toStringAsFixed(0)} = \$${material.subtotal.toStringAsFixed(0)}',
+                              '${material.cantidad.toStringAsFixed(0)} × ${CurrencyFormatter.format(material.costoUnitario)} = ${CurrencyFormatter.format(material.subtotal)}',
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.orange),
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Colors.orange,
+                                  ),
                                   onPressed: () => editarMaterial(index),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
                                   onPressed: () => eliminarMaterial(index),
                                 ),
                               ],

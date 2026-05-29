@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -10,6 +9,7 @@ import '../../domain/entities/mano_de_obra.dart';
 import 'package:project/features/materiales/domain/entities/material.dart';
 import '../../data/datasources/cotizacion_firebase_datasource.dart';
 import '../../data/repositories/cotizacion_repository_impl.dart';
+import '../../../../core/utils/currency_formatter.dart';
 
 class PrevisualizacionPdfWidget extends StatefulWidget {
   final CotizacionModel cotizacion;
@@ -73,7 +73,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   double get _totalFinal => _baseConUtilidad + _montoIva;
 
   String _clp(double valor) {
-    return '\$${valor.round().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (match) => '${match[1]}.')} CLP';
+    return '${CurrencyFormatter.format(valor)} CLP';
   }
 
   @override
@@ -97,7 +97,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     try {
       final pdf = pw.Document();
       final codigoCotizacion = widget.codigoCotizacion;
-      final cliente =widget.cotizacion.cliente;
+      final cliente = widget.cotizacion.cliente;
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.letter,
@@ -113,40 +113,82 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                   child: pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('COTIZACION PROFESIONAL', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 14)),
-                      pw.Text(codigoCotizacion, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 12)),
+                      pw.Text(
+                        'COTIZACION PROFESIONAL',
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      pw.Text(
+                        codigoCotizacion,
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 pw.SizedBox(height: 15),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: pw.CrossAxisAlignment.start, // Alinea ambos bloques desde arriba
+                  crossAxisAlignment: pw
+                      .CrossAxisAlignment
+                      .start, // Alinea ambos bloques desde arriba
                   children: [
                     // --- COLUMNA IZQUIERDA: DATOS DEL CLIENTE ---
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('Datos del Cliente:', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                        pw.Text(
+                          'Datos del Cliente:',
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
                         pw.SizedBox(height: 4),
-                        pw.Text('Cliente: ${cliente.nombre}', style: const pw.TextStyle(fontSize: 11)),
+                        pw.Text(
+                          'Cliente: ${cliente.nombre}',
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
                         pw.SizedBox(height: 2),
-                        pw.Text('Rut: ${cliente.rut}', style: const pw.TextStyle(fontSize: 11)),
+                        pw.Text(
+                          'Rut: ${cliente.rut}',
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
                         pw.SizedBox(height: 2),
-                        pw.Text('Correo: ${cliente.correo}', style: const pw.TextStyle(fontSize: 11)),
+                        pw.Text(
+                          'Correo: ${cliente.correo}',
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
                         pw.SizedBox(height: 2),
-                        pw.Text('Teléfono: ${cliente.telefono}', style: const pw.TextStyle(fontSize: 11)),
+                        pw.Text(
+                          'Teléfono: ${cliente.telefono}',
+                          style: const pw.TextStyle(fontSize: 11),
+                        ),
                       ],
                     ),
 
                     // --- COLUMNA DERECHA: DATOS DE LA OBRA ---
                     pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end, 
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text('Lugar de la Obra:', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                        pw.Text(
+                          'Lugar de la Obra:',
+                          style: pw.TextStyle(
+                            fontSize: 11,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
                         pw.SizedBox(height: 4),
                         pw.Text(
-                          widget.cotizacion.direccionObra.isEmpty ? "Sin dirección" : widget.cotizacion.direccionObra, 
+                          widget.cotizacion.direccionObra.isEmpty
+                              ? "Sin dirección"
+                              : widget.cotizacion.direccionObra,
                           style: const pw.TextStyle(fontSize: 11),
                         ),
                       ],
@@ -155,59 +197,154 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                 ),
                 pw.SizedBox(height: 20),
 
-                pw.Text('DETALLE DE TRABAJOS DE OBRA', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: const PdfColor.fromInt(0xFF2E7D32))),
+                pw.Text(
+                  'DETALLE DE TRABAJOS DE OBRA',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 12,
+                    color: const PdfColor.fromInt(0xFF2E7D32),
+                  ),
+                ),
                 pw.Divider(),
                 if (widget.cotizacion.listaTrabajos.isEmpty)
-                  pw.Text('Sin trabajos registrados', style: pw.TextStyle(fontSize: 10, fontStyle: pw.FontStyle.italic))
-                else
-                  ...widget.cotizacion.listaTrabajos.map((t) => pw.Padding(
-                    padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                    child: pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Expanded(flex: 5, child: pw.Text(t.tipo, style: const pw.TextStyle(fontSize: 10))),
-                        pw.Expanded(flex: 4, child: pw.Text('${t.metrosCuadrados.toStringAsFixed(1)} m² × ${_clp(t.precioPorMetro)}', style: const pw.TextStyle(fontSize: 10), textAlign: pw.TextAlign.center)),
-                        pw.Expanded(flex: 3, child: pw.Text(_clp(t.subtotal), style: const pw.TextStyle(fontSize: 10), textAlign: pw.TextAlign.end)),
-                      ],
+                  pw.Text(
+                    'Sin trabajos registrados',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontStyle: pw.FontStyle.italic,
                     ),
-                  )),
+                  )
+                else
+                  ...widget.cotizacion.listaTrabajos.map(
+                    (t) => pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 2),
+                      child: pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Expanded(
+                            flex: 5,
+                            child: pw.Text(
+                              t.tipo,
+                              style: const pw.TextStyle(fontSize: 10),
+                            ),
+                          ),
+                          pw.Expanded(
+                            flex: 4,
+                            child: pw.Text(
+                              '${t.metrosCuadrados.toStringAsFixed(1)} m² × ${_clp(t.precioPorMetro)}',
+                              style: const pw.TextStyle(fontSize: 10),
+                              textAlign: pw.TextAlign.center,
+                            ),
+                          ),
+                          pw.Expanded(
+                            flex: 3,
+                            child: pw.Text(
+                              _clp(t.subtotal),
+                              style: const pw.TextStyle(fontSize: 10),
+                              textAlign: pw.TextAlign.end,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 pw.SizedBox(height: 10),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [pw.Text('Subtotal Trabajos de Obra: ${_clp(_subtotalTrabajosObra)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))],
+                  children: [
+                    pw.Text(
+                      'Subtotal Trabajos de Obra: ${_clp(_subtotalTrabajosObra)}',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
                 pw.SizedBox(height: 20),
-                pw.Text('DETALLE DE MATERIALES', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: const PdfColor.fromInt(0xFF2E7D32))),
+                pw.Text(
+                  'DETALLE DE MATERIALES',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 12,
+                    color: const PdfColor.fromInt(0xFF2E7D32),
+                  ),
+                ),
                 pw.Divider(),
-                ...widget.materiales.map((m) => pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(m.nombre, style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('${m.cantidad} ${m.unidadMedida}', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text(_clp(m.subtotal), style: const pw.TextStyle(fontSize: 10)),
-                  ],
-                )),
+                ...widget.materiales.map(
+                  (m) => pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        m.nombre,
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.Text(
+                        '${m.cantidad} ${m.unidadMedida}',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.Text(
+                        _clp(m.subtotal),
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
                 pw.SizedBox(height: 10),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [pw.Text('Subtotal Materiales: ${_clp(_subtotalMateriales)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))],
+                  children: [
+                    pw.Text(
+                      'Subtotal Materiales: ${_clp(_subtotalMateriales)}',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
                 pw.SizedBox(height: 20),
-                pw.Text('DETALLE DE MANO DE OBRA', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: const PdfColor.fromInt(0xFF2E7D32))),
+                pw.Text(
+                  'DETALLE DE MANO DE OBRA',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 12,
+                    color: const PdfColor.fromInt(0xFF2E7D32),
+                  ),
+                ),
                 pw.Divider(),
-                ...widget.manoObra.map((mo) => pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(mo.cargo, style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('${mo.dias} dias', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text(_clp(mo.subtotal), style: const pw.TextStyle(fontSize: 10)),
-                  ],
-                )),
+                ...widget.manoObra.map(
+                  (mo) => pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        mo.cargo,
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.Text(
+                        '${mo.dias} dias',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                      pw.Text(
+                        _clp(mo.subtotal),
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
                 pw.SizedBox(height: 10),
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [pw.Text('Subtotal Mano de Obra: ${_clp(_subtotalManoObra)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10))],
+                  children: [
+                    pw.Text(
+                      'Subtotal Mano de Obra: ${_clp(_subtotalManoObra)}',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
                 pw.SizedBox(height: 25),
                 pw.Container(
@@ -217,15 +354,47 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                   ),
                   child: pw.Column(
                     children: [
-                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Costos Directos:'), pw.Text(_clp(_subtotalCostosDirectos))]),
-                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Utilidad (${widget.cotizacion.porcentajeUtilidad}%):'), pw.Text(_clp(_montoUtilidad))]),
-                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('IVA (${widget.cotizacion.porcentajeIva}%):'), pw.Text(_clp(_montoIva))]),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('Costos Directos:'),
+                          pw.Text(_clp(_subtotalCostosDirectos)),
+                        ],
+                      ),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text(
+                            'Utilidad (${widget.cotizacion.porcentajeUtilidad}%):',
+                          ),
+                          pw.Text(_clp(_montoUtilidad)),
+                        ],
+                      ),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('IVA (${widget.cotizacion.porcentajeIva}%):'),
+                          pw.Text(_clp(_montoIva)),
+                        ],
+                      ),
                       pw.Divider(),
                       pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('TOTAL FINAL:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
-                          pw.Text(_clp(_totalFinal), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 13)),
+                          pw.Text(
+                            'TOTAL FINAL:',
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          pw.Text(
+                            _clp(_totalFinal),
+                            style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -250,7 +419,10 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       await widget.onListo();
     } catch (e) {
       setState(() => _subiendo = false);
-      _mostrarError('Error de Almacenamiento', e.toString().replaceAll('Exception: ', ''));
+      _mostrarError(
+        'Error de Almacenamiento',
+        e.toString().replaceAll('Exception: ', ''),
+      );
     }
   }
 
@@ -258,13 +430,16 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          titulo,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Text(mensaje),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Cerrar'),
-          )
+          ),
         ],
       ),
     );
@@ -309,7 +484,11 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           SizedBox(height: 16),
           Text(
             'Subiendo PDF a Firebase Storage (Límite 5s)...',
-            style: TextStyle(color: _texto, fontSize: 14, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: _texto,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -356,12 +535,16 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                 backgroundColor: _verde,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               icon: const Icon(Icons.cloud_upload_outlined),
-              label: const Text('CONFIRMAR Y SUBIR COTIZACIÓN', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text(
+                'CONFIRMAR Y SUBIR COTIZACIÓN',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               onPressed: () {
-                
                 _procesarYSubirCotizacion(widget.idCotizacion);
               },
             ),

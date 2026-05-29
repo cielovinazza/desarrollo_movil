@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/mano_de_obra.dart';
+import '../../../../core/utils/currency_formatter.dart';
 
 class ManoObraDialog extends StatefulWidget {
   final Color verdeApp;
 
-  const ManoObraDialog({
-    super.key,
-    required this.verdeApp,
-  });
+  const ManoObraDialog({super.key, required this.verdeApp});
 
   @override
   State<ManoObraDialog> createState() => _ManoObraDialogState();
@@ -108,15 +106,10 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
-          Icon(
-            Icons.engineering,
-            color: widget.verdeApp,
-          ),
+          Icon(Icons.engineering, color: widget.verdeApp),
           const SizedBox(width: 10),
           const Expanded(
             child: Text(
@@ -139,10 +132,7 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
                   border: OutlineInputBorder(),
                 ),
                 items: cargosDisponibles.map((cargo) {
-                  return DropdownMenuItem(
-                    value: cargo,
-                    child: Text(cargo),
-                  );
+                  return DropdownMenuItem(value: cargo, child: Text(cargo));
                 }).toList(),
                 onChanged: (value) {
                   if (value == null) return;
@@ -228,13 +218,11 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
                   children: [
                     const Text(
                       'Subtotal Mano de Obra',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '\$${subtotal.toStringAsFixed(0)} CLP',
+                      '${CurrencyFormatter.format(subtotal)} CLP',
                       style: TextStyle(
                         color: widget.verdeApp,
                         fontWeight: FontWeight.bold,
