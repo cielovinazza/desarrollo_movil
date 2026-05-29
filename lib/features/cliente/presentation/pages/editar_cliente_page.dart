@@ -6,6 +6,7 @@ import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../widgets/cliente_text_field.dart';
 import '../formatters/mascara_rut_formatters.dart';
+import '../../../../shared/widgets/strings_extensions.dart';
 
 class EditarClientePage extends StatefulWidget {
   final Cliente cliente;
@@ -109,7 +110,7 @@ class _EditarClientePageState
 
     final clienteActualizado = Cliente(
       id: widget.cliente.id,
-      nombre: nombreController.text,
+      nombre: nombreController.text.toTitleCase(),
       rut: rutController.text,
       correo: correoController.text,
       telefono: telefonoController.text,
@@ -166,7 +167,7 @@ class _EditarClientePageState
                 label: 'Nombre',
                 hint: 'Ingrese nombre del cliente',
                 icon: Icons.person,
-
+                textCapitalization: TextCapitalization.words,
                 inputFormatters:[
 
                   FilteringTextInputFormatter.allow(
@@ -276,6 +277,7 @@ class _EditarClientePageState
               ClienteTextField(
                 controller: direccionController,
                 label: 'Dirección',
+                textCapitalization: TextCapitalization.words,
                 hint: 'Ingrese la nueva dirección del cliente',
                 icon: Icons.home,
               ),
