@@ -448,7 +448,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: cotizaciones.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 14),
+                      separatorBuilder: (_, _) => const SizedBox(height: 14),
                       itemBuilder: (context, index) {
                         final cotizacion = cotizaciones[index];
 
@@ -649,7 +649,7 @@ class _CotizacionCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: estadoNormalizado,
+                  initialValue: estadoNormalizado,
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 10,
