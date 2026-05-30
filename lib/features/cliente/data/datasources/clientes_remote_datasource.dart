@@ -26,4 +26,7 @@ class ClientesRemoteDataSource {
         .doc(id)
         .set(cliente.toMap(), SetOptions(merge: true));
   }
+  Future<void> eliminarCliente(String id) async {
+    await firestore.collection(_collection).doc(id).delete();
+  }
 }

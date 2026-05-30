@@ -151,7 +151,7 @@ class _EditarClientePageState
         title: const Text('Editar cliente'),
       ),
 
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
 
         child: Form(

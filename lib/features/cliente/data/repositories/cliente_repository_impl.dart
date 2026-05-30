@@ -68,4 +68,12 @@ class ClienteRepositoryImpl implements ClienteRepository {
     final dtos = await remoteDataSource.getClientes();
     return dtos.map((dto) => ClienteMapper.toEntity(dto)).toList();
   }
+  
+  @override
+  Future<void> eliminarCliente(String id) async {
+    if (id.isEmpty) {
+      throw Exception('No se puede eliminar un cliente sin ID');
+    }
+    await remoteDataSource.eliminarCliente(id);
+  }
 }
