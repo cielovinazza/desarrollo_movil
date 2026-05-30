@@ -1,6 +1,10 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import '../dtos/cotizacion_dtos.dart';
 import '../../../../shared/widgets/strings_extensions.dart';
 
@@ -165,7 +169,58 @@ class CotizacionFirestoreDataSource {
     });
   }
 
-  Future<void> enviarCorreoDesdeFirebase(CotizacionDto cotizacion) async {
+Future<void> enviarCorreoDirecto({
+  required String clienteEmail,
+  required String clienteNombre,
+  required String direccion,
+  required String asunto,
+  required String pdfUrl,
+  required String codigo,
+}) async {
+  final smtpServer = gmail('derick9103@gmail.com', 'rvcdvcocyqbrkqss');
+  File? archivoTemporal;
+
+  try {
+    final response = await http.get(Uri.parse(pdfUrl));
+    if (response.statusCode != 200) {
+      throw Exception('No se pudo descargar el PDF de la cotización desde el servidor.');
+    }
+
+    final directorioTemp = await getTemporaryDirectory();
+    archivoTemporal = File('${directorioTemp.path}/Cotizacion_$codigo.pdf');
+    await archivoTemporal.writeAsBytes(response.bodyBytes);
+    final cuerpoHtml = '''
+      <h3>Estimado/a $clienteNombre,</h3>
+      <p>Junto con saludar, adjuntamos un documento con la propuesta correspondiente a la cotizacion para el proyecto ubicado en <strong>$direccion</strong>.</p>
+      <p>Saludos cordiales,</p>
+    ''';
+    final message = Message()
+      ..from = Address('derick9103@gmail.com', 'Cotizaciones')
+      ..recipients.add(clienteEmail)
+      ..subject = asunto
+      ..html = cuerpoHtml
+      ..attachments.add(FileAttachment(archivoTemporal));
+    final sendReport = await send(message, smtpServer);
+    print('¡Correo enviado con éxito por vía directa!: $sendReport');
+
+  } on MailerException catch (e) {
+    print('Error mandando el correo: $e');
+    for (var p in e.problems) {
+      print('Problema: ${p.code}: ${p.msg}');
+    }
+    throw Exception('Error al enviar el correo a través del servidor SMTP.');
+  } catch (e) {
+    print('Error general en el envío: $e');
+    throw Exception('Error al procesar el archivo adjunto: $e');
+  } finally {
+    if (archivoTemporal != null && await archivoTemporal.exists()) {
+      await archivoTemporal.delete();
+    }
+  }
+}
+  
+
+  /*Future<void> enviarCorreoDesdeFirebase(CotizacionDto cotizacion) async {
     await firestore.collection('historial_correos').add({
       'to': cotizacion.clienteEmail,
       'message': {
@@ -183,5 +238,5 @@ class CotizacionFirestoreDataSource {
         ],
       },
     });
-  }
+  }*/ //no se ocupa por ahora porque la extension para enviar correos de firebase se bugueo
 }

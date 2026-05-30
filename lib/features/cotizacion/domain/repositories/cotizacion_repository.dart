@@ -20,4 +20,7 @@ abstract class CotizacionRepository {
     required File archivo,
   });
 
+  Future<void> enviarCotizacionPorCorreo(CotizacionDto cotizacion);
+
+
 }

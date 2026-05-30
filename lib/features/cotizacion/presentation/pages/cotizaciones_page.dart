@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:project/shared/design_system/app_theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'crear_cotizacion_page.dart';
 import '../../domain/usecases/obtener_cotizacion.dart';
 import '../../data/dtos/cotizacion_dtos.dart';
@@ -26,6 +27,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
 
   List<CotizacionDto> cotizaciones = [];
   bool cargando = true;
+  bool enviandoCorreo = false; // 👈 Estado para bloquear la pantalla al enviar correo
 
   String filterCliente = '';
   String filterId = '';
@@ -42,9 +44,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     );
 
     repository = CotizacionRepositoryImpl(datasource);
-
     actualizarEstadoUseCase = ActualizarEstadoCotizacion(repository);
-
     obtenerCotizacionesUseCase = ObtenerCotizacion(repository);
 
     cargarCotizacion();
@@ -109,6 +109,31 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     }
   }
 
+  // 👈 NUEVA FUNCIÓN: Ejecuta el proceso de envío usando el repositorio
+  Future<void> procesarEnvioCorreo(CotizacionDto cotizacion) async {
+    setState(() => enviandoCorreo = true);
+    try {
+      await repository.enviarCotizacionPorCorreo(cotizacion);
+      
+      await cargarCotizacion(); // Recarga la lista para ver el estado "Enviada"
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Correo enviado con éxito! Estado: Enviada'),
+          backgroundColor: Colors.purple,
+        ),
+      );
+    } catch (e) {
+      _mostrarDialogoError(
+        'Error al despachar correo',
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => enviandoCorreo = false);
+    }
+  }
+
   void _mostrarDialogoError(String titulo, String mensaje) {
     showDialog(
       context: context,
@@ -117,9 +142,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
           titulo,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        content: SelectableText(
-          mensaje,
-        ), // 👈 Cambia 'Text' por 'SelectableText'
+        content: SelectableText(mensaje),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -153,330 +176,348 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F5),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva'),
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CrearCotizacionPage()),
-          );
-          await cargarCotizacion();
-        },
-      ),
-      appBar: AppBar(
-        backgroundColor: AppTheme.primary,
-        elevation: 0,
-        title: const Text(
-          'Cotizaciones',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        leading: IconButton(icon: const Icon(Icons.menu), onPressed: () {}),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: cargarCotizacion,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('cotizaciones')
-                .snapshots(includeMetadataChanges: true),
-            builder: (context, snapshot) {
-              final hasPending =
-                  snapshot.hasData && snapshot.data!.metadata.hasPendingWrites;
-              if (!hasPending) return const SizedBox.shrink();
-              return Container(
-                width: double.infinity,
-                color: Colors.orange[100],
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
-                child: const Text(
-                  'Sincronizando cambios locales con el servidor...',
-                  style: TextStyle(
-                    color: Colors.orange,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: const Color(0xFFF4F7F5),
+          floatingActionButton: FloatingActionButton.extended(
+            backgroundColor: AppTheme.primary,
+            foregroundColor: Colors.white,
+            icon: const Icon(Icons.add),
+            label: const Text('Nueva'),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CrearCotizacionPage()),
               );
+              await cargarCotizacion();
             },
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Revise, filtre y actualice el flujo de estados de sus cotizaciones en tiempo real.',
-                    style: TextStyle(color: AppTheme.textGrey, fontSize: 15),
-                  ),
-                  const SizedBox(height: 22),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ResumenCard(
-                          title: 'Total',
-                          value: cotizaciones.length.toString(),
-                          icon: Icons.description_outlined,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ResumenCard(
-                          title: 'En Proceso',
-                          value:
-                              (contarPorEstado('En Proceso') +
-                                      contarPorEstado('Pendiente'))
-                                  .toString(),
-                          icon: Icons.pending_actions,
-                          color: AppTheme.warning,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ResumenCard(
-                          title: 'Aprobadas',
-                          value:
-                              (contarPorEstado('Aprobada por el Cliente') +
-                                      contarPorEstado('Aceptada'))
-                                  .toString(),
-                          icon: Icons.check_circle_outline,
-                          color: AppTheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ResumenCard(
-                          title: 'Rechazadas',
-                          value:
-                              (contarPorEstado('Rechazada por el Cliente') +
-                                      contarPorEstado('Rechazada'))
-                                  .toString(),
-                          icon: Icons.cancel_outlined,
-                          color: AppTheme.danger,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+          appBar: AppBar(
+            backgroundColor: AppTheme.primary,
+            elevation: 0,
+            title: const Text(
+              'Cotizaciones',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+            leading: IconButton(icon: const Icon(Icons.menu), onPressed: () {}),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: cargarCotizacion,
+              ),
+            ],
+          ),
+          body: Column(
+            children: [
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('cotizaciones')
+                    .snapshots(includeMetadataChanges: true),
+                builder: (context, snapshot) {
+                  final hasPending =
+                      snapshot.hasData && snapshot.data!.metadata.hasPendingWrites;
+                  if (!hasPending) return const SizedBox.shrink();
+                  return Container(
+                    width: double.infinity,
+                    color: Colors.orange[100],
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: ExpansionTile(
-                        title: const Text(
-                          'Filtros Avanzados',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        initiallyExpanded: false,
+                    child: const Text(
+                      'Sincronizando cambios locales con el servidor...',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Revise, filtre y actualice el flujo de estados de sus cotizaciones en tiempo real.',
+                        style: TextStyle(color: AppTheme.textGrey, fontSize: 15),
+                      ),
+                      const SizedBox(height: 22),
+                      Row(
                         children: [
-                          TextField(
-                            controller: idSearchController,
-                            textCapitalization: TextCapitalization.characters,
-                            enableSuggestions: false,
-                            autocorrect: false,
-                            onChanged: (value) {
-                              filterId = value.trim().toUpperCase();
-                              cargarCotizacion();
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Buscar por codigo de documento único',
-                              prefixIcon: Icon(Icons.key),
-                              hintText: 'Ej: CT-001, CT-002, etc.',
+                          Expanded(
+                            child: _ResumenCard(
+                              title: 'Total',
+                              value: cotizaciones.length.toString(),
+                              icon: Icons.description_outlined,
+                              color: AppTheme.primary,
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            controller: searchController,
-                            onChanged: (value) {
-                              filterCliente = value;
-                              cargarCotizacion();
-                            },
-                            decoration: const InputDecoration(
-                              labelText: 'Buscar por nombre del cliente',
-                              prefixIcon: Icon(Icons.person),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _ResumenCard(
+                              title: 'En Proceso',
+                              value:
+                                  (contarPorEstado('En Proceso') +
+                                          contarPorEstado('Pendiente'))
+                                      .toString(),
+                              icon: Icons.pending_actions,
+                              color: AppTheme.warning,
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          DropdownButtonFormField<String>(
-                            initialValue: estadoFiltro,
-                            decoration: const InputDecoration(
-                              labelText: 'Filtrar por Estado',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: const [
-                              DropdownMenuItem(
-                                value: null,
-                                child: Text('Todos los estados'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'En Proceso',
-                                child: Text('En Proceso'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Lista para Envío',
-                                child: Text('Lista para Envío'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Enviada',
-                                child: Text('Enviada'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Aprobada por el Cliente',
-                                child: Text('Aprobada por el Cliente'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Rechazada por el Cliente',
-                                child: Text('Rechazada por el Cliente'),
-                              ),
-                            ],
-                            onChanged: (val) {
-                              setState(() => estadoFiltro = val);
-                              cargarCotizacion();
-                            },
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  icon: const Icon(Icons.date_range),
-                                  label: Text(
-                                    fechaInicioFiltro == null
-                                        ? 'Desde'
-                                        : '${fechaInicioFiltro!.day}/${fechaInicioFiltro!.month}/${fechaInicioFiltro!.year}',
-                                  ),
-                                  onPressed: () async {
-                                    final fecha = await showDatePicker(
-                                      context: context,
-                                      initialDate: DateTime.now(),
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime(2100),
-                                    );
-
-                                    if (fecha != null) {
-                                      setState(() {
-                                        fechaInicioFiltro = fecha;
-                                      });
-
-                                      cargarCotizacion();
-                                    }
-                                  },
-                                ),
-                              ),
-
-                              const SizedBox(width: 12),
-
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  icon: const Icon(Icons.date_range),
-                                  label: Text(
-                                    fechaFinFiltro == null
-                                        ? 'Hasta'
-                                        : '${fechaFinFiltro!.day}/${fechaFinFiltro!.month}/${fechaFinFiltro!.year}',
-                                  ),
-                                  onPressed: () async {
-                                    final fecha = await showDatePicker(
-                                      context: context,
-                                      initialDate: DateTime.now(),
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime(2100),
-                                    );
-
-                                    if (fecha != null) {
-                                      setState(() {
-                                        fechaFinFiltro = fecha;
-                                      });
-
-                                      cargarCotizacion();
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          ///aqui termina el row
                         ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-                  if (cargando)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(40.0),
-                        child: CircularProgressIndicator(),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ResumenCard(
+                              title: 'Aprobadas',
+                              value:
+                                  (contarPorEstado('Aprobada por el Cliente') +
+                                          contarPorEstado('Aceptada'))
+                                      .toString(),
+                              icon: Icons.check_circle_outline,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _ResumenCard(
+                              title: 'Rechazadas',
+                              value:
+                                  (contarPorEstado('Rechazada por el Cliente') +
+                                          contarPorEstado('Rechazada'))
+                                      .toString(),
+                              icon: Icons.cancel_outlined,
+                              color: AppTheme.danger,
+                            ),
+                          ),
+                        ],
                       ),
-                    )
-                  else if (cotizaciones.isEmpty)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(30),
-                        child: Text(
-                          'No se encontraron cotizaciones en la base de datos.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                      const SizedBox(height: 22),
+                      Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: ExpansionTile(
+                            title: const Text(
+                              'Filtros Avanzados',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            initiallyExpanded: false,
+                            children: [
+                              TextField(
+                                controller: idSearchController,
+                                textCapitalization: TextCapitalization.characters,
+                                enableSuggestions: false,
+                                autocorrect: false,
+                                onChanged: (value) {
+                                  filterId = value.trim().toUpperCase();
+                                  cargarCotizacion();
+                                },
+                                decoration: const InputDecoration(
+                                  labelText: 'Buscar por codigo de documento único',
+                                  prefixIcon: Icon(Icons.key),
+                                  hintText: 'Ej: CT-001, CT-002, etc.',
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: searchController,
+                                onChanged: (value) {
+                                  filterCliente = value;
+                                  cargarCotizacion();
+                                },
+                                decoration: const InputDecoration(
+                                  labelText: 'Buscar por nombre del cliente',
+                                  prefixIcon: Icon(Icons.person),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              DropdownButtonFormField<String>(
+                                initialValue: estadoFiltro,
+                                decoration: const InputDecoration(
+                                  labelText: 'Filtrar por Estado',
+                                  border: OutlineInputBorder(),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: null,
+                                    child: Text('Todos los estados'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'En Proceso',
+                                    child: Text('En Proceso'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'Lista para Envío',
+                                    child: Text('Lista para Envío'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'Enviada',
+                                    child: Text('Enviada'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'Aprobada por el Cliente',
+                                    child: Text('Aprobada por el Cliente'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'Rechazada por el Cliente',
+                                    child: Text('Rechazada por el Cliente'),
+                                  ),
+                                ],
+                                onChanged: (val) {
+                                  setState(() => estadoFiltro = val);
+                                  cargarCotizacion();
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      icon: const Icon(Icons.date_range),
+                                      label: Text(
+                                        fechaInicioFiltro == null
+                                            ? 'Desde'
+                                            : '${fechaInicioFiltro!.day}/${fechaInicioFiltro!.month}/${fechaInicioFiltro!.year}',
+                                      ),
+                                      onPressed: () async {
+                                        final fecha = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2100),
+                                        );
+
+                                        if (fecha != null) {
+                                          setState(() {
+                                            fechaInicioFiltro = fecha;
+                                          });
+                                          cargarCotizacion();
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      icon: const Icon(Icons.date_range),
+                                      label: Text(
+                                        fechaFinFiltro == null
+                                            ? 'Hasta'
+                                            : '${fechaFinFiltro!.day}/${fechaFinFiltro!.month}/${fechaFinFiltro!.year}',
+                                      ),
+                                      onPressed: () async {
+                                        final fecha = await showDatePicker(
+                                          context: context,
+                                          initialDate: DateTime.now(),
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2100),
+                                        );
+
+                                        if (fecha != null) {
+                                          setState(() {
+                                            fechaFinFiltro = fecha;
+                                          });
+                                          cargarCotizacion();
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    )
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: cotizaciones.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 14),
-                      itemBuilder: (context, index) {
-                        final cotizacion = cotizaciones[index];
+                      const SizedBox(height: 22),
+                      if (cargando)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(40.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (cotizaciones.isEmpty)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(30),
+                            child: Text(
+                              'No se encontraron cotizaciones en la base de datos.',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: cotizaciones.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 14),
+                          itemBuilder: (context, index) {
+                            final cotizacion = cotizaciones[index];
 
-                        return _CotizacionCard(
-                          codigo: cotizacion.codigo,
-                          cliente: cotizacion.clienteNombre,
-                          direccion: cotizacion.direccion,
-                          fecha: cotizacion.fechaCreacion != null
-                              ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
-                                    '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
-                                    '${cotizacion.fechaCreacion!.toDate().year}'
-                              : 'Sin Fecha',
-                          monto:
-                              '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
-                          estado: cotizacion.estado,
-                          estadoColor: estadoColor(cotizacion.estado),
-                          onEstadoCambiado: (nuevoEstado) =>
-                              cambiarEstado(cotizacion, nuevoEstado),
-                        );
-                      },
-                    ),
-                  const SizedBox(height: 25),
-                ],
+                            return _CotizacionCard(
+                              cotizacionRaw: cotizacion,
+                              codigo: cotizacion.codigo,
+                              cliente: cotizacion.clienteNombre,
+                              direccion: cotizacion.direccion,
+                              fecha: cotizacion.fechaCreacion != null
+                                  ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
+                                      '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
+                                      '${cotizacion.fechaCreacion!.toDate().year}'
+                                  : 'Sin Fecha',
+                              monto: '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
+                              estado: cotizacion.estado,
+                              estadoColor: estadoColor(cotizacion.estado),
+                              onEstadoCambiado: (nuevoEstado) =>
+                                  cambiarEstado(cotizacion, nuevoEstado),
+                              onEnviarCorreoSolicitado: () => 
+                                  procesarEnvioCorreo(cotizacion),
+                            );
+                          },
+                        ),
+                      const SizedBox(height: 25),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (enviandoCorreo)
+          Container(
+            color: Colors.black26,
+            child: const Center(
+              child: Card(
+                margin: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text(
+                      'Enviando cotización por correo...',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    )
+                  ],
+                ),
               ),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -537,6 +578,7 @@ class _ResumenCard extends StatelessWidget {
 }
 
 class _CotizacionCard extends StatelessWidget {
+  final CotizacionDto cotizacionRaw;
   final String codigo;
   final String cliente;
   final String direccion;
@@ -545,8 +587,10 @@ class _CotizacionCard extends StatelessWidget {
   final String estado;
   final Color estadoColor;
   final ValueChanged<String> onEstadoCambiado;
+  final VoidCallback onEnviarCorreoSolicitado; 
 
   const _CotizacionCard({
+    required this.cotizacionRaw,
     required this.codigo,
     required this.cliente,
     required this.direccion,
@@ -555,7 +599,26 @@ class _CotizacionCard extends StatelessWidget {
     required this.estado,
     required this.estadoColor,
     required this.onEstadoCambiado,
+    required this.onEnviarCorreoSolicitado,
   });
+
+  Future<void> _abrirPdfUrl(BuildContext context) async {
+    if (cotizacionRaw.pdfUrl == null || cotizacionRaw.pdfUrl!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Esta cotización no posee un PDF vinculado.')),
+      );
+      return;
+    }
+    final url = Uri.parse(cotizacionRaw.pdfUrl!);
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir el archivo pdf.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -649,7 +712,7 @@ class _CotizacionCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  value: estadoNormalizado,
+                  initialValue: estadoNormalizado,
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -666,10 +729,7 @@ class _CotizacionCard extends StatelessWidget {
                     ),
                     DropdownMenuItem(
                       value: 'Lista para Envío',
-                      child: Text(
-                        'Lista para Envío',
-                        style: TextStyle(fontSize: 12),
-                      ),
+                      child: Text('Lista para Envío', style: TextStyle(fontSize: 12)),
                     ),
                     DropdownMenuItem(
                       value: 'Enviada',
@@ -677,17 +737,11 @@ class _CotizacionCard extends StatelessWidget {
                     ),
                     DropdownMenuItem(
                       value: 'Aprobada por el Cliente',
-                      child: Text(
-                        'Aprobada por el Cliente',
-                        style: TextStyle(fontSize: 12),
-                      ),
+                      child: Text('Aprobada por el Cliente', style: TextStyle(fontSize: 12)),
                     ),
                     DropdownMenuItem(
                       value: 'Rechazada por el Cliente',
-                      child: Text(
-                        'Rechazada por el Cliente',
-                        style: TextStyle(fontSize: 12),
-                      ),
+                      child: Text('Rechazada por el Cliente', style: TextStyle(fontSize: 12)),
                     ),
                   ],
                   onChanged: (val) {
@@ -699,6 +753,47 @@ class _CotizacionCard extends StatelessWidget {
               ),
             ],
           ),
+          if (estado == 'Lista para Envío') ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+            ),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.cardLight,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _abrirPdfUrl(context),
+                      icon: const Icon(Icons.picture_as_pdf, size: 16),
+                      label: const Text('Ver PDF', style: TextStyle(fontSize: 12)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red.shade700,
+                        side: BorderSide(color: Colors.red.shade300),
+                        
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: onEnviarCorreoSolicitado,
+                      icon: const Icon(Icons.mail, size: 16),
+                      label: const Text('Enviar por correo', style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue.shade700,
+                        foregroundColor: Colors.white,
+                        
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
