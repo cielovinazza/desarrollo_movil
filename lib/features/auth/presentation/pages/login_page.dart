@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:project/features/auth/domain/usecases/login_usecase.dart';
 import 'package:project/shared/design_system/app_theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {
   final LoginUseCase useCase;
@@ -40,15 +40,48 @@ class _LoginPageState extends State<LoginPage> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
           _cargando = false;
         });
       }
+    }
+  }
+
+  Future<void> _recuperarPassword() async {
+    final email = _emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Ingresa tu correo electrónico para recuperar la contraseña',
+          ),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Se envió un correo para restablecer tu contraseña'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al enviar correo: $e')));
     }
   }
 
@@ -77,10 +110,7 @@ class _LoginPageState extends State<LoginPage> {
                           offset: const Offset(0, 4),
                         ),
                       ],
-                      border: Border.all(
-                        color: AppTheme.primary,
-                        width: 3,
-                      ),
+                      border: Border.all(color: AppTheme.primary, width: 3),
                     ),
                     child: ClipOval(
                       child: Image.asset(
@@ -109,10 +139,7 @@ class _LoginPageState extends State<LoginPage> {
                   const Text(
                     'Inicie sesión para gestionar sus cotizaciones',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.textGrey,
-                    ),
+                    style: TextStyle(fontSize: 14, color: AppTheme.textGrey),
                   ),
 
                   const SizedBox(height: 32),
@@ -122,7 +149,10 @@ class _LoginPageState extends State<LoginPage> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       labelText: 'Correo electrónico',
-                      prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.primary),
+                      prefixIcon: const Icon(
+                        Icons.email_outlined,
+                        color: AppTheme.primary,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -142,10 +172,15 @@ class _LoginPageState extends State<LoginPage> {
                     obscureText: !_passwordVisible,
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.primary),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppTheme.primary,
+                      ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _passwordVisible ? Icons.visibility_off : Icons.visibility,
+                          _passwordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                           color: AppTheme.textGrey,
                         ),
                         onPressed: () {
@@ -166,7 +201,22 @@ class _LoginPageState extends State<LoginPage> {
                     },
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 8),
+
+                  Center(
+                    child: TextButton(
+                      onPressed: _recuperarPassword,
+                      child: const Text(
+                        '¿Olvidaste tu contraseña?',
+                        style: TextStyle(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
 
                   SizedBox(
                     width: double.infinity,

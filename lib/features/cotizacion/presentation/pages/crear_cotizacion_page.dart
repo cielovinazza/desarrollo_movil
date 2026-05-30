@@ -162,7 +162,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
     return idReal;
   }
-  
 
   void _mostrarMensaje(String mensaje) {
     ScaffoldMessenger.of(
