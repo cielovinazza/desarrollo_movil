@@ -35,6 +35,65 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
     _buscadorController.addListener(_filtrarClientes);
   }
 
+
+  Future<void> _confirmarEliminar(Cliente cliente) async {
+    if (cliente.id == null || cliente.id!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se puede eliminar un cliente sin ID')),
+      );
+      return;
+    }
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar cliente'),
+        content: Text(
+          '¿Seguro que deseas eliminar a ${cliente.nombre}?\n\nEsta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    try {
+      await repository.eliminarCliente(cliente.id!);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cliente eliminado correctamente')),
+      );
+
+      cargarClientes();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _buscadorController.dispose();
@@ -145,11 +204,27 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                                 MaterialPageRoute(builder: (_)=>DetalleClientePage(cliente: cliente))
                               );
                             },
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => _abrirEditarCliente(cliente),
+                              ),
+
+                              IconButton(
+                                tooltip: 'Eliminar cliente',
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _confirmarEliminar(cliente),
+                              ),
+
+                            ],)
                             
-                            trailing: IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _abrirEditarCliente(cliente),
-                            ),
+                            
                           ),
                         );
                       },
