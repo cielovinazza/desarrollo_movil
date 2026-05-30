@@ -14,5 +14,10 @@ abstract class CotizacionRepository {
 
   Future<void> actualizarEstado(String id, String estadoActual, String estadoNuevo);
 
-  Future<String> gestionarYSubirPdf(String id, File archivo);
+  Future<String> gestionarYSubirPdf({
+    required String id,
+    required String codigo,
+    required File archivo,
+  });
+
 }

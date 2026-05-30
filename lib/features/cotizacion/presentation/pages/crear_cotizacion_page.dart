@@ -23,6 +23,7 @@ class CrearCotizacionPage extends StatefulWidget {
 
 class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _formKey = GlobalKey<FormState>();
+  String? _codigoCotizacionCreada;
   int _currentStep = 0;
   Cliente? _clienteSeleccionado;
   late final GuardarCotizacion guardarCotizacionUseCase;
@@ -146,6 +147,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     );
 
     await guardarCotizacionUseCase(dtoConId);
+    final docSnapshot = await FirebaseFirestore.instance
+        .collection('cotizaciones')
+        .doc(idReal)
+        .get();
+
+    if (docSnapshot.exists) {
+      final datosGuardados = docSnapshot.data();
+      final codigoAsignado = datosGuardados?['codigo'] as String?;
+      setState(() {
+        _codigoCotizacionCreada = codigoAsignado;
+      });
+    }
+
     return idReal;
   }
 
@@ -860,12 +874,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         materiales: _materialesAgregados,
                         idCotizacion: _idCotizacionCreada!,
                         manoObra: _manoObraAgregada,
-                        codigoCotizacion: CotizacionMapper.toDto(
-                          cotizacion: datosEnVivo,
-                          materiales: _materialesAgregados,
-                          usuarioId: _auth.currentUser?.uid ?? '',
-                          estado: 'En Proceso',
-                        ).codigo,
+                        codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
+
                         onListo: () async {
                           if (!mounted) return;
 

@@ -413,7 +413,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       final archivoFisico = File(rutaArchivo);
       await archivoFisico.writeAsBytes(await pdf.save());
 
-      await _repository.gestionarYSubirPdf(docIdInyectado, archivoFisico);
+      await _repository.gestionarYSubirPdf( id: widget.idCotizacion, codigo:widget.codigoCotizacion, archivo:archivoFisico);
 
       setState(() => _subiendo = false);
       await widget.onListo();
