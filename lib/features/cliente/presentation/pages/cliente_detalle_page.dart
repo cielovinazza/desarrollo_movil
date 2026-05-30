@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:project/features/cotizacion/presentation/pages/ver_pdf_page.dart';
 import '../../../cliente/domain/entities/cliente.dart';
 import '../../../cotizacion/data/dtos/cotizacion_dtos.dart';
 import '../../../cotizacion/data/datasources/cotizacion_firebase_datasource.dart';
+import '../../../../core/utils/currency_formatter.dart';
 
 class DetalleClientePage extends StatefulWidget {
   final Cliente cliente;
 
-  const DetalleClientePage({Key? key, required this.cliente}) : super(key: key);
+  const DetalleClientePage({super.key, required this.cliente});
 
   @override
   State<DetalleClientePage> createState() => _DetalleClientePageState();
@@ -16,7 +18,6 @@ class DetalleClientePage extends StatefulWidget {
 class _DetalleClientePageState extends State<DetalleClientePage> {
   late CotizacionFirestoreDataSource _cotizacionDataSource;
   late Future<List<CotizacionDto>> _historialCotizacionesFuture;
-
   @override
   void initState() {
     super.initState();
@@ -165,7 +166,7 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
   }
 
   Widget _buildCotizacionItem(CotizacionDto cotizacion) {
-    final totalFormateado = '\$${cotizacion.totalFinal.toStringAsFixed(0)}';
+    final totalFormateado = '\$${CurrencyFormatter.format(cotizacion.totalFinal)}CLP';
     final theme = Theme.of(context);
     
     Color estadoColor = Colors.grey;
@@ -244,10 +245,17 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
             ],
           ),
         ),
-        trailing: cotizacion.pdfUrl != null //implementar visualizacion de pdf, con opcion para enviar correo automatico
+        trailing: cotizacion.pdfUrl != null
             ? IconButton(
                 icon: const Icon(Icons.picture_as_pdf, color: Colors.red),
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context)=>VerPdfPage(
+                      url: cotizacion.pdfUrl!, codigoCotizacion: cotizacion.codigo)
+                      )
+                  );
+                },
               )
             : null,
       ),

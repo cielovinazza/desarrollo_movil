@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:project/features/cotizacion/presentation/pages/ver_pdf_page.dart';
 import 'package:project/shared/design_system/app_theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'crear_cotizacion_page.dart';
 import '../../domain/usecases/obtener_cotizacion.dart';
 import '../../data/dtos/cotizacion_dtos.dart';
@@ -27,7 +27,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
 
   List<CotizacionDto> cotizaciones = [];
   bool cargando = true;
-  bool enviandoCorreo = false; // 👈 Estado para bloquear la pantalla al enviar correo
+  bool enviandoCorreo = false;
 
   String filterCliente = '';
   String filterId = '';
@@ -109,24 +109,23 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     }
   }
 
-  // 👈 NUEVA FUNCIÓN: Ejecuta el proceso de envío usando el repositorio
   Future<void> procesarEnvioCorreo(CotizacionDto cotizacion) async {
     setState(() => enviandoCorreo = true);
     try {
       await repository.enviarCotizacionPorCorreo(cotizacion);
       
-      await cargarCotizacion(); // Recarga la lista para ver el estado "Enviada"
+      await cargarCotizacion();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('¡Correo enviado con éxito! Estado: Enviada'),
-          backgroundColor: Colors.purple,
+          content: Text('¡Correo enviado con éxito!'),
+          backgroundColor: AppTheme.cardLight,
         ),
       );
     } catch (e) {
       _mostrarDialogoError(
-        'Error al despachar correo',
+        'Error al enviar correo',
         e.toString().replaceAll('Exception: ', ''),
       );
     } finally {
@@ -589,6 +588,25 @@ class _CotizacionCard extends StatelessWidget {
   final ValueChanged<String> onEstadoCambiado;
   final VoidCallback onEnviarCorreoSolicitado; 
 
+  void _mostrarDialogoError(BuildContext context, titulo, String mensaje) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          titulo,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: SelectableText(mensaje),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
+  }
+
   const _CotizacionCard({
     required this.cotizacionRaw,
     required this.codigo,
@@ -601,24 +619,9 @@ class _CotizacionCard extends StatelessWidget {
     required this.onEstadoCambiado,
     required this.onEnviarCorreoSolicitado,
   });
+  
 
-  Future<void> _abrirPdfUrl(BuildContext context) async {
-    if (cotizacionRaw.pdfUrl == null || cotizacionRaw.pdfUrl!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Esta cotización no posee un PDF vinculado.')),
-      );
-      return;
-    }
-    final url = Uri.parse(cotizacionRaw.pdfUrl!);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir el archivo pdf.')),
-      );
-    }
-  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -767,7 +770,16 @@ class _CotizacionCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _abrirPdfUrl(context),
+                      onPressed: (){
+                        if(cotizacionRaw.pdfUrl==null || cotizacionRaw.pdfUrl!.isEmpty){
+                          _mostrarDialogoError(context,
+                          'Error al abrir el pdf','Esta cotización no posee un documento pdf relacionado');
+                        return;
+                        }
+                        Navigator.push(context,
+                        MaterialPageRoute(builder: (context)=>
+                        VerPdfPage(url: cotizacionRaw.pdfUrl, codigoCotizacion: cotizacionRaw.codigo)));
+                      },
                       icon: const Icon(Icons.picture_as_pdf, size: 16),
                       label: const Text('Ver PDF', style: TextStyle(fontSize: 12)),
                       style: OutlinedButton.styleFrom(
