@@ -179,7 +179,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
           ),
           const SizedBox(height: 20),
           DropdownButtonFormField<Cliente>(
-            value: clienteSeleccionado,
+            initialValue: clienteSeleccionado,
             decoration: InputDecoration(
               labelText: 'Seleccionar Cliente Existente',
               prefixIcon: Icon(Icons.person_outline, color: verdeApp),
