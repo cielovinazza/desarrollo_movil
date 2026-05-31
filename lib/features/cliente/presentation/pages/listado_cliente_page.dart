@@ -333,7 +333,6 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
               ),
               const SizedBox(height: 8),
               
-              // Métrica de Empresas limpia y asimétrica
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -440,8 +439,6 @@ class _ClienteCardWidget extends StatelessWidget {
               _buildDataRow(Icons.location_on_outlined, cliente.direccion ?? 'Sin dirección'),
 
               const SizedBox(height: 16),
-
-              // Fila inferior de acciones de la tarjeta
               Row(
                 children: [
                   Expanded(

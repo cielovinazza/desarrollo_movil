@@ -35,8 +35,7 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Ficha del Cliente',
-        style: TextStyle(fontWeight: FontWeight.bold),),
+        title: const Text('Ficha del Cliente',),
         elevation: 0,
         backgroundColor: theme.appBarTheme.backgroundColor,
       ),
@@ -107,9 +106,7 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
       ),
     );
   }
-}
-
-//tarjeta con info del cliente
+}//info del cliente
 class _ClienteCard extends StatelessWidget {
   final Cliente cliente;
 
@@ -117,103 +114,105 @@ class _ClienteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iniciales = cliente.nombre.isNotEmpty ? cliente.nombre.substring(0, 1).toUpperCase() : 'C';
+    final theme = Theme.of(context);
+    final primaryColor = theme.primaryColor;
+    final cleanRut = cliente.rut.replaceAll('.', '').replaceAll('-', '');
+    final bool isEmpresa = cleanRut.startsWith('76') || cleanRut.startsWith('77');
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color.fromARGB(255, 7, 51, 35), 
-            Color.fromARGB(255, 15, 90, 58),
-          ],
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F5A3C).withValues(alpha: 0.25),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           )
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-              
-                CircleAvatar(
-                  radius: 26,
-                  backgroundColor: Colors.white.withValues(alpha: 0.15),
-                  child: Text(
-                    iniciales,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isEmpresa ? Icons.business : Icons.person_outline,
+                    color: primaryColor,
+                    size: 26,
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
-                  child: Text(
-                    cliente.nombre,
-                    style: const TextStyle(
-                      color: Color.fromARGB(255, 230, 230, 230),
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cliente.nombre,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: 18,
+                          color: Colors.black, // Negro de alta fidelidad
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'RUT: ${cliente.rut}',
+                        style: TextStyle(
+                          color: theme.textTheme.bodyMedium?.color, 
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16.0),
-              child: Divider(color: Colors.white24, height: 1, thickness: 0.5)
+              padding: EdgeInsets.symmetric(vertical: 14.0),
+              child: Divider(height: 1, thickness: 0.5),
             ),
-            _infoRow(Icons.badge_outlined, 'RUT', cliente.rut),
-            _infoRow(Icons.email_outlined, 'Email', cliente.correo),
-            _infoRow(Icons.phone_outlined, 'Teléfono', cliente.telefono),
-            _infoRow(
-              Icons.location_on_outlined, 
-              'Dirección', 
-              cliente.direccion ?? 'No especificada',
-            ),
+
+            _buildInfoRow(Icons.mail_outline, cliente.correo),
+            const SizedBox(height: 8),
+            _buildInfoRow(Icons.phone_outlined, cliente.telefono),
+            const SizedBox(height: 8),
+            _buildInfoRow(Icons.location_on_outlined, cliente.direccion ?? 'Sin dirección'),
           ],
         ),
       ),
     );
   }
-
-  Widget _infoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: Colors.white70),
-          const SizedBox(width: 10),
-          Text(
-            '$label: ', 
-            style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white70, fontSize: 14)
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+  Widget _buildInfoRow(IconData icon, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey[500]),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              color: Colors.grey[700], 
+              fontSize: 14,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

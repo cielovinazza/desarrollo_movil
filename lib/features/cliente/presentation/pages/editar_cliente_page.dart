@@ -32,7 +32,6 @@ class _EditarClientePageState extends State<EditarClientePage> {
   late TextEditingController telefonoController;
   late TextEditingController direccionController;
 
-  // Tu paleta de colores corporativos unificada
   final Color greenPrimary = const Color(0xFF0F5A3C);
 
   @override
@@ -126,7 +125,7 @@ class _EditarClientePageState extends State<EditarClientePage> {
   Widget build(BuildContext context) {
     final theme =Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8), // Mismo fondo Canvas Gris
+      backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -159,7 +158,6 @@ class _EditarClientePageState extends State<EditarClientePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Encabezado decorativo interno de edición
                     Row(
                       children: [
                         Container(
@@ -191,7 +189,6 @@ class _EditarClientePageState extends State<EditarClientePage> {
                       child: Divider(height: 1, thickness: 0.5),
                     ),
 
-                    // ✍️ Campos de Texto Estilizados con Íconos Outline
                     ClienteTextField(
                       controller: nombreController,
                       label: 'Nombre',
@@ -264,14 +261,12 @@ class _EditarClientePageState extends State<EditarClientePage> {
                       label: 'Dirección',
                       textCapitalization: TextCapitalization.words,
                       hint: 'Ingrese la dirección del cliente',
-                      icon: Icons.location_on_outlined, // Cambiado de 'home' a 'location' para hacer juego con el listado
+                      icon: Icons.location_on_outlined,
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-
-              // 🛠️ Fila de Botones inferiores emparejada con el Prototipo
               Row(
                 children: [
                   

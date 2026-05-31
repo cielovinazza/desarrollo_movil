@@ -153,7 +153,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   Widget build(BuildContext context) {
     final theme=Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8), // Fondo Canvas Gris de tu prototipo
+      backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -174,7 +174,6 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
           onChanged: _validarFormulario,
           child: Column(
             children: [
-              // 📦 Contenedor "Card" Estilizado igual al Prototipo
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -186,7 +185,6 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Encabezado decorativo interno
                     Row(
                       children: [
                         Container(
@@ -217,8 +215,6 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                       padding: EdgeInsets.symmetric(vertical: 16.0),
                       child: Divider(height: 1, thickness: 0.5),
                     ),
-
-                    // ✍️ Campos de Texto
                     ClienteTextField(
                       controller: _nombreController,
                       label: 'Nombre',
@@ -298,8 +294,6 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // 🛠️ Fila de Botones unificada al estilo Figma
               Row(
                 children: [
                   Expanded(

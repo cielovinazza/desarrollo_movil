@@ -162,8 +162,6 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
 Widget build(BuildContext context) {
   final textTheme = Theme.of(context).textTheme;
   final theme = Theme.of(context);
-
-  // Colocamos el Stack como raíz para que el overlay del correo flote encima de TODO
   return Stack(
     children: [
       Scaffold(
