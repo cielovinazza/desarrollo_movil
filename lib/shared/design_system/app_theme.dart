@@ -29,8 +29,8 @@ class AppTheme {
         error: danger,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: darkPrimary,
-        foregroundColor: cardLight,
+        backgroundColor: Color(0xFFF4F6F8),
+        foregroundColor: Color(0xFF0F5A3C),
         elevation: 0,
         centerTitle: true,
       ),

@@ -34,6 +34,9 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
   late final RegistrarCliente registrarClienteUseCase;
 
+  // Tu paleta de colores corporativos
+  final Color greenPrimary = const Color(0xFF0F5A3C);
+
   @override
   void initState() {
     super.initState();
@@ -64,9 +67,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
   bool validaRut(String rut) {
     rut = rut.replaceAll('.', '').replaceAll('-', '').toUpperCase();
-    if (rut.length < 8) {
-      return false;
-    }
+    if (rut.length < 8) return false;
 
     String cuerpo = rut.substring(0, rut.length - 1);
     String dv = rut.substring(rut.length - 1);
@@ -79,9 +80,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
       if (!RegExp(r'\d').hasMatch(char)) return false;
       suma += int.parse(char) * multiplo;
       multiplo++;
-      if (multiplo > 7) {
-        multiplo = 2;
-      }
+      if (multiplo > 7) multiplo = 2;
     }
 
     int resto = 11 - (suma % 11);
@@ -125,6 +124,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Cliente registrado correctamente'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
       Navigator.pop(context);
@@ -132,9 +132,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
       debugPrint('ERROR: $e');
       debugPrint('STACK: $stack');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
+        SnackBar(content: Text(e.toString())),
       );
     }
   }
@@ -147,150 +145,186 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     _telefonoController.clear();
     _direccionController.clear();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Formulario limpiado')),
+      const SnackBar(content: Text('Formulario limpiado'), behavior: SnackBarBehavior.floating),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme=Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Registro Clientes')),
+      backgroundColor: const Color(0xFFF4F6F8), // Fondo Canvas Gris de tu prototipo
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: greenPrimary),
+          onPressed: () => Navigator.maybePop(context),
+        ),
+        title: Text(
+          'Nuevo Cliente',
+          style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           onChanged: _validarFormulario,
           child: Column(
             children: [
-              ClienteTextField(
-                controller: _nombreController,
-                label: 'Nombre',
-                hint: 'Ingrese su nombre',
+              // 📦 Contenedor "Card" Estilizado igual al Prototipo
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Encabezado decorativo interno
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(Icons.person_add_alt_1_outlined, color: theme.primaryColor, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Datos de Registro',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                            ),
+                            Text(
+                              'Complete los campos requeridos',
+                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                      child: Divider(height: 1, thickness: 0.5),
+                    ),
 
-                icon: Icons.person_outline,
+                    // ✍️ Campos de Texto
+                    ClienteTextField(
+                      controller: _nombreController,
+                      label: 'Nombre',
+                      hint: 'Ingrese nombre completo',
+                      icon: Icons.person_outline,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑÁÉÍÓÚáéíóú ]')),
+                      ],
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'El nombre es obligatorio';
+                        if (value.trim().length < 3) return 'Mínimo 3 caracteres';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                inputFormatters:[
+                    ClienteTextField(
+                      controller: _rutController,
+                      label: 'RUT',
+                      hint: 'Ingrese RUT del cliente',
+                      icon: Icons.contact_page_outlined,
+                      keyboardType: TextInputType.text,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9kK]')),
+                        RutInputFormatter(),
+                      ],
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'El RUT es obligatorio';
+                        if (!validaRut(value)) return 'RUT inválido, intente nuevamente.';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                  FilteringTextInputFormatter.allow(
-                    RegExp(r'[a-zA-ZñÑÁÉÍÓÚáéíóú ]'),
-                  ),
-                ],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El nombre es obligatorio';
-                  }
-                  if (value.trim().length < 3) {
-                    return 'El nombre debe contener mínimo 3 caracteres';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              ClienteTextField(
-                controller: 
-                    _rutController, 
-                label: 'Rut', 
-              
-                hint: 'Ingrese su rut.', 
-              
-                icon: Icons.contact_page_outlined,
-                
-                keyboardType: TextInputType.text,
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(
-                    RegExp(r'[0-9kK]'),
-                  ),
-                  RutInputFormatter(),
-                ],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El rut es obligatorio';
-                  }
-                  if (!validaRut(value)) {
-                    return 'Rut invalido, intente nuevamente.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              ClienteTextField(
-                controller: _correoController,
-                label: 'Correo',
-                hint: 'usuario@correo.com',
+                    ClienteTextField(
+                      controller: _correoController,
+                      label: 'Correo electrónico',
+                      hint: 'usuario@correo.com',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'El correo es obligatorio';
+                        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                        if (!emailRegex.hasMatch(value.trim())) return 'Formato inválido (usuario@correo.com)';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                icon: Icons.email_outlined,
+                    ClienteTextField(
+                      controller: _telefonoController,
+                      label: 'Teléfono',
+                      hint: 'ej: 912345678',
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.number,
+                      prefixText: '+56 ',
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(9),
+                      ],
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) return 'El teléfono es obligatorio';
+                        if (value.replaceAll(RegExp(r'\D'), '').length != 9) return 'Debe tener exactamente 9 dígitos';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El correo es obligatorio';
-                  }
-                  final emailRegex = RegExp(
-                    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-                  );
-                  if (!emailRegex.hasMatch(value.trim())) {
-                    return 'Correo inválido, debe ser de la forma usuario@correo.com';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              ClienteTextField(
-                controller: _telefonoController,
-                label: 'Teléfono',
-                hint: 'ej: 912345678',
-
-                icon: Icons.phone_outlined,
-
-                keyboardType: TextInputType.number,
-                prefixText: '+56 ',
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(9),
-                ],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'El teléfono es obligatorio';
-                  }
-                  String numeros = value.replaceAll(RegExp(r'\D'), '');
-                  if (numeros.length < 9 || numeros.length > 9) {
-                    return 'Número de teléfono invalido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              ClienteTextField(
-                controller: _direccionController,
-                label: 'Dirección',
-                hint: 'Opcional',
-
-                icon: Icons.location_on_outlined,
+                    ClienteTextField(
+                      controller: _direccionController,
+                      label: 'Dirección particular',
+                      hint: 'Opcional (Ej: Av. Las Condes 1230)',
+                      icon: Icons.location_on_outlined,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
+
+              // 🛠️ Fila de Botones unificada al estilo Figma
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _formValido ? _submitForm : null,
-                      icon: const Icon(Icons.send),
-                      label: const Text('Enviar'),
-                      style: ElevatedButton.styleFrom(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
+                      onPressed: _clearForm,
+                      icon: const Icon(Icons.clear_rounded, size: 18, color: Colors.black87),
+                      label: const Text('Limpiar', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _clearForm,
-                      icon: const Icon(Icons.clear),
-                      label: const Text('Limpiar'),
-                      style: OutlinedButton.styleFrom(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: theme.primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
+                      onPressed: _formValido ? _submitForm : null,
+                      icon: const Icon(Icons.send_rounded, size: 18),
+                      label: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ],

@@ -11,6 +11,8 @@ class FlujoEstados {
   static const String aprobada = 'Aprobada por el Cliente';
   static const String rechazada = 'Rechazada por el Cliente';
 
+
+
   static bool validarTransicion(String actual, String nueva) {
     if (actual == 'Pendiente') return true;
     
@@ -102,4 +104,6 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
       codigo: cotizacion.codigo);
     await actualizarEstado(cotizacion.id, cotizacion.estado, FlujoEstados.enviada);
   }
+
+  
 }

@@ -12,7 +12,9 @@ class VerPdfPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme=Theme.of(context);
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text('PDF: $codigoCotizacion'),
       ),
