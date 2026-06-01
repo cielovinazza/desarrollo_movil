@@ -461,8 +461,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
-            title: const Row(
-              children: [
+            title: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 Icon(
                   Icons.warning_amber_rounded,
                   color: Colors.orange,
@@ -475,6 +478,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 ),
               ],
             ),
+          ),
             content: const Text(
               '¡Atención contratista! El margen de utilidad ingresado es inferior al 10% mínimo recomendado. '
               '¿Está seguro de que desea continuar con esta tasa de ganancia para el proyecto?',
@@ -653,8 +657,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const Text(
                           'Ítems de Construcción',
@@ -666,7 +673,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         OutlinedButton.icon(
                           onPressed: _mostrarDialogoAgregarTrabajo,
                           icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Añadir Ítem'),
+                          label: const Text('Añadir'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: _verdeApp,
                             side: BorderSide(color: _verdeApp),

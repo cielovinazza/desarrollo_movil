@@ -646,10 +646,17 @@ class _CotizacionCard extends StatelessWidget {
               Icon(Icons.calendar_today_outlined, size: 16, color: Theme.of(context).hintColor),
               const SizedBox(width: 6),
               Text(fecha, style: textTheme.bodyMedium),
-              const Spacer(),
-              Text(
-                monto,
-                style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: AppTheme.primary),
+              Expanded(
+                child: Text(
+                  monto,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primary,
+                  ),
+                ),
               ),
             ],
           ),

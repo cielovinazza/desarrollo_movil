@@ -179,9 +179,10 @@ class _SelectorClienteState extends State<SelectorCliente> {
           ),
           const SizedBox(height: 20),
           DropdownButtonFormField<Cliente>(
+            isExpanded: true,
             initialValue: clienteSeleccionado,
             decoration: InputDecoration(
-              labelText: 'Seleccionar Cliente Existente',
+              labelText: 'Seleccionar cliente',
               prefixIcon: Icon(Icons.person_outline, color: verdeApp),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -196,7 +197,11 @@ class _SelectorClienteState extends State<SelectorCliente> {
             items: clientes.map((Cliente cliente) {
               return DropdownMenuItem<Cliente>(
                 value: cliente,
-                child: Text('${cliente.nombre} (${cliente.rut})'),
+                child: Text(
+                  '${cliente.nombre} (${cliente.rut})',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               );
             }).toList(),
             onChanged: (Cliente? nuevoSeleccionado) {
