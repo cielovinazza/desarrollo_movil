@@ -604,16 +604,19 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
             size: 20,
           ),
           const SizedBox(width: 8),
-          const Text(
-            'PREVISUALIZACIÓN DE COTIZACIÓN',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
-              letterSpacing: 0.5,
+          Expanded(
+            child: Text(
+              'PREVISUALIZACIÓN DE COTIZACIÓN',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                letterSpacing: 0.5,
+              ),
             ),
           ),
-          const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(

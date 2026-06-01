@@ -266,11 +266,17 @@ class _CotizacionItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              totalFormateado,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF0F5A3C),
+            Flexible(
+              child: Text(
+                totalFormateado,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF0F5A3C),
+                  fontSize: 14,
+                ),
               ),
             ),
           ],
@@ -291,14 +297,17 @@ class _CotizacionItem extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colorEstado.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+                      decoration: BoxDecoration(
+                        color: colorEstado.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     child: Text(
                       cotizacion.estado,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: colorEstado, 
                         fontSize: 11, 
@@ -306,11 +315,12 @@ class _CotizacionItem extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                ),
+                const SizedBox(width: 8),
                   Text(
                     'Ver. ${cotizacion.version}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5)
+                      color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
                     ),
                   ),
                 ],
