@@ -11,6 +11,8 @@ class FlujoEstados {
   static const String aprobada = 'Aprobada por el Cliente';
   static const String rechazada = 'Rechazada por el Cliente';
 
+
+
   static bool validarTransicion(String actual, String nueva) {
     if (actual == 'Pendiente') return true;
     
@@ -66,14 +68,42 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
     await datasource.actualizarEstado(id, estadoNuevo);
   }
 
-  @override
-  Future<String> gestionarYSubirPdf(String id, File archivo) async {
-    final urlDescarga = await datasource.subirPdfCotizacion(id, archivo);
+ @override
+  Future<String> gestionarYSubirPdf({
+    required String id,
+    required String codigo, 
+    required File archivo,
+  }) async {
+    //evita que el archivo quede suelto en la raíz de storage y se sobrescriba.
+    final carpetaDestino = codigo.trim().isEmpty ? id : codigo;
+    final urlDescarga = await datasource.subirPdfCotizacion(carpetaDestino, archivo);
     await datasource.vincularPdfACotizacion(id, urlDescarga);
+
     return urlDescarga;
   }
   
   Future<void> crearNuevaVersion(String cotizacionId) async {
     await datasource.crearNuevaVersion(cotizacionId);
   }
+
+  @override
+  Future<void> enviarCotizacionPorCorreo(CotizacionDto cotizacion) async {
+    if (cotizacion.pdfUrl == null || cotizacion.pdfUrl!.isEmpty) {
+      throw Exception('No se puede enviar la cotización sin un documento PDF vinculado.');
+    }
+
+    if (cotizacion.clienteEmail.isEmpty) {
+      throw Exception('El cliente no tiene un correo electrónico asignado.');
+    }
+    await datasource.enviarCorreoDirecto(
+      clienteEmail: cotizacion.clienteEmail,
+      clienteNombre: cotizacion.clienteNombre,
+      direccion: cotizacion.direccion,
+      asunto: 'Cotizacion N°${cotizacion.codigo}',
+      pdfUrl: cotizacion.pdfUrl!,
+      codigo: cotizacion.codigo);
+    await actualizarEstado(cotizacion.id, cotizacion.estado, FlujoEstados.enviada);
+  }
+
+  
 }

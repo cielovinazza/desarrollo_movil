@@ -13,6 +13,7 @@ class ClienteTextField
   final TextCapitalization textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
   final String? prefixText;
+  final bool enabled;
 
   final String? Function(String?)?
       validator;
@@ -30,12 +31,15 @@ class ClienteTextField
     this.textCapitalization =TextCapitalization.none,
     this.inputFormatters,
     this.prefixText,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
 
     return TextFormField(
+
+      enabled: enabled,
 
       controller: controller,
 
@@ -53,6 +57,8 @@ class ClienteTextField
         prefixText: prefixText,
         labelText: label,
         hintText: hint,
+        filled: !enabled,
+        fillColor: enabled ? Colors.white : Colors.grey.withValues(alpha: 0.1),
         prefixIcon: Icon(icon),
         border:
             const OutlineInputBorder(),

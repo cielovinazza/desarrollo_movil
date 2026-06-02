@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:project/features/materiales/domain/entities/material.dart';
 import 'package:project/features/materiales/utils/csv_parser.dart';
+import '../../../../core/utils/currency_formatter.dart';
 
 class MaterialLista extends StatelessWidget {
   final List<MaterialEntity> items;
@@ -301,7 +302,7 @@ class MaterialLista extends StatelessWidget {
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  '${material.cantidad.toStringAsFixed(0)} ${material.unidadMedida} × \$${material.costoUnitario.toStringAsFixed(0)}',
+                  '${material.cantidad.toStringAsFixed(0)} ${material.unidadMedida} × ${CurrencyFormatter.format(material.costoUnitario)}',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 ),
               ),
@@ -309,7 +310,7 @@ class MaterialLista extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '\$${material.subtotal.toStringAsFixed(0)}',
+                    CurrencyFormatter.format(material.subtotal),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
@@ -359,7 +360,7 @@ class MaterialLista extends StatelessWidget {
                 ),
               ),
               Text(
-                '\$${total.toStringAsFixed(0)} CLP',
+                '${CurrencyFormatter.format(total)} CLP',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: verdeApp,

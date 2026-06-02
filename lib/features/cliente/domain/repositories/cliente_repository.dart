@@ -4,4 +4,5 @@ abstract class ClienteRepository {
   Future<void> registrarCliente(Cliente cliente);
   Future<List<Cliente>> listarClientes();
   Future<void> editarCliente(Cliente cliente);
+  Future<void> eliminarCliente(String id);
 }

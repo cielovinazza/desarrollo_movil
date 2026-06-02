@@ -12,21 +12,24 @@ import 'package:project/features/auth/presentation/pages/login_page.dart';
 
 import 'package:project/shared/widgets/inactivity_detector.dart';
 import 'package:project/navigation/main_navigation.dart';
+import 'shared/design_system/app_theme.dart';
+import 'package:project/core/network/connectivity_sync_service.dart';
 
+late final ConnectivitySyncService _syncService;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await Future.microtask(() {
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
-      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-    );
-  });
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
 
   final dataSource = AuthFirebaseDataSource();
   final repository = AuthRepositoryImpl(dataSource);
   final useCase = LoginUseCase(repository);
+  _syncService = ConnectivitySyncService();
+  _syncService.iniciar();
 
   runApp(MyApp(useCase: useCase));
 }
@@ -40,6 +43,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      themeMode: ThemeMode.light,
 
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),

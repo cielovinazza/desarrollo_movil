@@ -77,7 +77,6 @@ class _SelectorClienteState extends State<SelectorCliente> {
       mensaje = null;
     });
 
-    // Recargamos la lista por si se registró un cliente recientemente
     await _cargarClientes();
 
     final rutNormalizado = _normalizarRut(rutBuscado);
@@ -134,10 +133,9 @@ class _SelectorClienteState extends State<SelectorCliente> {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const RegistroClientePage(),
+            builder: (_) => RegistroClientePage(rutInicial: rutBuscado),
           ),
         );
-        // Volver a cargar la lista tras el registro
         await _cargarClientes();
       }
     }
@@ -173,27 +171,77 @@ class _SelectorClienteState extends State<SelectorCliente> {
           ),
           const SizedBox(height: 2),
           const Text(
-            'Ingrese el RUT del cliente para buscarlo en el sistema',
+            'Ingrese el RUT del cliente para buscarlo en el sistema o elija uno de la lista',
             style: TextStyle(
               color: Colors.grey,
               fontSize: 13,
             ),
           ),
           const SizedBox(height: 20),
-          
-          // Input de texto para el RUT
+          DropdownButtonFormField<Cliente>(
+            isExpanded: true,
+            initialValue: clienteSeleccionado,
+            decoration: InputDecoration(
+              labelText: 'Seleccionar cliente',
+              prefixIcon: Icon(Icons.person_outline, color: verdeApp),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: verdeApp.withValues(alpha: 0.25),
+                ),
+              ),
+            ),
+            items: clientes.map((Cliente cliente) {
+              return DropdownMenuItem<Cliente>(
+                value: cliente,
+                child: Text(
+                  '${cliente.nombre} (${cliente.rut})',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              );
+            }).toList(),
+            onChanged: (Cliente? nuevoSeleccionado) {
+              if (nuevoSeleccionado != null) {
+                setState(() {
+                  clienteSeleccionado = nuevoSeleccionado;
+                  _rutController.text = nuevoSeleccionado.rut;
+                  widget.controller.text = nuevoSeleccionado.nombre;
+                  mensaje = 'Cliente seleccionado de la lista';
+                });
+                widget.onClienteSeleccionado(nuevoSeleccionado);
+              }
+            },
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.0),
+            child: Row(
+              children: [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    'O BUSCAR MANUALMENTE',
+                    style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+          ),
           TextFormField(
             controller: _rutController,
             keyboardType: TextInputType.text,
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(
-                    RegExp(r'[0-9kK]'),
-                  ),
-
-                  RutInputFormatter(),
-
-                ],
+            textCapitalization: TextCapitalization.characters,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                RegExp(r'[0-9kK]'),
+              ),
+              RutInputFormatter(),
+            ],
             decoration: InputDecoration(
               labelText: 'RUT del cliente',
               hintText: 'Ej: 12.345.678-9',
@@ -224,10 +272,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
             ),
             onFieldSubmitted: (_) => buscando ? null : _buscarClientePorRut(),
           ),
-
           const SizedBox(height: 12),
-
-          // Botón de búsqueda extendido
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -250,8 +295,6 @@ class _SelectorClienteState extends State<SelectorCliente> {
               ),
             ),
           ),
-
-          // Feedback visual: Mensajes de estado (Éxito o Error)
           if (mensaje != null) ...[
             const SizedBox(height: 12),
             Text(
@@ -262,8 +305,6 @@ class _SelectorClienteState extends State<SelectorCliente> {
               ),
             ),
           ],
-
-          // Tarjeta que aparece solo si el cliente fue exitosamente seleccionado
           if (clienteSeleccionado != null) ...[
             const SizedBox(height: 16),
             Container(

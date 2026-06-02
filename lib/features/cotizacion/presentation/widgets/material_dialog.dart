@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project/features/materiales/domain/entities/material.dart';
+import '../../../../core/utils/currency_formatter.dart';
 
 class MaterialDialog extends StatefulWidget {
   final Color verdeApp;
@@ -97,8 +98,9 @@ class _MaterialDialogState extends State<MaterialDialog> {
                   hintText: 'Ej: Cemento, Arena, Tubo PVC',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Ingresa el nombre' : null,
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Ingresa el nombre'
+                    : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -108,13 +110,16 @@ class _MaterialDialogState extends State<MaterialDialog> {
                   hintText: 'Ej: kg, m², saco, unidad',
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty ? 'Ingresa la unidad' : null,
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Ingresa la unidad'
+                    : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _cantidadController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (v) {
                   _filtrarNumero(_cantidadController, v);
                   _calcularSubtotal();
@@ -125,7 +130,9 @@ class _MaterialDialogState extends State<MaterialDialog> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Ingresa la cantidad';
+                  if (value == null || value.isEmpty) {
+                    return 'Ingresa la cantidad';
+                  }
                   final n = double.tryParse(value);
                   if (n == null || n <= 0) return 'Ingresa un número válido';
                   return null;
@@ -134,7 +141,9 @@ class _MaterialDialogState extends State<MaterialDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _costoController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 onChanged: (v) {
                   _filtrarNumero(_costoController, v);
                   _calcularSubtotal();
@@ -145,7 +154,9 @@ class _MaterialDialogState extends State<MaterialDialog> {
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Ingresa el costo';
+                  if (value == null || value.isEmpty) {
+                    return 'Ingresa el costo';
+                  }
                   final n = double.tryParse(value);
                   if (n == null || n <= 0) return 'Ingresa un número válido';
                   return null;
@@ -162,10 +173,13 @@ class _MaterialDialogState extends State<MaterialDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Subtotal', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Subtotal',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
                     Text(
-                      '\$${_subtotal.toStringAsFixed(0)} CLP',
+                      '${CurrencyFormatter.format(_subtotal)} CLP',
                       style: TextStyle(
                         color: widget.verdeApp,
                         fontWeight: FontWeight.bold,

@@ -12,6 +12,7 @@ import '../../domain/usecases/guardar_cotizacion.dart';
 import '../widgets/previsualizacion_pdf.dart';
 import '../../data/dtos/cotizacion_dtos.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/utils/currency_formatter.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -22,6 +23,7 @@ class CrearCotizacionPage extends StatefulWidget {
 
 class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _formKey = GlobalKey<FormState>();
+  String? _codigoCotizacionCreada;
   int _currentStep = 0;
   Cliente? _clienteSeleccionado;
   late final GuardarCotizacion guardarCotizacionUseCase;
@@ -39,7 +41,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _viaticoController = TextEditingController();
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
-  
+
   final List<String> _tiposDisponibles = [
     'Pintura',
     'Yeso',
@@ -59,16 +61,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   void initState() {
     super.initState();
 
-    datasource = CotizacionFirestoreDataSource(
-      FirebaseFirestore.instance,
-    );
-
+    datasource = CotizacionFirestoreDataSource(FirebaseFirestore.instance);
 
     final repository = CotizacionRepositoryImpl(datasource);
 
     guardarCotizacionUseCase = GuardarCotizacion(repository);
-
-          
   }
 
   @override
@@ -85,15 +82,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final viaticoTexto = _viaticoController.text.trim();
     final double? viaticoValor = viaticoTexto.isEmpty
         ? null
-        : double.tryParse(viaticoTexto); //esta linea de codigo es para que cliente no entre como null, acepten el cambio entrante
-    final clienteSeguro = _clienteSeleccionado ?? Cliente(
-    id: '',
-    nombre: '',
-    correo: '',
-    rut: '',
-    telefono: '',
-    direccion: '',
-  );
+        : double.tryParse(
+            viaticoTexto,
+          ); //esta linea de codigo es para que cliente no entre como null, acepten el cambio entrante
+    final clienteSeguro =
+        _clienteSeleccionado ??
+        Cliente(
+          id: '',
+          nombre: '',
+          correo: '',
+          rut: '',
+          telefono: '',
+          direccion: '',
+        );
 
     return CotizacionModel(
       cliente: clienteSeguro,
@@ -112,7 +113,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final docRef = FirebaseFirestore.instance.collection('cotizaciones').doc();
     final String idReal = docRef.id;
 
-
     final dto = CotizacionMapper.toDto(
       cotizacion: cotizacion,
       materiales: _materialesAgregados,
@@ -120,7 +120,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       estado: 'En Proceso',
     );
 
-    
     final dtoConId = CotizacionDto(
       id: idReal,
       clienteId: dto.clienteId,
@@ -141,13 +140,26 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       porcentajeUtilidad: dto.porcentajeUtilidad,
       porcentajeIva: dto.porcentajeIva,
       totalFinal: dto.totalFinal,
-      estado: 'En Proceso', 
+      estado: 'En Proceso',
       usuarioId: dto.usuarioId,
       fechaCreacion: dto.fechaCreacion,
       version: dto.version,
     );
 
     await guardarCotizacionUseCase(dtoConId);
+    final docSnapshot = await FirebaseFirestore.instance
+        .collection('cotizaciones')
+        .doc(idReal)
+        .get();
+
+    if (docSnapshot.exists) {
+      final datosGuardados = docSnapshot.data();
+      final codigoAsignado = datosGuardados?['codigo'] as String?;
+      setState(() {
+        _codigoCotizacionCreada = codigoAsignado;
+      });
+    }
+
     return idReal;
   }
 
@@ -219,7 +231,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         actions: [
           TextButton(
             onPressed: () {
-              nuevoTipoController.dispose(); 
+              nuevoTipoController.dispose();
               Navigator.pop(context);
             },
             child: const Text('Cancelar'),
@@ -425,19 +437,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
   String? _validarCampoNumerico(String? value, String nombreCampo) {
     if (value == null || value.trim().isEmpty) {
-      if (nombreCampo == 'Viático') return null; 
+      if (nombreCampo == 'Viático') return null;
       return 'El campo $nombreCampo es obligatorio';
     }
-    
+
     final numero = double.tryParse(value.trim());
     if (numero == null) {
       return 'Ingrese solo caracteres numéricos válidos';
     }
-    
+
     if (numero < 0) {
       return 'No se permiten importes o tasas negativas';
     }
-    
+
     return null;
   }
 
@@ -446,14 +458,27 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            title: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            title: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.orange,
+                  size: 28,
+                ),
                 SizedBox(width: 10),
-                Text('Alerta de Rentabilidad', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  'Alerta de Rentabilidad',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
+          ),
             content: const Text(
               '¡Atención contratista! El margen de utilidad ingresado es inferior al 10% mínimo recomendado. '
               '¿Está seguro de que desea continuar con esta tasa de ganancia para el proyecto?',
@@ -462,12 +487,24 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Modificar Margen', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Modificar Margen',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                ),
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Sí, continuar', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'Sí, continuar',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -500,7 +537,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
-           controlsBuilder: (context, details) => Row(
+            controlsBuilder: (context, details) => Row(
               children: [
                 ElevatedButton(
                   onPressed: _guardandoEnFirestore
@@ -511,9 +548,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     foregroundColor: Colors.white,
                   ),
                   child: Text(
-                    _currentStep == 4
-                        ? 'Guardar y Previsualizar'
-                        : 'Continuar',
+                    _currentStep == 4 ? 'Guardar y Previsualizar' : 'Continuar',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -521,11 +556,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   onPressed: _guardandoEnFirestore
                       ? null
                       : details.onStepCancel,
-                  child: Text(
-                    _currentStep == 0
-                        ? 'Salir'
-                        : 'Atrás',
-                  ),
+                  child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
                 ),
               ],
             ),
@@ -557,14 +588,17 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 });
               } else {
                 if (!_formKey.currentState!.validate()) {
-                  _mostrarMensaje('Formulario inválido. Corrija los campos en rojo antes de guardar.');
+                  _mostrarMensaje(
+                    'Formulario inválido. Corrija los campos en rojo antes de guardar.',
+                  );
                   return;
                 }
 
-                final margenUtilidad = double.tryParse(_utilidadController.text) ?? 0.0;
+                final margenUtilidad =
+                    double.tryParse(_utilidadController.text) ?? 0.0;
                 if (margenUtilidad < 10.0) {
                   final deseaContinuar = await _mostrarAlertaRentabilidadBaja();
-                  if (!deseaContinuar) return; 
+                  if (!deseaContinuar) return;
                 }
 
                 if (_guardandoEnFirestore) return;
@@ -623,8 +657,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const Text(
                           'Ítems de Construcción',
@@ -636,7 +673,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         OutlinedButton.icon(
                           onPressed: _mostrarDialogoAgregarTrabajo,
                           icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Añadir Ítem'),
+                          label: const Text('Añadir'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: _verdeApp,
                             side: BorderSide(color: _verdeApp),
@@ -666,7 +703,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           ),
                           title: Text(item.tipo),
                           subtitle: Text(
-                            '${item.metrosCuadrados} m² × \$${item.precioPorMetro.toStringAsFixed(0)} / m²',
+                            '${item.metrosCuadrados} m² × ${CurrencyFormatter.format(item.precioPorMetro)} / m²',
                           ),
                           trailing: IconButton(
                             icon: const Icon(
@@ -703,7 +740,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                             ),
                           ),
                           Text(
-                            '\$${datosEnVivo.subtotalObraTotal.toStringAsFixed(0)} CLP',
+                            '${CurrencyFormatter.format(datosEnVivo.subtotalObraTotal)} CLP',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: _verdeApp,
@@ -775,7 +812,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _utilidadController,
                       keyboardType: TextInputType.number,
-                      validator: (val) => _validarCampoNumerico(val, '% de utilidad'),
+                      validator: (val) =>
+                          _validarCampoNumerico(val, '% de utilidad'),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
                           RegExp(r'^\d*\.?\d*'),
@@ -791,7 +829,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _ivaController,
                       keyboardType: TextInputType.number,
-                      validator: (val) => _validarCampoNumerico(val, '% IVA Legal'),
+                      validator: (val) =>
+                          _validarCampoNumerico(val, '% IVA Legal'),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
                           RegExp(r'^\d*\.?\d*'),
@@ -824,7 +863,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Monto Final: \$${datosEnVivo.calcularTotalFinal().toStringAsFixed(0)} CLP',
+                            'Monto Final: ${CurrencyFormatter.format(datosEnVivo.calcularTotalFinal())} CLP',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -842,29 +881,25 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       materiales: _materialesAgregados,
                       idCotizacion: _idCotizacionCreada!,
                       manoObra: _manoObraAgregada,
-                      codigoCotizacion: CotizacionMapper.toDto(
-                        cotizacion: datosEnVivo,
-                        materiales: _materialesAgregados,
-                        usuarioId: _auth.currentUser?.uid ?? '',
-                        estado: 'En Proceso',
-                      ).codigo,
+                      codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
+                      
                       onListo: () async {
                         if (!mounted) return;
 
-                        _mostrarMensaje('¡Cotización creada con éxito!');
+                          _mostrarMensaje('¡Cotización creada con éxito!');
 
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    const SizedBox(height: 16),
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
