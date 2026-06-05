@@ -79,13 +79,8 @@ class CotizacionFirestoreDataSource {
   }) async {
     Query query = firestore.collection('cotizaciones');
 
-    // 1. SI HAY ID O CÓDIGO, HACEMOS BÚSQUEDA DIRECTA Y RETORNAMOS
-    if (idBusqueda != null && idBusqueda.isNotEmpty) {
-      final codigoLimpio = idBusqueda.trim().toUpperCase(); 
-      
-      final snapshot = await query.where('codigo', isEqualTo: codigoLimpio).get();
-      return snapshot.docs.map((doc) => CotizacionDto.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
-    }
+    // 1. SI HAY CÓDIGO, HACEMOS BÚSQUEDA DIRECTA Y RETORNAMOS
+    final codigoBusqueda = idBusqueda?.trim().toUpperCase();
 
     // 2. SI NO HAY ID, RECIÉN AHÍ APLICAMOS LOS FILTROS DE LISTADO MASIVO
     if (clienteNombre != null && clienteNombre.trim().isNotEmpty) {
@@ -102,12 +97,27 @@ class CotizacionFirestoreDataSource {
       query = query.where('fechaCreacion', isGreaterThanOrEqualTo: Timestamp.fromDate(fechaInicio));
     }
     if (fechaFin != null) {
-      query = query.where('fechaCreacion', isLessThanOrEqualTo: Timestamp.fromDate(fechaFin));
+      final fechaSiguiente=DateTime(
+        fechaFin.year,
+        fechaFin.month,
+        fechaFin.day + 1,
+      );
+
+      query = query.where('fechaCreacion', isLessThan: Timestamp.fromDate(fechaSiguiente));
     }
     
     query = query.orderBy('fechaCreacion', descending: true);
     final snapshot = await query.get();
-    return snapshot.docs.map((doc) => CotizacionDto.fromMap(doc.id, doc.data() as Map<String, dynamic>)).toList();
+    var resultados = snapshot.docs.map((doc)=> CotizacionDto.fromMap(doc.id, doc.data() as Map<String, dynamic>,)).toList();
+
+    if (codigoBusqueda != null && codigoBusqueda.trim().isNotEmpty){
+      resultados = resultados.where((cotizacion){
+        return cotizacion.codigo.toUpperCase().contains(codigoBusqueda);
+
+      }).toList();
+    }
+
+    return resultados;
   }
 
   Future<void> actualizarEstado(String id, String estado) async {

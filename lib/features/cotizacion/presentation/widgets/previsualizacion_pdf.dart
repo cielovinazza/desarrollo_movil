@@ -483,7 +483,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           CircularProgressIndicator(color: Colors.blue),
           SizedBox(height: 16),
           Text(
-            'Subiendo PDF a Firebase Storage (Límite 5s)...',
+            'Subiendo PDF a Firebase Storage...',
             style: TextStyle(
               color: _texto,
               fontSize: 14,

@@ -83,7 +83,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
     Cliente? encontrado;
 
     for (final cliente in clientes) {
-      if (_normalizarRut(cliente.rut) == rutNormalizado) {
+      if (_normalizarRut(cliente.rut).contains(rutNormalizado)) {
         encontrado = cliente;
         break;
       }
