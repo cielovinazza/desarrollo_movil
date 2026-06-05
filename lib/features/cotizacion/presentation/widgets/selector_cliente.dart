@@ -27,6 +27,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
   final TextEditingController _rutController = TextEditingController();
 
   List<Cliente> clientes = [];
+  List<Cliente> clientesFiltrados = [];
   Cliente? clienteSeleccionado;
 
   bool buscando = false;
@@ -42,10 +43,12 @@ class _SelectorClienteState extends State<SelectorCliente> {
     );
     listarClientesUseCase = ListarClientes(repository);
     _cargarClientes();
+    _rutController.addListener(_filtrarClientes);
   }
 
   @override
   void dispose() {
+    _rutController.removeListener(_filtrarClientes);
     _rutController.dispose();
     super.dispose();
   }
@@ -54,11 +57,31 @@ class _SelectorClienteState extends State<SelectorCliente> {
     final resultado = await listarClientesUseCase();
     setState(() {
       clientes = resultado;
+      _filtrarClientes();
     });
   }
 
   String _normalizarRut(String rut) {
     return rut.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
+  }
+
+  // funcion para filtrar los clientes del selector segun lo escrito en el buscador por rut
+  void _filtrarClientes() {
+    final textoBusqueda = _normalizarRut(_rutController.text);
+    
+    setState(() {
+      if (textoBusqueda.isEmpty) {
+        clientesFiltrados = List.from(clientes);
+      } else {
+        clientesFiltrados = clientes.where((cliente) {
+          return _normalizarRut(cliente.rut).contains(textoBusqueda);
+        }).toList();
+      }
+      // si el cliente seleccionado actual ya no está en la lista filtrada se deselecciona
+      if (clienteSeleccionado != null && !clientesFiltrados.contains(clienteSeleccionado)) {
+        clienteSeleccionado = null;
+      }
+    });
   }
 
   Future<void> _buscarClientePorRut() async {
@@ -83,7 +106,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
     Cliente? encontrado;
 
     for (final cliente in clientes) {
-      if (_normalizarRut(cliente.rut).contains(rutNormalizado)) {
+      if (_normalizarRut(cliente.rut) == rutNormalizado) {
         encontrado = cliente;
         break;
       }
@@ -112,6 +135,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
           content: Text(
             'No existe un cliente con el RUT "$rutBuscado". ¿Deseas registrarlo ahora?',
           ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -171,67 +195,13 @@ class _SelectorClienteState extends State<SelectorCliente> {
           ),
           const SizedBox(height: 2),
           const Text(
-            'Ingrese el RUT del cliente para buscarlo en el sistema o elija uno de la lista',
+            'Ingrese el RUT del cliente para buscarlo manualmente',
             style: TextStyle(
               color: Colors.grey,
               fontSize: 13,
             ),
           ),
           const SizedBox(height: 20),
-          DropdownButtonFormField<Cliente>(
-            isExpanded: true,
-            initialValue: clienteSeleccionado,
-            decoration: InputDecoration(
-              labelText: 'Seleccionar cliente',
-              prefixIcon: Icon(Icons.person_outline, color: verdeApp),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: verdeApp.withValues(alpha: 0.25),
-                ),
-              ),
-            ),
-            items: clientes.map((Cliente cliente) {
-              return DropdownMenuItem<Cliente>(
-                value: cliente,
-                child: Text(
-                  '${cliente.nombre} (${cliente.rut})',
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              );
-            }).toList(),
-            onChanged: (Cliente? nuevoSeleccionado) {
-              if (nuevoSeleccionado != null) {
-                setState(() {
-                  clienteSeleccionado = nuevoSeleccionado;
-                  _rutController.text = nuevoSeleccionado.rut;
-                  widget.controller.text = nuevoSeleccionado.nombre;
-                  mensaje = 'Cliente seleccionado de la lista';
-                });
-                widget.onClienteSeleccionado(nuevoSeleccionado);
-              }
-            },
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.0),
-            child: Row(
-              children: [
-                Expanded(child: Divider()),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    'O BUSCAR MANUALMENTE',
-                    style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Expanded(child: Divider()),
-              ],
-            ),
-          ),
           TextFormField(
             controller: _rutController,
             keyboardType: TextInputType.text,
@@ -295,6 +265,67 @@ class _SelectorClienteState extends State<SelectorCliente> {
               ),
             ),
           ),
+          
+            const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.0),
+            child: Row(
+              children: [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    'O seleccione de la lista',
+                    style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+          ),
+          
+        
+          DropdownButtonFormField<Cliente>(
+            isExpanded: true,
+            initialValue: clienteSeleccionado, 
+            decoration: InputDecoration(
+              labelText: _rutController.text.isEmpty 
+                  ?  'Seleccione un cliente'
+                  : 'Resultados de coincidencia',
+              prefixIcon: Icon(Icons.person_outline, color: verdeApp),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: verdeApp.withValues(alpha: 0.25),
+                ),
+              ),
+            ),
+            // muestra los clientes que coincidan con lo escrito
+            items: clientesFiltrados.map((Cliente cliente) {
+              return DropdownMenuItem<Cliente>(
+                value: cliente,
+                child: Text(
+                  '${cliente.nombre} (${cliente.rut})',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              );
+            }).toList(),
+            onChanged: (Cliente? nuevoSeleccionado) {
+              if (nuevoSeleccionado != null) {
+                setState(() {
+                  clienteSeleccionado = nuevoSeleccionado;
+                  _rutController.text = nuevoSeleccionado.rut;
+                  widget.controller.text = nuevoSeleccionado.nombre;
+                  mensaje = 'Cliente seleccionado de la lista';
+                });
+                widget.onClienteSeleccionado(nuevoSeleccionado);
+              }
+            },
+          ),
+          
           if (mensaje != null) ...[
             const SizedBox(height: 12),
             Text(

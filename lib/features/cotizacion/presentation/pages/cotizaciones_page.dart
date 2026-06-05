@@ -768,8 +768,8 @@ class _CotizacionCard extends StatelessWidget {
                          if(resultado==true){
                           await onRecargar();
                          }
-                        }
-                        Navigator.push(
+                        }else{
+                          Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => VerPdfPage(
@@ -778,6 +778,8 @@ class _CotizacionCard extends StatelessWidget {
                             ),
                           ),
                         );
+                        }
+                        
                       },
                       icon: Icon(
                         noTienePdf ? Icons.picture_as_pdf_outlined : Icons.picture_as_pdf, 
