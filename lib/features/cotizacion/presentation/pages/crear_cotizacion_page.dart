@@ -440,22 +440,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     }
 
     final numero = double.tryParse(value.trim());
-    if (numero == null) {
-      return 'Ingrese solo caracteres numéricos válidos';
-    }
 
-    if (numero < 0) {
-      return 'No se permiten importes o tasas negativas';
-    }
-    if (nombreCampo == '% de utilidad' && numero > 500) {
-      return 'La utilidad no puede superar el 500%';
+    if (numero == null || numero < 0) {
+      return 'Ingrese solo caracteres numéricos válidos';
     }
 
     if (nombreCampo == '% IVA Legal' && numero > 35) {
       return 'El IVA no puede superar el 35%';
     }
-
+    if (nombreCampo == '% de utilidad' && numero > 500) {
+      return 'La utilidad no puede superar el 500%';
+    }
     return null;
+
   }
 
   Future<bool> _mostrarAlertaRentabilidadBaja() async {
@@ -816,8 +813,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       validator: (val) =>
                           _validarCampoNumerico(val, '% de utilidad'),
                       inputFormatters: [
-                        LengthLimitingTextInputFormatter(3),
-                        FilteringTextInputFormatter.digitsOnly,
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d{0,3}\.?\d{0,2}'),
+                        ),
                       ],
                       decoration: const InputDecoration(
                         labelText: '% Porcentaje de Utilidad',
