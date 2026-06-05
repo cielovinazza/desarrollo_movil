@@ -442,15 +442,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     }
 
     final numero = double.tryParse(value.trim());
-    if (numero == null) {
+
+    if (nombreCampo == '% de utilidad') {
+      final partes = value.trim().split('.');
+
+      if (partes.length == 2 && partes[1].length > 2) {
+        return 'Máximo 2 decimales permitidos';
+      }
+    }
+
+    if (numero == null || numero < 0) {
       return 'Ingrese solo caracteres numéricos válidos';
     }
 
-    if (numero < 0) {
-      return 'No se permiten importes o tasas negativas';
-    }
-
-    return null;
   }
 
   Future<bool> _mostrarAlertaRentabilidadBaja() async {
@@ -816,7 +820,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                           _validarCampoNumerico(val, '% de utilidad'),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
+                          RegExp(r'^\d*\.?\d{0,2}'),
                         ),
                       ],
                       decoration: const InputDecoration(

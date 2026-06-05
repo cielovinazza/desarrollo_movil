@@ -57,7 +57,6 @@ class DefaultFirebaseOptions {
     projectId: 'proyecto-desarrollo-movi-47954',
     storageBucket: 'proyecto-desarrollo-movi-47954.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCWpSb155_qLa9uZzSz2_Kw3SGoFfbw_yc',
     appId: '1:20459132617:ios:6c0acc19d8fe6179a35f18',
@@ -66,7 +65,6 @@ class DefaultFirebaseOptions {
     storageBucket: 'proyecto-desarrollo-movi-47954.firebasestorage.app',
     iosBundleId: 'com.example.project',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyCWpSb155_qLa9uZzSz2_Kw3SGoFfbw_yc',
     appId: '1:20459132617:ios:6c0acc19d8fe6179a35f18',
