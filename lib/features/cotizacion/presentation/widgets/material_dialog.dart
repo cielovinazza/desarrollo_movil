@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project/features/materiales/domain/entities/material.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/clp_input_formatter.dart';
 
 class MaterialDialog extends StatefulWidget {
   final Color verdeApp;
@@ -35,7 +37,7 @@ class _MaterialDialogState extends State<MaterialDialog> {
       _nombreController.text = m.nombre;
       _unidadController.text = m.unidadMedida;
       _cantidadController.text = m.cantidad.toString();
-      _costoController.text = m.costoUnitario.toString();
+      _costoController.text = ClpInputFormatter.formatNumber(m.costoUnitario);
       _calcularSubtotal();
     }
   }
@@ -51,7 +53,7 @@ class _MaterialDialogState extends State<MaterialDialog> {
 
   void _calcularSubtotal() {
     final cantidad = double.tryParse(_cantidadController.text) ?? 0;
-    final costo = double.tryParse(_costoController.text) ?? 0;
+    final costo = ClpInputFormatter.toDouble(_costoController.text);
     setState(() {
       _subtotal = cantidad * costo;
     });
@@ -117,6 +119,7 @@ class _MaterialDialogState extends State<MaterialDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _cantidadController,
+                inputFormatters: [LengthLimitingTextInputFormatter(3)],
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
@@ -144,8 +147,8 @@ class _MaterialDialogState extends State<MaterialDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                onChanged: (v) {
-                  _filtrarNumero(_costoController, v);
+                inputFormatters: [ClpInputFormatter(maxDigits: 9)],
+                onChanged: (_) {
                   _calcularSubtotal();
                 },
                 decoration: const InputDecoration(
@@ -157,8 +160,8 @@ class _MaterialDialogState extends State<MaterialDialog> {
                   if (value == null || value.isEmpty) {
                     return 'Ingresa el costo';
                   }
-                  final n = double.tryParse(value);
-                  if (n == null || n <= 0) return 'Ingresa un número válido';
+                  final n = ClpInputFormatter.toDouble(value);
+                  if (n <= 0) return 'Ingresa un número válido';
                   return null;
                 },
               ),
@@ -206,7 +209,7 @@ class _MaterialDialogState extends State<MaterialDialog> {
               nombre: _nombreController.text.trim(),
               unidadMedida: _unidadController.text.trim(),
               cantidad: double.parse(_cantidadController.text),
-              costoUnitario: double.parse(_costoController.text),
+              costoUnitario: ClpInputFormatter.toDouble(_costoController.text),
             );
             Navigator.pop(context, material);
           },

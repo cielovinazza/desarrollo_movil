@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:project/features/cliente/domain/usecases/listar_clientes.dart';
-import 'package:project/features/cliente/presentation/pages/clientes_page.dart';
 import 'package:project/features/cliente/presentation/pages/listado_cliente_page.dart';
 import 'package:project/features/home/presentation/pages/home_page.dart';
-import 'package:project/features/cliente/presentation/pages/registro_cliente_page.dart';
 import 'package:project/features/cotizacion/presentation/pages/cotizaciones_page.dart';
 
 class MainNavigation extends StatefulWidget {
@@ -30,11 +27,8 @@ class _MainNavigationState extends State<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(  
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
-      ),
+    return Scaffold(
+      body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: changeTab,
@@ -61,4 +55,3 @@ class _MainNavigationState extends State<MainNavigation> {
     );
   }
 }
-

@@ -13,6 +13,7 @@ import '../widgets/previsualizacion_pdf.dart';
 import '../../data/dtos/cotizacion_dtos.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../core/utils/clp_input_formatter.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -82,9 +83,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final viaticoTexto = _viaticoController.text.trim();
     final double? viaticoValor = viaticoTexto.isEmpty
         ? null
-        : double.tryParse(
-            viaticoTexto,
-          ); //esta linea de codigo es para que cliente no entre como null, acepten el cambio entrante
+        : ClpInputFormatter.toDouble(viaticoTexto);
     final clienteSeguro =
         _clienteSeleccionado ??
         Cliente(
@@ -195,14 +194,14 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     void Function(String) onTipoCreado,
   ) {
     final nuevoTipoController = TextEditingController();
-    final _formkey = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Nuevo tipo de trabajo'),
         content: Form(
-          key: _formkey,
+          key: formKey,
           child: TextFormField(
             controller: nuevoTipoController,
             validator: (value) {
@@ -242,7 +241,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              if (_formkey.currentState!.validate()) {
+              if (formKey.currentState!.validate()) {
                 final nuevoTipo = nuevoTipoController.text.trim();
                 Navigator.pop(context);
                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -330,7 +329,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     decimal: true,
                   ),
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                    LengthLimitingTextInputFormatter(3),
+                    FilteringTextInputFormatter.digitsOnly,
                   ],
                   decoration: InputDecoration(
                     labelText: 'Cantidad Metros Cuadrados (m²)',
@@ -345,9 +345,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                  ],
+                  inputFormatters: [ClpInputFormatter(maxDigits: 9)],
                   decoration: InputDecoration(
                     labelText: 'Precio por m² (CLP)',
                     prefixIcon: const Icon(Icons.sell_outlined),
@@ -372,7 +370,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 final precioTexto = precioItemController.text.trim();
 
                 final m2 = double.tryParse(m2Texto);
-                final precio = double.tryParse(precioTexto);
+                final precio = ClpInputFormatter.toDouble(precioTexto);
 
                 setModalState(() {
                   errorM2 = null;
@@ -386,7 +384,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
                   if (precioTexto.isEmpty) {
                     errorPrecio = 'Debe ingresar el precio por m²';
-                  } else if (precio == null || precio <= 0) {
+                  } else if (precio <= 0) {
                     errorPrecio = 'Ingrese un precio positivo válido';
                   }
                 });
@@ -408,7 +406,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     ItemTrabajo(
                       tipo: tipoSeleccionado,
                       metrosCuadrados: m2!,
-                      precioPorMetro: precio!,
+                      precioPorMetro: precio,
                     ),
                   );
                 });
@@ -449,6 +447,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     if (numero < 0) {
       return 'No se permiten importes o tasas negativas';
     }
+    if (nombreCampo == '% de utilidad' && numero > 500) {
+      return 'La utilidad no puede superar el 500%';
+    }
+
+    if (nombreCampo == '% IVA Legal' && numero > 35) {
+      return 'El IVA no puede superar el 35%';
+    }
 
     return null;
   }
@@ -466,19 +471,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.orange,
-                  size: 28,
-                ),
-                SizedBox(width: 10),
-                Text(
-                  'Alerta de Rentabilidad',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.orange,
+                    size: 28,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Alerta de Rentabilidad',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
-          ),
             content: const Text(
               '¡Atención contratista! El margen de utilidad ingresado es inferior al 10% mínimo recomendado. '
               '¿Está seguro de que desea continuar con esta tasa de ganancia para el proyecto?',
@@ -797,11 +802,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       controller: _viaticoController,
                       keyboardType: TextInputType.number,
                       validator: (val) => _validarCampoNumerico(val, 'Viático'),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
-                        ),
-                      ],
+                      inputFormatters: [ClpInputFormatter(maxDigits: 9)],
                       decoration: const InputDecoration(
                         labelText: 'Viático adicional (Opcional - CLP)',
                         prefixIcon: Icon(Icons.payments_outlined),
@@ -815,9 +816,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       validator: (val) =>
                           _validarCampoNumerico(val, '% de utilidad'),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
-                        ),
+                        LengthLimitingTextInputFormatter(3),
+                        FilteringTextInputFormatter.digitsOnly,
                       ],
                       decoration: const InputDecoration(
                         labelText: '% Porcentaje de Utilidad',
@@ -832,9 +832,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       validator: (val) =>
                           _validarCampoNumerico(val, '% IVA Legal'),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d*'),
-                        ),
+                        LengthLimitingTextInputFormatter(3),
+                        FilteringTextInputFormatter.digitsOnly,
                       ],
                       decoration: const InputDecoration(
                         labelText: '% IVA Legal',
@@ -875,16 +874,16 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     ),
                     const SizedBox(height: 24),
 
-                   if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
-                    PrevisualizacionPdfWidget(
-                      cotizacion: datosEnVivo,
-                      materiales: _materialesAgregados,
-                      idCotizacion: _idCotizacionCreada!,
-                      manoObra: _manoObraAgregada,
-                      codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
-                      
-                      onListo: () async {
-                        if (!mounted) return;
+                    if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
+                      PrevisualizacionPdfWidget(
+                        cotizacion: datosEnVivo,
+                        materiales: _materialesAgregados,
+                        idCotizacion: _idCotizacionCreada!,
+                        manoObra: _manoObraAgregada,
+                        codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
+
+                        onListo: () async {
+                          if (!mounted) return;
 
                           _mostrarMensaje('¡Cotización creada con éxito!');
 
