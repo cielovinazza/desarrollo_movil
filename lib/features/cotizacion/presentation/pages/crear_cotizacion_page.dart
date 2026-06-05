@@ -440,7 +440,16 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     }
 
     final numero = double.tryParse(value.trim());
-    if (numero == null) {
+
+    if (nombreCampo == '% de utilidad') {
+      final partes = value.trim().split('.');
+
+      if (partes.length == 2 && partes[1].length > 2) {
+        return 'Máximo 2 decimales permitidos';
+      }
+    }
+
+    if (numero == null || numero < 0) {
       return 'Ingrese solo caracteres numéricos válidos';
     }
 
