@@ -304,6 +304,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               ),
             );
           });
+
+          _autoguardar();
         },
         onNuevoTipoCreado: (nuevoTipo) {
           setState(() {
@@ -408,6 +410,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   Future<void> _autoguardar() async {
+    print('AUTOGUARDANDO');
     final dto = BorradorCotizacionMapper.toDto(
       cliente: _clienteSeleccionado,
       clienteTexto: _clienteController.text,
@@ -532,6 +535,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   }
                   _currentStep += 1;
                 });
+                _autoguardar();
               } else {
                 if (!_formKey.currentState!.validate()) {
                   AppDialogs.mostrarSnackBar(
@@ -577,6 +581,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             onStepCancel: () {
               if (_currentStep > 0) {
                 setState(() => _currentStep -= 1);
+                _autoguardar();
               } else {
                 Navigator.pop(context);
               }
@@ -1038,7 +1043,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             const SizedBox(height: 16),
             TextField(
               controller: precioItemController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: false),
               inputFormatters: [ClpInputFormatter(maxDigits: 9)],
               decoration: InputDecoration(
                 labelText: 'Precio por m² (CLP)',
@@ -1079,7 +1084,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             final descripcionTexto = descripcionItemController.text.trim();
 
             final m2 = double.tryParse(m2Texto);
-            final precio = double.tryParse(precioTexto);
+            final precio =  ClpInputFormatter.toDouble(precioTexto);
 
             setState(() {
               errorM2 = null;

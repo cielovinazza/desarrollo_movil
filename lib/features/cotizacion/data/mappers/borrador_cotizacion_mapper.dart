@@ -29,6 +29,7 @@ class BorradorCotizacionMapper {
         'tipo': t.tipo,
         'metrosCuadrados': t.metrosCuadrados,
         'precioPorMetro': t.precioPorMetro,
+        'descripcionBreve': t.descripcionBreve,
       }).toList(),
       materiales: materiales.map((m) => {
         'nombre': m.nombre,
@@ -54,6 +55,7 @@ class BorradorCotizacionMapper {
       tipo: t['tipo'],
       metrosCuadrados: (t['metrosCuadrados'] as num).toDouble(),
       precioPorMetro: (t['precioPorMetro'] as num).toDouble(),
+      descripcionBreve: t['descripcionBreve'],
     )).toList();
   }
 
