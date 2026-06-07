@@ -127,6 +127,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
         buscando = false;
         mensaje = 'Cliente no encontrado. Debe registrar un nuevo cliente.';
       });
+      if (!mounted) return;
 
       final registrar = await showDialog<bool>(
         context: context,

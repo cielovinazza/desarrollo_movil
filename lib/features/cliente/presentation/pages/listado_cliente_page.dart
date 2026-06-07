@@ -200,7 +200,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                         ? const Center(child: Text('No se encontraron clientes'))
                         : ListView.separated(
                             itemCount: clientesFiltrados.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            separatorBuilder: (_, _) => const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final cliente = clientesFiltrados[index];
                               

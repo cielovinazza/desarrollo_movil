@@ -6,7 +6,7 @@ import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../widgets/cliente_text_field.dart';
 import '../formatters/mascara_rut_formatters.dart';
-import '../../../../shared/widgets/strings_extensions.dart';
+import '../../../../core/utils/strings_extensions.dart';
 
 class EditarClientePage extends StatefulWidget {
   final Cliente cliente;
