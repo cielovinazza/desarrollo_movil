@@ -352,42 +352,69 @@ Widget build(BuildContext context) {
                             ),
                             const SizedBox(height: 14),
                             Row(
-                              children: [
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.date_range, size: 18),
-                                    label: Text(
-                                      fechaInicioFiltro == null
-                                          ? 'Desde'
-                                          : '${fechaInicioFiltro!.day}/${fechaInicioFiltro!.month}/${fechaInicioFiltro!.year}',
+                            children: [
+                              //fecha desde
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  ),
+                                  onPressed: () async {
+                                    final fecha = await showDatePicker(
+                                      context: context,
+                                      initialDate: fechaInicioFiltro ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2100),
+                                    );
+                                    if (fecha != null) {
+                                      setState(() => fechaInicioFiltro = fecha);
+                                      cargarCotizacion();
+                                    }
+                                  },
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.date_range, size: 18),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              fechaInicioFiltro == null
+                                                  ? 'Desde'
+                                                  : '${fechaInicioFiltro!.day}/${fechaInicioFiltro!.month}/${fechaInicioFiltro!.year}',
+                                              style: const TextStyle(fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                        // si hay fecha seleccionada, muestra una X para borrarla
+                                        if (fechaInicioFiltro != null)
+                                          GestureDetector(
+                                            onTap: () {
+                                              setState(() => fechaInicioFiltro = null);
+                                              cargarCotizacion();
+                                            },
+                                            child: const Padding(
+                                              padding: EdgeInsets.all(4.0),
+                                              child: Icon(Icons.close, size: 16, color: Colors.grey),
+                                            ),
+                                          ),
+                                      ],
                                     ),
-                                    onPressed: () async {
-                                      final fecha = await showDatePicker(
-                                        context: context,
-                                        initialDate: DateTime.now(),
-                                        firstDate: DateTime(2020),
-                                        lastDate: DateTime(2100),
-                                      );
-                                      if (fecha != null) {
-                                        setState(() => fechaInicioFiltro = fecha);
-                                        cargarCotizacion();
-                                      }
-                                    },
                                   ),
                                 ),
                                 const SizedBox(width: 12),
+                                
+                                // fecha hasta
                                 Expanded(
-                                  child: OutlinedButton.icon(
-                                    icon: const Icon(Icons.date_range, size: 18),
-                                    label: Text(
-                                      fechaFinFiltro == null
-                                          ? 'Hasta'
-                                          : '${fechaFinFiltro!.day}/${fechaFinFiltro!.month}/${fechaFinFiltro!.year}',
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
                                     ),
                                     onPressed: () async {
                                       final fecha = await showDatePicker(
                                         context: context,
-                                        initialDate: DateTime.now(),
+                                        initialDate: fechaFinFiltro ?? DateTime.now(),
                                         firstDate: DateTime(2020),
                                         lastDate: DateTime(2100),
                                       );
@@ -396,6 +423,35 @@ Widget build(BuildContext context) {
                                         cargarCotizacion();
                                       }
                                     },
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.date_range, size: 18),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              fechaFinFiltro == null
+                                                  ? 'Hasta'
+                                                  : '${fechaFinFiltro!.day}/${fechaFinFiltro!.month}/${fechaFinFiltro!.year}',
+                                              style: const TextStyle(fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
+                                        if (fechaFinFiltro != null)
+                                          GestureDetector(
+                                            onTap: () {
+                                              setState(() => fechaFinFiltro = null);
+                                              cargarCotizacion();
+                                            },
+                                            child: const Padding(
+                                              padding: EdgeInsets.all(4.0),
+                                              child: Icon(Icons.close, size: 16, color: Colors.grey),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ],
