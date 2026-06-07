@@ -149,6 +149,7 @@ class _LoginPageState extends State<LoginPage> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       labelText: 'Correo electrónico',
+                      hintText: 'ejemplo@correo.com',
                       prefixIcon: const Icon(
                         Icons.email_outlined,
                         color: AppTheme.primary,
@@ -159,7 +160,11 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'El correo es obligatorio';
+                        return 'El correo electrónico es obligatorio';
+                      }
+                      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                      if (!emailRegex.hasMatch(value.trim())) {
+                        return 'Por favor, ingresa un formato de correo válido';
                       }
                       return null;
                     },
@@ -172,6 +177,7 @@ class _LoginPageState extends State<LoginPage> {
                     obscureText: !_passwordVisible,
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
+                      hintText: 'Mínimo 6 caracteres',
                       prefixIcon: const Icon(
                         Icons.lock_outline,
                         color: AppTheme.primary,
@@ -196,6 +202,9 @@ class _LoginPageState extends State<LoginPage> {
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'La contraseña es obligatoria';
+                      }
+                      if (value.length < 6) {
+                        return 'La contraseña debe tener al menos 6 caracteres';
                       }
                       return null;
                     },
