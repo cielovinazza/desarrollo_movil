@@ -8,6 +8,7 @@ import '../widgets/cliente_text_field.dart';
 import '../formatters/mascara_rut_formatters.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/utils/strings_extensions.dart';
+import '../../../../core/storage/local_storage.dart';
 
 class RegistroClientePage extends StatefulWidget {
   final String? rutInicial;
@@ -31,6 +32,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   final _correoController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _direccionController = TextEditingController();
+  final _localStorage = LocalStorage();
 
   late final RegistrarCliente registrarClienteUseCase;
 
@@ -41,6 +43,12 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   void initState() {
     super.initState();
     registrarClienteUseCase = RegistrarCliente(repository);
+    _recuperarBorradorCliente();
+    _nombreController.addListener(_autoguardarCliente);
+    _rutController.addListener(_autoguardarCliente);
+    _correoController.addListener(_autoguardarCliente);
+    _telefonoController.addListener(_autoguardarCliente);
+    _direccionController.addListener(_autoguardarCliente);
     
     if (widget.rutInicial != null) {
       _rutController.text = widget.rutInicial!;
@@ -62,6 +70,11 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     _correoController.dispose();
     _telefonoController.dispose();
     _direccionController.dispose();
+    _nombreController.removeListener(_autoguardarCliente);
+    _rutController.removeListener(_autoguardarCliente);
+    _correoController.removeListener(_autoguardarCliente);
+    _telefonoController.removeListener(_autoguardarCliente);
+    _direccionController.removeListener(_autoguardarCliente);
     super.dispose();
   }
 
@@ -119,6 +132,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
     try {
       await registrarClienteUseCase(cliente);
+      await _localStorage.limpiarBorradorCliente();
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -137,17 +151,44 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     }
   }
 
-  void _clearForm() {
+   Future<void> _clearForm() async {
     _formKey.currentState?.reset();
     _nombreController.clear();
     _rutController.clear();
     _correoController.clear();
     _telefonoController.clear();
     _direccionController.clear();
+    await _localStorage.limpiarBorradorCliente();
+    if(!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Formulario limpiado'), behavior: SnackBarBehavior.floating),
     );
   }
+  Future<void> _autoguardarCliente() async {
+    await _localStorage.guardarBorradorCliente({
+      'nombre': _nombreController.text,
+      'rut': _rutController.text,
+      'correo': _correoController.text,
+      'telefono': _telefonoController.text,
+      'direccion': _direccionController.text,
+    });
+  }
+
+  Future<void> _recuperarBorradorCliente() async {
+    final borrador = await _localStorage.obtenerBorradorCliente();
+    if (borrador == null) return;
+
+    setState(() {
+      _nombreController.text = borrador['nombre'] ?? '';
+      _rutController.text = borrador['rut'] ?? '';
+      _correoController.text = borrador['correo'] ?? '';
+      _telefonoController.text = borrador['telefono'] ?? '';
+      _direccionController.text = borrador['direccion'] ?? '';
+    });
+
+    _validarFormulario();
+  }
+  
 
   @override
   Widget build(BuildContext context) {

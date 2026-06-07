@@ -456,9 +456,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       return 'El campo $nombreCampo es obligatorio';
     }
 
-    final numero = double.tryParse(value.trim());
+    final numero = value.trim().isEmpty
+        ? 0.0
+        : ClpInputFormatter.toDouble(value.trim());
 
-    if (numero == null || numero < 0) {
+    if (numero < 0) {
       return 'Ingrese solo caracteres numéricos válidos';
     }
 
@@ -550,6 +552,36 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final raw = await _localStorage.obtenerBorradorCotizacion();
     if (raw == null) return;
 
+    if (!mounted) return;
+
+    final continuar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Borrador encontrado',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Tienes un formulario sin terminar. ¿Deseas continuar donde lo dejaste?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Descartar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+
+    if (continuar != true) {
+      await _localStorage.limpiarBorradorCotizacion();
+      return;
+    }
+
     final dto = BorradorCotizacionDto.fromJson(raw);
 
     setState(() {
@@ -570,6 +602,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         ..clear()
         ..addAll(BorradorCotizacionMapper.manoObraFromDto(dto));
     });
+    await _autoguardar();
   }
 
   @override
@@ -647,6 +680,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   return;
                 }
               }
+              await _autoguardar();
 
               if (_currentStep < 4) {
                 setState(() {
@@ -657,6 +691,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 });
               } else {
                 if (!_formKey.currentState!.validate()) {
+                  if (!context.mounted) return;
                   AppDialogs.mostrarSnackBar(
                     context,
                     'Formulario inválido. Corrija los campos en rojo antes de guardar.',
@@ -700,6 +735,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             onStepCancel: () {
               if (_currentStep > 0) {
                 setState(() => _currentStep -= 1);
+                _autoguardar();
               } else {
                 Navigator.pop(context);
               }
@@ -715,6 +751,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   controller: _clienteController,
                   onClienteSeleccionado: (Cliente cliente) {
                     setState(() => _clienteSeleccionado = cliente);
+                    _autoguardar();
                   },
                 ),
               ),
@@ -968,7 +1005,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
                         onListo: () async {
                           await _localStorage.limpiarBorradorCotizacion();
-                           if (!context.mounted) return;
+                          if (!context.mounted) return;
 
                           AppDialogs.mostrarSnackBar(
                             context,
