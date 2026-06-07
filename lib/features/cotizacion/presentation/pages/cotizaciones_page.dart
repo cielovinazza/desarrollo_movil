@@ -152,7 +152,6 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   int contarPorEstado(String estado) {
     return cotizaciones.where((c) => c.estado == estado).length;
   }
-
   bool _estacargando = false;
 
   @override
@@ -171,9 +170,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                 : () async {
                     await Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const CrearCotizacionPage(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const CrearCotizacionPage()),
                     );
                     if (!mounted) return;
 
@@ -191,21 +188,13 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 : const Icon(Icons.add, size: 28),
           ),
           appBar: AppBar(
             elevation: 0,
             title: const Text('Cotizaciones'),
-            /*leading: IconButton(
-            icon: const Icon(Icons.menu),
-            color: theme.appBarTheme.foregroundColor,
-            onPressed: () {},
-          ),*/
             actions: [
               IconButton(
                 icon: const Icon(Icons.refresh),
@@ -237,18 +226,12 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                         const SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppTheme.warning,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.warning),
                         ),
                         const SizedBox(width: 12),
                         Text(
                           'Sincronizando cambios locales...',
-                          style: textTheme.bodySmall?.copyWith(
-                            color: AppTheme.warning,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: textTheme.bodySmall?.copyWith(color: AppTheme.warning, fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -264,21 +247,14 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       const SizedBox(height: 16),
                       Text(
                         'Cotizaciones por Estado',
-                        style: textTheme.titleLarge?.copyWith(
-                          color: AppTheme.darkPrimary,
-                        ),
+                        style: textTheme.titleLarge?.copyWith(color: AppTheme.darkPrimary),
                       ),
                       const SizedBox(height: 20),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 20,
-                          horizontal: 12,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
                         decoration: BoxDecoration(
-                          color: theme.brightness == Brightness.dark
-                              ? theme.cardColor
-                              : Colors.grey.shade50,
+                          color: theme.brightness == Brightness.dark ? theme.cardColor : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: theme.dividerColor.withValues(alpha: 0.15),
@@ -329,11 +305,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: Theme.of(
-                              context,
-                            ).dividerColor.withValues(alpha: 0.5),
-                          ),
+                          side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(4.0),
@@ -585,8 +557,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: cotizaciones.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 14),
+                          separatorBuilder: (_, __) => const SizedBox(height: 14),
                           itemBuilder: (context, index) {
                             final cotizacion = cotizaciones[index];
                             return _CotizacionCard(
@@ -596,17 +567,14 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                               direccion: cotizacion.direccion,
                               fecha: cotizacion.fechaCreacion != null
                                   ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
-                                        '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
-                                        '${cotizacion.fechaCreacion!.toDate().year}'
+                                    '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
+                                    '${cotizacion.fechaCreacion!.toDate().year}'
                                   : 'Sin Fecha',
-                              monto:
-                                  '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
+                              monto: '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
                               estado: cotizacion.estado,
                               estadoColor: estadoColor(cotizacion.estado),
-                              onEstadoCambiado: (nuevoEstado) =>
-                                  cambiarEstado(cotizacion, nuevoEstado),
-                              onEnviarCorreoSolicitado: () =>
-                                  procesarEnvioCorreo(cotizacion),
+                              onEstadoCambiado: (nuevoEstado) => cambiarEstado(cotizacion, nuevoEstado),
+                              onEnviarCorreoSolicitado: () => procesarEnvioCorreo(cotizacion),
                               onRecargar: cargarCotizacion,
                             );
                           },
@@ -723,6 +691,24 @@ class _CotizacionCard extends StatelessWidget {
     required this.onRecargar,
   });
 
+  bool get _esEditable => estado == 'Rechazada por el Cliente' || estado == 'Rechazada';
+
+  void _mostrarDialogoError(BuildContext context, String titulo, String mensaje) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SelectableText(mensaje),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Entendido', style: TextStyle(color: AppTheme.danger)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     String estadoNormalizado = estado;
@@ -731,8 +717,7 @@ class _CotizacionCard extends StatelessWidget {
     if (estado == 'Rechazada') estadoNormalizado = 'Rechazada por el Cliente';
 
     final textTheme = Theme.of(context).textTheme;
-    final bool noTienePdf =
-        cotizacionRaw.pdfUrl == null || cotizacionRaw.pdfUrl!.isEmpty;
+    final bool noTienePdf = cotizacionRaw.pdfUrl == null || cotizacionRaw.pdfUrl!.isEmpty;
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -945,6 +930,36 @@ class _CotizacionCard extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+          ],
+          if (_esEditable) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.orange.shade800,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CrearCotizacionPage(
+                        cotizacionAEditar: cotizacionRaw,
+                      ),
+                    ),
+                  );
+                  await onRecargar();
+                },
+                icon: const Icon(Icons.edit_note, size: 20),
+                label: const Text(
+                  'Editar Cotización',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
