@@ -44,6 +44,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
     listarClientesUseCase = ListarClientes(repository);
     _cargarClientes();
     _rutController.addListener(_filtrarClientes);
+    _cargarClientesIniciales();
   }
 
   @override
