@@ -16,8 +16,13 @@ import '../../../../core/utils/currency_formatter.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   final Cliente? clienteInyectado;
+  final CotizacionDto? cotizacionAEditar;
 
-  const CrearCotizacionPage({super.key, this.clienteInyectado});
+  const CrearCotizacionPage({
+    super.key, 
+    this.clienteInyectado,
+    this.cotizacionAEditar,
+  });
 
   @override
   State<CrearCotizacionPage> createState() => _CrearCotizacionPageState();
@@ -71,6 +76,73 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       _clienteSeleccionado = widget.clienteInyectado;
       _clienteController.text = widget.clienteInyectado!.nombre;
     }
+
+    if (widget.cotizacionAEditar != null) {
+      final edicion = widget.cotizacionAEditar!;
+      _idCotizacionCreada = edicion.id;
+      _codigoCotizacionCreada = edicion.codigo;
+      
+      _clienteSeleccionado = Cliente(
+        id: edicion.clienteId,
+        nombre: edicion.clienteNombre,
+        correo: edicion.clienteEmail,
+        rut: edicion.clienteRut,
+        telefono: edicion.clienteTelefono,
+        direccion: edicion.clienteDireccion,
+      );
+      _clienteController.text = edicion.clienteNombre;
+      _direccionController.text = edicion.direccion;
+      _viaticoController.text = edicion.viatico?.toString() ?? '';
+      _utilidadController.text = edicion.porcentajeUtilidad.toString();
+      _ivaController.text = edicion.porcentajeIva.toString();
+
+      // 1. Mapeo Seguro de Trabajos
+      if (edicion.trabajos.isNotEmpty) {
+        _trabajosAgregados.addAll(
+          edicion.trabajos.map((item) {
+            if (item is ItemTrabajo) return item;
+            final map = item as Map<String, dynamic>;
+            return ItemTrabajo(
+              tipo: map['tipo'] ?? '',
+              metrosCuadrados: (map['metrosCuadrados'] ?? 0).toDouble(),
+              precioPorMetro: (map['precioPorMetro'] ?? 0).toDouble(),
+              descripcionBreve: map['descripcionBreve'],
+            );
+          }),
+        );
+      }
+
+      // 2. Mapeo Seguro de Mano de Obra (Campos reales: cargo, dias, valorJornada)
+      if (edicion.manoObra.isNotEmpty) {
+        _manoObraAgregada.addAll(
+          edicion.manoObra.map((item) {
+            if (item is ManoDeObra) return item;
+            final map = item as Map<String, dynamic>;
+            return ManoDeObra(
+              cargo: map['cargo'] ?? map['detalle'] ?? '', 
+              dias: (map['dias'] ?? 0).toInt(),
+              valorJornada: (map['valorJornada'] ?? map['costo'] ?? 0).toDouble(),
+            );
+          }),
+        );
+      }
+
+      // 3. Mapeo Seguro de Materiales (Campos reales: nombre, cantidad, costoUnitario, unidadMedida)
+      if (edicion.materiales.isNotEmpty) {
+        _materialesAgregados.addAll(
+          edicion.materiales.map((item) {
+            if (item is MaterialEntity) return item;
+            final map = item as Map<String, dynamic>;
+            return MaterialEntity(
+              nombre: map['nombre'] ?? '',
+              cantidad: (map['cantidad'] ?? 0).toDouble(),
+              costoUnitario: (map['costoUnitario'] ?? map['precioUnitario'] ?? 0).toDouble(),
+              unidadMedida: map['unidadMedida'] ?? '',
+            );
+          }),
+        );
+      }
+    }
   }
 
   @override
@@ -87,9 +159,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final viaticoTexto = _viaticoController.text.trim();
     final double? viaticoValor = viaticoTexto.isEmpty
         ? null
-        : double.tryParse(
-            viaticoTexto,
-          ); 
+        : double.tryParse(viaticoTexto); 
     final clienteSeguro =
         _clienteSeleccionado ??
         Cliente(
@@ -115,8 +185,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
   Future<String> _guardarCotizacion() async {
     final cotizacion = _obtenerEstadoActual();
-    final docRef = FirebaseFirestore.instance.collection('cotizaciones').doc();
-    final String idReal = docRef.id;
+    
+    final String idReal = widget.cotizacionAEditar?.id ?? 
+        FirebaseFirestore.instance.collection('cotizaciones').doc().id;
+
+    final int versionNueva = widget.cotizacionAEditar != null 
+        ? (widget.cotizacionAEditar!.version + 1) 
+        : 1;
+
+    final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
 
     final dto = CotizacionMapper.toDto(
       cotizacion: cotizacion,
@@ -133,7 +210,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       clienteRut: dto.clienteRut,
       clienteTelefono: dto.clienteTelefono,
       clienteDireccion: dto.clienteDireccion,
-      codigo: dto.codigo,
+      codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
       direccion: dto.direccion,
       trabajos: dto.trabajos,
       manoObra: dto.manoObra,
@@ -148,7 +225,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       estado: 'En Proceso',
       usuarioId: dto.usuarioId,
       fechaCreacion: dto.fechaCreacion,
-      version: dto.version,
+      version: versionNueva,
     );
 
     await guardarCotizacionUseCase(dtoConId);
@@ -431,9 +508,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 ),
                 isActive: _currentStep >= 0,
                 content: IgnorePointer(
-                  ignoring: widget.clienteInyectado != null,
+                  ignoring: widget.clienteInyectado != null || widget.cotizacionAEditar != null,
                   child: Opacity(
-                    opacity: widget.clienteInyectado != null ? 0.6 : 1.0,
+                    opacity: widget.clienteInyectado != null || widget.cotizacionAEditar != null ? 0.6 : 1.0,
                     child: SelectorCliente(
                       controller: _clienteController,
                       onClienteSeleccionado: (Cliente cliente) {
