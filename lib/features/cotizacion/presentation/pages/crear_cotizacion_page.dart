@@ -14,6 +14,10 @@ import '../../data/dtos/cotizacion_dtos.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/clp_input_formatter.dart';
+import '../../../../shared/widgets/app_dialogs.dart';
+import '../../../../core/storage/local_storage.dart';
+import '../../data/dtos/borrador_cotizacion_dto.dart';
+import '../../data/mappers/borrador_cotizacion_mapper.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   const CrearCotizacionPage({super.key});
@@ -42,6 +46,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _viaticoController = TextEditingController();
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
+  final _localStorage = LocalStorage();
 
   final List<String> _tiposDisponibles = [
     'Pintura',
@@ -67,6 +72,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     final repository = CotizacionRepositoryImpl(datasource);
 
     guardarCotizacionUseCase = GuardarCotizacion(repository);
+    _recuperarBorrador();
+    _clienteController.addListener(_autoguardar);
+    _direccionController.addListener(_autoguardar);
+    _viaticoController.addListener(_autoguardar);
+    _utilidadController.addListener(_autoguardar);
+    _ivaController.addListener(_autoguardar);
   }
 
   @override
@@ -76,6 +87,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     _viaticoController.dispose();
     _utilidadController.dispose();
     _ivaController.dispose();
+    _clienteController.removeListener(_autoguardar);
+    _direccionController.removeListener(_autoguardar);
+    _viaticoController.removeListener(_autoguardar);
+    _utilidadController.removeListener(_autoguardar);
+    _ivaController.removeListener(_autoguardar);
     super.dispose();
   }
 
@@ -162,18 +178,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     return idReal;
   }
 
-  void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(mensaje)));
-  }
-
   Future<void> _agregarMaterial() async {
     final resultado = await showDialog<MaterialEntity>(
       context: context,
       builder: (_) => MaterialDialog(verdeApp: _verdeApp),
     );
-    if (resultado != null) setState(() => _materialesAgregados.add(resultado));
+    if (resultado != null) {
+      setState(() => _materialesAgregados.add(resultado));
+      _autoguardar();
+    }
   }
 
   Future<void> _editarMaterial(int index) async {
@@ -410,6 +423,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     ),
                   );
                 });
+                _autoguardar();
 
                 Navigator.pop(context);
               },
@@ -430,7 +444,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       context: context,
       builder: (_) => ManoObraDialog(verdeApp: _verdeApp),
     );
-    if (resultado != null) setState(() => _manoObraAgregada.add(resultado));
+    if (resultado != null) {
+      setState(() => _manoObraAgregada.add(resultado));
+      _autoguardar();
+    }
   }
 
   String? _validarCampoNumerico(String? value, String nombreCampo) {
@@ -441,29 +458,16 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
     final numero = double.tryParse(value.trim());
 
-    if (nombreCampo == '% de utilidad') {
-      final partes = value.trim().split('.');
-
-      if (partes.length == 2 && partes[1].length > 2) {
-        return 'Máximo 2 decimales permitidos';
-      }
-    }
-
     if (numero == null || numero < 0) {
       return 'Ingrese solo caracteres numéricos válidos';
-    }
-
-    if (numero < 0) {
-      return 'No se permiten importes o tasas negativas';
-    }
-    if (nombreCampo == '% de utilidad' && numero > 500) {
-      return 'La utilidad no puede superar el 500%';
     }
 
     if (nombreCampo == '% IVA Legal' && numero > 35) {
       return 'El IVA no puede superar el 35%';
     }
-
+    if (nombreCampo == '% de utilidad' && numero > 500) {
+      return 'La utilidad no puede superar el 500%';
+    }
     return null;
   }
 
@@ -526,6 +530,48 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         false;
   }
 
+  Future<void> _autoguardar() async {
+    final dto = BorradorCotizacionMapper.toDto(
+      cliente: _clienteSeleccionado,
+      clienteTexto: _clienteController.text,
+      direccion: _direccionController.text,
+      viatico: _viaticoController.text,
+      utilidad: _utilidadController.text,
+      iva: _ivaController.text,
+      currentStep: _currentStep,
+      trabajos: _trabajosAgregados,
+      materiales: _materialesAgregados,
+      manoObra: _manoObraAgregada,
+    );
+    await _localStorage.guardarBorradorCotizacion(dto.toJson());
+  }
+
+  Future<void> _recuperarBorrador() async {
+    final raw = await _localStorage.obtenerBorradorCotizacion();
+    if (raw == null) return;
+
+    final dto = BorradorCotizacionDto.fromJson(raw);
+
+    setState(() {
+      _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
+      _clienteController.text = dto.clienteTexto;
+      _direccionController.text = dto.direccion;
+      _viaticoController.text = dto.viatico;
+      _utilidadController.text = dto.utilidad;
+      _ivaController.text = dto.iva;
+      _currentStep = dto.currentStep;
+      _trabajosAgregados
+        ..clear()
+        ..addAll(BorradorCotizacionMapper.trabajosFromDto(dto));
+      _materialesAgregados
+        ..clear()
+        ..addAll(BorradorCotizacionMapper.materialesFromDto(dto));
+      _manoObraAgregada
+        ..clear()
+        ..addAll(BorradorCotizacionMapper.manoObraFromDto(dto));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final datosEnVivo = _obtenerEstadoActual();
@@ -577,18 +623,27 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             onStepContinue: () async {
               if (_currentStep == 0) {
                 if (_clienteController.text.trim().isEmpty) {
-                  _mostrarMensaje('Debes ingresar o seleccionar un cliente');
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Debes ingresar o seleccionar un cliente',
+                  );
                   return;
                 }
               }
 
               if (_currentStep == 1) {
                 if (_direccionController.text.trim().isEmpty) {
-                  _mostrarMensaje('Debes ingresar la dirección de la obra');
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Debes ingresar la dirección de la obra',
+                  );
                   return;
                 }
                 if (_trabajosAgregados.isEmpty) {
-                  _mostrarMensaje('Debes agregar al menos un trabajo de obra');
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Debes ingresar la dirección de la obra',
+                  );
                   return;
                 }
               }
@@ -602,7 +657,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 });
               } else {
                 if (!_formKey.currentState!.validate()) {
-                  _mostrarMensaje(
+                  AppDialogs.mostrarSnackBar(
+                    context,
                     'Formulario inválido. Corrija los campos en rojo antes de guardar.',
                   );
                   return;
@@ -625,10 +681,19 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     _idCotizacionCreada = realId;
                     _vistaPreviaCargada = true;
                   });
-                  _mostrarMensaje('Cotización creada con exito.');
+                  await _localStorage.limpiarBorradorCotizacion();
+                  if (!context.mounted) return;
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Cotización creada con exito.',
+                  );
                 } catch (e) {
                   setState(() => _guardandoEnFirestore = false);
-                  _mostrarMensaje('Error de persistencia: $e');
+                  if (!context.mounted) return;
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Error de persistencia: $e',
+                  );
                 }
               }
             },
@@ -724,9 +789,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                               Icons.delete_outline,
                               color: Colors.redAccent,
                             ),
-                            onPressed: () => setState(
-                              () => _trabajosAgregados.removeAt(index),
-                            ),
+                            onPressed: () {
+                              setState(
+                                () => _trabajosAgregados.removeAt(index),
+                              );
+                              _autoguardar();
+                            },
                           ),
                         ),
                       );
@@ -778,8 +846,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   items: _manoObraAgregada,
                   verdeApp: _verdeApp,
                   onAgregar: _agregarManoObra,
-                  onEliminar: (index) =>
-                      setState(() => _manoObraAgregada.removeAt(index)),
+                  onEliminar: (index) {
+                    setState(() => _manoObraAgregada.removeAt(index));
+                    _autoguardar();
+                  },
                 ),
               ),
               Step(
@@ -792,11 +862,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   items: _materialesAgregados,
                   verdeApp: _verdeApp,
                   onAgregar: _agregarMaterial,
-                  onEliminar: (index) =>
-                      setState(() => _materialesAgregados.removeAt(index)),
+                  onEliminar: (index) {
+                    setState(() => _materialesAgregados.removeAt(index));
+                    _autoguardar();
+                  },
                   onEditar: _editarMaterial,
-                  onImportarCSV: (materiales) =>
-                      setState(() => _materialesAgregados.addAll(materiales)),
+                  onImportarCSV: (materiales) {
+                    setState(() => _materialesAgregados.addAll(materiales));
+                    _autoguardar();
+                  },
                 ),
               ),
               Step(
@@ -825,8 +899,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       validator: (val) =>
                           _validarCampoNumerico(val, '% de utilidad'),
                       inputFormatters: [
-                        LengthLimitingTextInputFormatter(3),
-                        FilteringTextInputFormatter.digitsOnly,
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d{0,3}\.?\d{0,2}'),
+                        ),
                       ],
                       decoration: const InputDecoration(
                         labelText: '% Porcentaje de Utilidad',
@@ -892,9 +967,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
 
                         onListo: () async {
-                          if (!mounted) return;
+                          await _localStorage.limpiarBorradorCotizacion();
+                           if (!context.mounted) return;
 
-                          _mostrarMensaje('¡Cotización creada con éxito!');
+                          AppDialogs.mostrarSnackBar(
+                            context,
+                            '¡Cotización creada con éxito!',
+                          );
 
                           Navigator.of(context).pop();
                         },

@@ -6,7 +6,7 @@ import 'package:mailer/smtp_server.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../dtos/cotizacion_dtos.dart';
-import '../../../../shared/widgets/strings_extensions.dart';
+import '../../../../core/utils/strings_extensions.dart';
 
 class CotizacionFirestoreDataSource {
   final FirebaseFirestore firestore;

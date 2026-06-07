@@ -9,6 +9,7 @@ import '../../domain/usecases/eliminar_material.dart';
 import '../../domain/usecases/listar_material.dart';
 import '../../utils/csv_parser.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/app_dialogs.dart';
 
 class MaterialesPage extends StatefulWidget {
   const MaterialesPage({super.key});
@@ -72,7 +73,7 @@ class _MaterialesPageState extends State<MaterialesPage> {
         unidad.isEmpty ||
         cantidadTexto.isEmpty ||
         costoTexto.isEmpty) {
-      mostrarMensaje('Completa todos los campos');
+      AppDialogs.mostrarSnackBar(context, 'Completa todos los campos');
       return;
     }
 
@@ -80,12 +81,12 @@ class _MaterialesPageState extends State<MaterialesPage> {
     final costo = double.tryParse(costoTexto);
 
     if (cantidad == null || cantidad <= 0) {
-      mostrarMensaje('Ingresa una cantidad válida');
+      AppDialogs.mostrarSnackBar(context, 'Ingresa una cantidad válida');
       return;
     }
 
     if (costo == null || costo <= 0) {
-      mostrarMensaje('Ingresa un costo válido');
+      AppDialogs.mostrarSnackBar(context, 'Ingresa un costo válido');
       return;
     }
 
@@ -98,10 +99,12 @@ class _MaterialesPageState extends State<MaterialesPage> {
 
     if (indexEditando == null) {
       await crearMaterialUseCase(material);
-      mostrarMensaje('Material agregado');
+      if(!mounted) return;
+      AppDialogs.mostrarSnackBar(context, 'Material agregado');
     } else {
       await editarMaterialUseCase(indexEditando!, material);
-      mostrarMensaje('Material actualizado');
+      if(!mounted) return;
+      AppDialogs.mostrarSnackBar(context, 'Material actualizado');
     }
 
     limpiarFormulario();
@@ -111,7 +114,8 @@ class _MaterialesPageState extends State<MaterialesPage> {
   Future<void> eliminarMaterial(int index) async {
     await eliminarMaterialUseCase(index);
     await cargarMateriales();
-    mostrarMensaje('Material eliminado');
+    if(!mounted) return;
+    AppDialogs.mostrarSnackBar(context, 'Material eliminado');
   }
 
   void editarMaterial(int index) {
@@ -163,24 +167,58 @@ class _MaterialesPageState extends State<MaterialesPage> {
   }
 
   Future<void> _procesarCSV(String contenido) async {
-    final resultado = parsearCSV(contenido);
+  final resultado = parsearCSV(contenido);
 
-    for (final material in resultado.materialesValidos) {
-      await crearMaterialUseCase(material);
-    }
+  for (final material in resultado.materialesValidos) {
+    await crearMaterialUseCase(material);
+  }
 
-    await cargarMateriales();
-    if (!mounted) return;
+  await cargarMateriales();
+  if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Importados: ${resultado.materialesValidos.length} | '
-          'Rechazados: ${resultado.filasRechazadas.length}',
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text(
+        'Resultado de importación',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Importados: ${resultado.materialesValidos.length}'),
+            Text('Rechazados: ${resultado.filasRechazadas.length}'),
+            if (resultado.filasRechazadas.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 4),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: resultado.filasRechazadas.length,
+                  separatorBuilder: (_, _) => const Divider(height: 1),
+                  itemBuilder: (_, i) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Text(resultado.filasRechazadas[i]),
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
-    );
-  }
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cerrar'),
+        ),
+      ],
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {

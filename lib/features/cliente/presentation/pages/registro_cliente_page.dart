@@ -7,7 +7,7 @@ import '../../domain/usecases/registrar_cliente.dart';
 import '../widgets/cliente_text_field.dart';
 import '../formatters/mascara_rut_formatters.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../../shared/widgets/strings_extensions.dart';
+import '../../../../core/utils/strings_extensions.dart';
 
 class RegistroClientePage extends StatefulWidget {
   final String? rutInicial;

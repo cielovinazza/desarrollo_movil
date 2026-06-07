@@ -10,6 +10,7 @@ import 'package:project/features/materiales/domain/entities/material.dart';
 import '../../data/datasources/cotizacion_firebase_datasource.dart';
 import '../../data/repositories/cotizacion_repository_impl.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/app_dialogs.dart';
 
 class PrevisualizacionPdfWidget extends StatefulWidget {
   final CotizacionModel cotizacion;
@@ -508,31 +509,14 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       setState(() => _subiendo = false);
       await widget.onListo();
     } catch (e) {
+      if (!mounted) return;
       setState(() => _subiendo = false);
-      _mostrarError(
+      AppDialogs.mostrarError(
+        context,
         'Error de Almacenamiento',
         e.toString().replaceAll('Exception: ', ''),
       );
     }
-  }
-
-  void _mostrarError(String titulo, String mensaje) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          titulo,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Text(mensaje),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
