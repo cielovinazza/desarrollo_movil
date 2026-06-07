@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project/features/materiales/domain/entities/material.dart';
 import '../../../../core/utils/currency_formatter.dart';
 
@@ -57,16 +58,6 @@ class _MaterialDialogState extends State<MaterialDialog> {
     });
   }
 
-  void _filtrarNumero(TextEditingController controller, String value) {
-    final filtrado = value.replaceAll(RegExp(r'[^0-9.]'), '');
-    if (filtrado != value) {
-      controller.value = TextEditingValue(
-        text: filtrado,
-        selection: TextSelection.collapsed(offset: filtrado.length),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final esEdicion = widget.materialEditando != null;
@@ -120,10 +111,10 @@ class _MaterialDialogState extends State<MaterialDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                onChanged: (v) {
-                  _filtrarNumero(_cantidadController, v);
-                  _calcularSubtotal();
-                },
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')), // 🚀 Formateador nativo seguro
+                ],
+                onChanged: (v) => _calcularSubtotal(),
                 decoration: const InputDecoration(
                   labelText: 'Cantidad',
                   hintText: 'Ej: 10',
@@ -144,10 +135,10 @@ class _MaterialDialogState extends State<MaterialDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                onChanged: (v) {
-                  _filtrarNumero(_costoController, v);
-                  _calcularSubtotal();
-                },
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')), // 🚀 Formateador nativo seguro
+                ],
+                onChanged: (v) => _calcularSubtotal(),
                 decoration: const InputDecoration(
                   labelText: 'Costo unitario (CLP)',
                   hintText: 'Ej: 5500',
@@ -167,7 +158,7 @@ class _MaterialDialogState extends State<MaterialDialog> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: widget.verdeApp.withValues(alpha: 0.08),
+                  color: widget.verdeApp.withAlpha((0.08 * 255).toInt()),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(

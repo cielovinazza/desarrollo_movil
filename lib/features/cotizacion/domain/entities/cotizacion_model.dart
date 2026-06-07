@@ -1,15 +1,18 @@
 import '../entities/mano_de_obra.dart';
 import '../../../materiales/domain/entities/material.dart';
 import '../../../cliente/domain/entities/cliente.dart';
+
 class ItemTrabajo {
   final String tipo;
   final double metrosCuadrados;
   final double precioPorMetro;
+  final String? descripcionBreve; //Atributo opcional
 
   ItemTrabajo({
     required this.tipo,
     required this.metrosCuadrados,
     required this.precioPorMetro,
+    this.descripcionBreve, //Parámetro opcional en el constructor
   });
 
   // Subtotal de este ítem específico
@@ -43,20 +46,18 @@ class CotizacionModel {
   }
 
   double get subtotalMateriales {
-  return materiales.fold(
-    0.0,
-    (suma, item) => suma + item.subtotal,
-  );
-}
+    return materiales.fold(
+      0.0,
+      (suma, item) => suma + item.subtotal,
+    );
+  }
   
   double get subtotalManoObraTotal {
-
-  return listaManoObra.fold(
-    0.0,
-    (suma, item) =>
-        suma + item.subtotal,
-  );
-}
+    return listaManoObra.fold(
+      0.0,
+      (suma, item) => suma + item.subtotal,
+    );
+  }
 
   // Fórmula: Total = (Suma Mat + Suma MO + Viático) * (1 + %Utilidad) * (1 + %IVA)
   double calcularTotalFinal() {
@@ -72,5 +73,5 @@ class CotizacionModel {
 
     // Redondeo tradicional a CLP sin decimales
     return totalCalculado;
-  }
+  } 
 }
