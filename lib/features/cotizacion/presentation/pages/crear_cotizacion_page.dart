@@ -998,7 +998,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              value: widget.tiposDisponibles.contains(tipoSeleccionado) ? tipoSeleccionado : widget.tiposDisponibles.first,
+              initialValue: widget.tiposDisponibles.contains(tipoSeleccionado) ? tipoSeleccionado : widget.tiposDisponibles.first,
               decoration: const InputDecoration(
                 labelText: 'Tipo de Rubro',
                 border: OutlineInputBorder(),
@@ -1025,8 +1025,9 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
               controller: m2ItemController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-              ],
+                    LengthLimitingTextInputFormatter(3),
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
               decoration: InputDecoration(
                 labelText: 'Cantidad Metros Cuadrados (m²)',
                 prefixIcon: const Icon(Icons.square_foot),
@@ -1038,9 +1039,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             TextField(
               controller: precioItemController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-              ],
+              inputFormatters: [ClpInputFormatter(maxDigits: 9)],
               decoration: InputDecoration(
                 labelText: 'Precio por m² (CLP)',
                 prefixIcon: const Icon(Icons.sell_outlined),
