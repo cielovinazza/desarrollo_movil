@@ -7,7 +7,6 @@ import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/usecases/listar_clientes.dart';
 import 'editar_cliente_page.dart';
-//AGREGAMOS LA IMPORTACIÓN DE LA PÁGINA DE COTIZACIÓN
 import '../../../cotizacion/presentation/pages/crear_cotizacion_page.dart';
 
 class ListadoClientesPage extends StatefulWidget {
@@ -452,7 +451,7 @@ class _ClienteCardWidget extends StatelessWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 0,
                       ),
-                      // 🚀 IMPLEMENTACIÓN DEL FLUJO DIRECTO CON PASO DE PARÁMETRO
+                      
                       onPressed: () {
                         Navigator.push(
                           context,
