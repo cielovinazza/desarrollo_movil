@@ -93,7 +93,7 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
                   return ListView.separated(
                     padding: const EdgeInsets.only(bottom: 24),
                     itemCount: cotizaciones.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       return _CotizacionItem(cotizacion: cotizaciones[index]);
                     },

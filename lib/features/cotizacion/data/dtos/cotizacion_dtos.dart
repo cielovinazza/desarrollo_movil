@@ -11,7 +11,7 @@ class CotizacionDto {
   final String? pdfUrl;
   final String direccion;
   final String codigo;
-  final List<dynamic> trabajos;
+  final List<dynamic> trabajos; // Cada mapa dentro de esta lista incluirá 'descripcionBreve'
   final List<dynamic> manoObra;
   final List<dynamic> materiales;
 
@@ -68,7 +68,7 @@ class CotizacionDto {
       'clienteDireccion': clienteDireccion,
       'codigo': codigo,
       'direccion': direccion,
-      'trabajos': trabajos,
+      'trabajos': trabajos, // Firebase serializa automáticamente los mapas con el nuevo campo
       'manoObra': manoObra,
       'materiales': materiales,
       'subtotalObra': subtotalObra,
@@ -100,7 +100,7 @@ class CotizacionDto {
       pdfUrl: map['pdfUrl'],
       codigo: map['codigo'] ?? '',
       direccion: map['direccion'] ?? '',
-      trabajos: map['trabajos'] ?? [],
+      trabajos: map['trabajos'] ?? [], // Firestore recupera el mapa interno con el string opcional
       manoObra: map['manoObra'] ?? [],
       materiales: map['materiales'] ?? [],
       subtotalObra: (map['subtotalObra'] as num?)?.toDouble() ?? 0.0,
@@ -117,7 +117,6 @@ class CotizacionDto {
     );
   }
 
-  // metodo ampliado necesario para modificar campos en un futuro,
   CotizacionDto copyWith({
     String? id,
     String? clienteId,

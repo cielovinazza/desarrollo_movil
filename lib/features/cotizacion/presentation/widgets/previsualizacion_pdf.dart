@@ -10,6 +10,7 @@ import 'package:project/features/materiales/domain/entities/material.dart';
 import '../../data/datasources/cotizacion_firebase_datasource.dart';
 import '../../data/repositories/cotizacion_repository_impl.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../../shared/widgets/app_dialogs.dart';
 
 class PrevisualizacionPdfWidget extends StatefulWidget {
   final CotizacionModel cotizacion;
@@ -37,7 +38,6 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
 class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   bool _cargado = false;
   bool _subiendo = false;
-  String? _codigoGenerado;
 
   late final CotizacionRepositoryImpl _repository;
 
@@ -98,7 +98,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       final pdf = pw.Document();
       final codigoCotizacion = widget.codigoCotizacion;
       final cliente = widget.cotizacion.cliente;
-
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.letter,
@@ -508,31 +507,14 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       setState(() => _subiendo = false);
       await widget.onListo();
     } catch (e) {
+      if (!mounted) return;
       setState(() => _subiendo = false);
-      _mostrarError(
+      AppDialogs.mostrarError(
+        context,
         'Error de Almacenamiento',
         e.toString().replaceAll('Exception: ', ''),
       );
     }
-  }
-
-  void _mostrarError(String titulo, String mensaje) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          titulo,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Text(mensaje),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -673,15 +655,60 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
             _filaVacia('Sin trabajos registrados')
           else
             ...widget.cotizacion.listaTrabajos.map(
-              (trabajo) => _filaItem(
-                trabajo.tipo,
-                '${trabajo.metrosCuadrados.toStringAsFixed(1)} m² × ${_clp(trabajo.precioPorMetro)}',
-                _clp(trabajo.subtotal),
+              (trabajo) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            trabajo.tipo,
+                            style: const TextStyle(fontSize: 12, color: _texto, fontWeight: FontWeight.bold),
+                          ),
+                          if (trabajo.descripcionBreve != null && trabajo.descripcionBreve!.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              trabajo.descripcionBreve!,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: _gris,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 4,
+                      child: Text(
+                        '${trabajo.metrosCuadrados.toStringAsFixed(1)} m² × ${_clp(trabajo.precioPorMetro)}',
+                        style: const TextStyle(fontSize: 11, color: _gris),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        _clp(trabajo.subtotal),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: _texto,
+                        ),
+                        textAlign: TextAlign.end,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
 
           const SizedBox(height: 6),
-
           _filaSubtotal(
             'Subtotal trabajos de obra',
             _clp(_subtotalTrabajosObra),
@@ -714,7 +741,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               'PREVISUALIZACIÓN DE COTIZACIÓN',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
@@ -725,11 +752,11 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
+              color: Colors.white.withAlpha((0.2 * 255).toInt()),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
-              _codigoGenerado ?? '',
+              widget.codigoCotizacion,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,
@@ -811,7 +838,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
             ...widget.materiales.map(
               (material) => _filaItem(
                 material.nombre,
-                '${material.cantidad.toStringAsFixed(1)} ${material.unidadMedida} × ${_clp(material.costoUnitario)}',
+                '${material.cantidad.toStringAsFixed(0)} ${material.unidadMedida} × ${_clp(material.costoUnitario)}',
                 _clp(material.subtotal),
               ),
             ),

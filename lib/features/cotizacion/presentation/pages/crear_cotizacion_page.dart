@@ -14,9 +14,20 @@ import '../../data/dtos/cotizacion_dtos.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/clp_input_formatter.dart';
+import '../../../../shared/widgets/app_dialogs.dart';
+import '../../../../core/storage/local_storage.dart';
+import '../../data/dtos/borrador_cotizacion_dto.dart';
+import '../../data/mappers/borrador_cotizacion_mapper.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
-  const CrearCotizacionPage({super.key});
+  final Cliente? clienteInyectado;
+  final CotizacionDto? cotizacionAEditar;
+
+  const CrearCotizacionPage({
+    super.key, 
+    this.clienteInyectado,
+    this.cotizacionAEditar,
+  });
 
   @override
   State<CrearCotizacionPage> createState() => _CrearCotizacionPageState();
@@ -42,6 +53,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _viaticoController = TextEditingController();
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
+  final _localStorage = LocalStorage();
 
   final List<String> _tiposDisponibles = [
     'Pintura',
@@ -63,10 +75,86 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     super.initState();
 
     datasource = CotizacionFirestoreDataSource(FirebaseFirestore.instance);
-
     final repository = CotizacionRepositoryImpl(datasource);
-
     guardarCotizacionUseCase = GuardarCotizacion(repository);
+    _recuperarBorrador();
+    _clienteController.addListener(_autoguardar);
+    _direccionController.addListener(_autoguardar);
+    _viaticoController.addListener(_autoguardar);
+    _utilidadController.addListener(_autoguardar);
+    _ivaController.addListener(_autoguardar);
+
+    if (widget.clienteInyectado != null) {
+      _clienteSeleccionado = widget.clienteInyectado;
+      _clienteController.text = widget.clienteInyectado!.nombre;
+    }
+
+    if (widget.cotizacionAEditar != null) {
+      final edicion = widget.cotizacionAEditar!;
+      _idCotizacionCreada = edicion.id;
+      _codigoCotizacionCreada = edicion.codigo;
+      
+      _clienteSeleccionado = Cliente(
+        id: edicion.clienteId,
+        nombre: edicion.clienteNombre,
+        correo: edicion.clienteEmail,
+        rut: edicion.clienteRut,
+        telefono: edicion.clienteTelefono,
+        direccion: edicion.clienteDireccion,
+      );
+      _clienteController.text = edicion.clienteNombre;
+      _direccionController.text = edicion.direccion;
+      _viaticoController.text = edicion.viatico?.toString() ?? '';
+      _utilidadController.text = edicion.porcentajeUtilidad.toString();
+      _ivaController.text = edicion.porcentajeIva.toString();
+
+      // 1. Mapeo Seguro de Trabajos
+      if (edicion.trabajos.isNotEmpty) {
+        _trabajosAgregados.addAll(
+          edicion.trabajos.map((item) {
+            if (item is ItemTrabajo) return item;
+            final map = item as Map<String, dynamic>;
+            return ItemTrabajo(
+              tipo: map['tipo'] ?? '',
+              metrosCuadrados: (map['metrosCuadrados'] ?? 0).toDouble(),
+              precioPorMetro: (map['precioPorMetro'] ?? 0).toDouble(),
+              descripcionBreve: map['descripcionBreve'],
+            );
+          }),
+        );
+      }
+
+      // 2. Mapeo Seguro de Mano de Obra (Campos reales: cargo, dias, valorJornada)
+      if (edicion.manoObra.isNotEmpty) {
+        _manoObraAgregada.addAll(
+          edicion.manoObra.map((item) {
+            if (item is ManoDeObra) return item;
+            final map = item as Map<String, dynamic>;
+            return ManoDeObra(
+              cargo: map['cargo'] ?? map['detalle'] ?? '', 
+              dias: (map['dias'] ?? 0).toInt(),
+              valorJornada: (map['valorJornada'] ?? map['costo'] ?? 0).toDouble(),
+            );
+          }),
+        );
+      }
+
+      // 3. Mapeo Seguro de Materiales (Campos reales: nombre, cantidad, costoUnitario, unidadMedida)
+      if (edicion.materiales.isNotEmpty) {
+        _materialesAgregados.addAll(
+          edicion.materiales.map((item) {
+            if (item is MaterialEntity) return item;
+            final map = item as Map<String, dynamic>;
+            return MaterialEntity(
+              nombre: map['nombre'] ?? '',
+              cantidad: (map['cantidad'] ?? 0).toDouble(),
+              costoUnitario: (map['costoUnitario'] ?? map['precioUnitario'] ?? 0).toDouble(),
+              unidadMedida: map['unidadMedida'] ?? '',
+            );
+          }),
+        );
+      }
+    }
   }
 
   @override
@@ -76,6 +164,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     _viaticoController.dispose();
     _utilidadController.dispose();
     _ivaController.dispose();
+    _clienteController.removeListener(_autoguardar);
+    _direccionController.removeListener(_autoguardar);
+    _viaticoController.removeListener(_autoguardar);
+    _utilidadController.removeListener(_autoguardar);
+    _ivaController.removeListener(_autoguardar);
     super.dispose();
   }
 
@@ -109,8 +202,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
   Future<String> _guardarCotizacion() async {
     final cotizacion = _obtenerEstadoActual();
-    final docRef = FirebaseFirestore.instance.collection('cotizaciones').doc();
-    final String idReal = docRef.id;
+    
+    final String idReal = widget.cotizacionAEditar?.id ?? 
+        FirebaseFirestore.instance.collection('cotizaciones').doc().id;
+
+    final int versionNueva = widget.cotizacionAEditar != null 
+        ? (widget.cotizacionAEditar!.version + 1) 
+        : 1;
+
+    final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
 
     final dto = CotizacionMapper.toDto(
       cotizacion: cotizacion,
@@ -127,7 +227,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       clienteRut: dto.clienteRut,
       clienteTelefono: dto.clienteTelefono,
       clienteDireccion: dto.clienteDireccion,
-      codigo: dto.codigo,
+      codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
       direccion: dto.direccion,
       trabajos: dto.trabajos,
       manoObra: dto.manoObra,
@@ -142,7 +242,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       estado: 'En Proceso',
       usuarioId: dto.usuarioId,
       fechaCreacion: dto.fechaCreacion,
-      version: dto.version,
+      version: versionNueva,
     );
 
     await guardarCotizacionUseCase(dtoConId);
@@ -162,18 +262,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     return idReal;
   }
 
-  void _mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(mensaje)));
-  }
-
   Future<void> _agregarMaterial() async {
     final resultado = await showDialog<MaterialEntity>(
       context: context,
       builder: (_) => MaterialDialog(verdeApp: _verdeApp),
     );
-    if (resultado != null) setState(() => _materialesAgregados.add(resultado));
+    if (resultado != null) {
+      setState(() => _materialesAgregados.add(resultado));
+      _autoguardar();
+    }
   }
 
   Future<void> _editarMaterial(int index) async {
@@ -189,238 +286,34 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     }
   }
 
-  void _mostrarDialogoCrearTipoTrabajo(
-    void Function(void Function()) setModalState,
-    void Function(String) onTipoCreado,
-  ) {
-    final nuevoTipoController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Nuevo tipo de trabajo'),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: nuevoTipoController,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Por favor, ingrese un nombre';
-              }
-              if (value.trim().length < 3) {
-                return 'El nombre debe tener al menos 3 caracteres';
-              }
-              if (value.trim().length > 100) {
-                return 'El nombre no puede exceder los 100 caracteres';
-              }
-              return null;
-            },
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(
-                RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]'),
-              ),
-            ],
-            decoration: const InputDecoration(
-              labelText: 'Nombre del tipo de trabajo',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              nuevoTipoController.dispose();
-              Navigator.pop(context);
-            },
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _verdeApp,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                final nuevoTipo = nuevoTipoController.text.trim();
-                Navigator.pop(context);
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (!_tiposDisponibles.contains(nuevoTipo)) {
-                    setState(() {
-                      _tiposDisponibles.add(nuevoTipo);
-                    });
-                  }
-                  onTipoCreado(nuevoTipo);
-                  nuevoTipoController.dispose();
-                });
-              }
-            },
-            child: const Text('Crear'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _mostrarDialogoAgregarTrabajo() {
-    String tipoSeleccionado = _tiposDisponibles.first;
-    final m2ItemController = TextEditingController();
-    final precioItemController = TextEditingController();
-    String? errorM2;
-    String? errorPrecio;
-
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.add_task, color: _verdeApp),
-              const SizedBox(width: 10),
-              const Text(
-                'Añadir Trabajo',
-                style: TextStyle(fontWeight: FontWeight.bold),
+      barrierDismissible: false,
+      builder: (dialogContext) => DialogoTrabajoForm(
+        tiposDisponibles: _tiposDisponibles,
+        verdeApp: _verdeApp,
+        onGuardar: (tipo, m2, precio, descripcion) {
+          setState(() {
+            _trabajosAgregados.add(
+              ItemTrabajo(
+                tipo: tipo,
+                metrosCuadrados: m2,
+                precioPorMetro: precio,
+                descripcionBreve: descripcion.isEmpty ? null : descripcion,
               ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: tipoSeleccionado,
-                  decoration: const InputDecoration(
-                    labelText: 'Tipo de Rubro',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _tiposDisponibles
-                      .map(
-                        (tipo) =>
-                            DropdownMenuItem(value: tipo, child: Text(tipo)),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setModalState(() => tipoSeleccionado = value);
-                  },
-                ),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      _mostrarDialogoCrearTipoTrabajo(setModalState, (
-                        nuevoTipo,
-                      ) {
-                        setModalState(() => tipoSeleccionado = nuevoTipo);
-                      });
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('Crear nuevo tipo'),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: m2ItemController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [
-                    LengthLimitingTextInputFormatter(3),
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  decoration: InputDecoration(
-                    labelText: 'Cantidad Metros Cuadrados (m²)',
-                    prefixIcon: const Icon(Icons.square_foot),
-                    border: const OutlineInputBorder(),
-                    errorText: errorM2,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: precioItemController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  inputFormatters: [ClpInputFormatter(maxDigits: 9)],
-                  decoration: InputDecoration(
-                    labelText: 'Precio por m² (CLP)',
-                    prefixIcon: const Icon(Icons.sell_outlined),
-                    border: const OutlineInputBorder(),
-                    errorText: errorPrecio,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancelar',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final m2Texto = m2ItemController.text.trim();
-                final precioTexto = precioItemController.text.trim();
+            );
+          });
 
-                final m2 = double.tryParse(m2Texto);
-                final precio = ClpInputFormatter.toDouble(precioTexto);
-
-                setModalState(() {
-                  errorM2 = null;
-                  errorPrecio = null;
-
-                  if (m2Texto.isEmpty) {
-                    errorM2 = 'Debe ingresar la cantidad de metros cuadrados';
-                  } else if (m2 == null || m2 <= 0) {
-                    errorM2 = 'Ingrese un número positivo válido';
-                  }
-
-                  if (precioTexto.isEmpty) {
-                    errorPrecio = 'Debe ingresar el precio por m²';
-                  } else if (precio <= 0) {
-                    errorPrecio = 'Ingrese un precio positivo válido';
-                  }
-                });
-
-                if (errorM2 != null || errorPrecio != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Formulario incompleto, debe rellenar los campos para continuar',
-                      ),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
-                setState(() {
-                  _trabajosAgregados.add(
-                    ItemTrabajo(
-                      tipo: tipoSeleccionado,
-                      metrosCuadrados: m2!,
-                      precioPorMetro: precio,
-                    ),
-                  );
-                });
-
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _verdeApp,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Guardar Ítem'),
-            ),
-          ],
-        ),
+          _autoguardar();
+        },
+        onNuevoTipoCreado: (nuevoTipo) {
+          setState(() {
+            if (!_tiposDisponibles.contains(nuevoTipo)) {
+              _tiposDisponibles.add(nuevoTipo);
+            }
+          });
+        },
       ),
     );
   }
@@ -430,7 +323,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       context: context,
       builder: (_) => ManoObraDialog(verdeApp: _verdeApp),
     );
-    if (resultado != null) setState(() => _manoObraAgregada.add(resultado));
+    if (resultado != null) {
+      setState(() => _manoObraAgregada.add(resultado));
+      _autoguardar();
+    }
   }
 
   String? _validarCampoNumerico(String? value, String nombreCampo) {
@@ -440,21 +336,17 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     }
 
     final numero = double.tryParse(value.trim());
-    if (numero == null) {
-      return 'Ingrese solo caracteres numéricos válidos';
-    }
 
-    if (numero < 0) {
-      return 'No se permiten importes o tasas negativas';
-    }
-    if (nombreCampo == '% de utilidad' && numero > 500) {
-      return 'La utilidad no puede superar el 500%';
+    if (numero == null || numero < 0) {
+      return 'Ingrese solo caracteres numéricos válidos';
     }
 
     if (nombreCampo == '% IVA Legal' && numero > 35) {
       return 'El IVA no puede superar el 35%';
     }
-
+    if (nombreCampo == '% de utilidad' && numero > 500) {
+      return 'La utilidad no puede superar el 500%';
+    }
     return null;
   }
 
@@ -517,6 +409,49 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         false;
   }
 
+  Future<void> _autoguardar() async {
+    print('AUTOGUARDANDO');
+    final dto = BorradorCotizacionMapper.toDto(
+      cliente: _clienteSeleccionado,
+      clienteTexto: _clienteController.text,
+      direccion: _direccionController.text,
+      viatico: _viaticoController.text,
+      utilidad: _utilidadController.text,
+      iva: _ivaController.text,
+      currentStep: _currentStep,
+      trabajos: _trabajosAgregados,
+      materiales: _materialesAgregados,
+      manoObra: _manoObraAgregada,
+    );
+    await _localStorage.guardarBorradorCotizacion(dto.toJson());
+  }
+
+  Future<void> _recuperarBorrador() async {
+    final raw = await _localStorage.obtenerBorradorCotizacion();
+    if (raw == null) return;
+
+    final dto = BorradorCotizacionDto.fromJson(raw);
+
+    setState(() {
+      _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
+      _clienteController.text = dto.clienteTexto;
+      _direccionController.text = dto.direccion;
+      _viaticoController.text = dto.viatico;
+      _utilidadController.text = dto.utilidad;
+      _ivaController.text = dto.iva;
+      _currentStep = dto.currentStep;
+      _trabajosAgregados
+        ..clear()
+        ..addAll(BorradorCotizacionMapper.trabajosFromDto(dto));
+      _materialesAgregados
+        ..clear()
+        ..addAll(BorradorCotizacionMapper.materialesFromDto(dto));
+      _manoObraAgregada
+        ..clear()
+        ..addAll(BorradorCotizacionMapper.manoObraFromDto(dto));
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final datosEnVivo = _obtenerEstadoActual();
@@ -568,18 +503,27 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             onStepContinue: () async {
               if (_currentStep == 0) {
                 if (_clienteController.text.trim().isEmpty) {
-                  _mostrarMensaje('Debes ingresar o seleccionar un cliente');
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Debes ingresar o seleccionar un cliente',
+                  );
                   return;
                 }
               }
 
               if (_currentStep == 1) {
                 if (_direccionController.text.trim().isEmpty) {
-                  _mostrarMensaje('Debes ingresar la dirección de la obra');
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Debes ingresar la dirección de la obra',
+                  );
                   return;
                 }
                 if (_trabajosAgregados.isEmpty) {
-                  _mostrarMensaje('Debes agregar al menos un trabajo de obra');
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Debes ingresar la dirección de la obra',
+                  );
                   return;
                 }
               }
@@ -591,9 +535,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   }
                   _currentStep += 1;
                 });
+                _autoguardar();
               } else {
                 if (!_formKey.currentState!.validate()) {
-                  _mostrarMensaje(
+                  AppDialogs.mostrarSnackBar(
+                    context,
                     'Formulario inválido. Corrija los campos en rojo antes de guardar.',
                   );
                   return;
@@ -616,16 +562,26 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     _idCotizacionCreada = realId;
                     _vistaPreviaCargada = true;
                   });
-                  _mostrarMensaje('Cotización creada con exito.');
+                  await _localStorage.limpiarBorradorCotizacion();
+                  if (!context.mounted) return;
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Cotización creada con exito.',
+                  );
                 } catch (e) {
                   setState(() => _guardandoEnFirestore = false);
-                  _mostrarMensaje('Error de persistencia: $e');
+                  if (!context.mounted) return;
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Error de persistencia: $e',
+                  );
                 }
               }
             },
             onStepCancel: () {
               if (_currentStep > 0) {
                 setState(() => _currentStep -= 1);
+                _autoguardar();
               } else {
                 Navigator.pop(context);
               }
@@ -637,11 +593,17 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 0,
-                content: SelectorCliente(
-                  controller: _clienteController,
-                  onClienteSeleccionado: (Cliente cliente) {
-                    setState(() => _clienteSeleccionado = cliente);
-                  },
+                content: IgnorePointer(
+                  ignoring: widget.clienteInyectado != null || widget.cotizacionAEditar != null,
+                  child: Opacity(
+                    opacity: widget.clienteInyectado != null || widget.cotizacionAEditar != null ? 0.6 : 1.0,
+                    child: SelectorCliente(
+                      controller: _clienteController,
+                      onClienteSeleccionado: (Cliente cliente) {
+                        setState(() => _clienteSeleccionado = cliente);
+                      },
+                    ),
+                  ),
                 ),
               ),
               Step(
@@ -715,9 +677,12 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                               Icons.delete_outline,
                               color: Colors.redAccent,
                             ),
-                            onPressed: () => setState(
-                              () => _trabajosAgregados.removeAt(index),
-                            ),
+                            onPressed: () {
+                              setState(
+                                () => _trabajosAgregados.removeAt(index),
+                              );
+                              _autoguardar();
+                            },
                           ),
                         ),
                       );
@@ -769,8 +734,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   items: _manoObraAgregada,
                   verdeApp: _verdeApp,
                   onAgregar: _agregarManoObra,
-                  onEliminar: (index) =>
-                      setState(() => _manoObraAgregada.removeAt(index)),
+                  onEliminar: (index) {
+                    setState(() => _manoObraAgregada.removeAt(index));
+                    _autoguardar();
+                  },
                 ),
               ),
               Step(
@@ -783,11 +750,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   items: _materialesAgregados,
                   verdeApp: _verdeApp,
                   onAgregar: _agregarMaterial,
-                  onEliminar: (index) =>
-                      setState(() => _materialesAgregados.removeAt(index)),
+                  onEliminar: (index) {
+                    setState(() => _materialesAgregados.removeAt(index));
+                    _autoguardar();
+                  },
                   onEditar: _editarMaterial,
-                  onImportarCSV: (materiales) =>
-                      setState(() => _materialesAgregados.addAll(materiales)),
+                  onImportarCSV: (materiales) {
+                    setState(() => _materialesAgregados.addAll(materiales));
+                    _autoguardar();
+                  },
                 ),
               ),
               Step(
@@ -816,8 +787,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       validator: (val) =>
                           _validarCampoNumerico(val, '% de utilidad'),
                       inputFormatters: [
-                        LengthLimitingTextInputFormatter(3),
-                        FilteringTextInputFormatter.digitsOnly,
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d{0,3}\.?\d{0,2}'),
+                        ),
                       ],
                       decoration: const InputDecoration(
                         labelText: '% Porcentaje de Utilidad',
@@ -873,7 +845,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
                     if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
                       PrevisualizacionPdfWidget(
                         cotizacion: datosEnVivo,
@@ -883,9 +854,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
 
                         onListo: () async {
-                          if (!mounted) return;
+                          await _localStorage.limpiarBorradorCotizacion();
+                           if (!context.mounted) return;
 
-                          _mostrarMensaje('¡Cotización creada con éxito!');
+                          AppDialogs.mostrarSnackBar(
+                            context,
+                            '¡Cotización creada con éxito!',
+                          );
 
                           Navigator.of(context).pop();
                         },
@@ -899,6 +874,257 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class DialogoTrabajoForm extends StatefulWidget {
+  final List<String> tiposDisponibles;
+  final Color verdeApp;
+  final void Function(String tipo, double m2, double precio, String descripcion) onGuardar;
+  final void Function(String nuevoTipo) onNuevoTipoCreado;
+
+  const DialogoTrabajoForm({
+    super.key,
+    required this.tiposDisponibles,
+    required this.verdeApp,
+    required this.onGuardar,
+    required this.onNuevoTipoCreado,
+  });
+
+  @override
+  State<DialogoTrabajoForm> createState() => _DialogoTrabajoFormState();
+}
+
+class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
+  late String tipoSeleccionado;
+  final m2ItemController = TextEditingController();
+  final precioItemController = TextEditingController();
+  final descripcionItemController = TextEditingController();
+  String? errorM2;
+  String? errorPrecio;
+
+  @override
+  void initState() {
+    super.initState();
+    tipoSeleccionado = widget.tiposDisponibles.first;
+  }
+
+  @override
+  void dispose() {
+    m2ItemController.dispose();
+    precioItemController.dispose();
+    descripcionItemController.dispose();
+    super.dispose();
+  }
+
+  void _mostrarDialogoCrearTipoTrabajo() {
+    final nuevoTipoController = TextEditingController();
+    final formKeyTipo = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (subContext) => AlertDialog(
+        title: const Text('Nuevo tipo de trabajo'),
+        content: Form(
+          key: formKeyTipo,
+          child: TextFormField(
+            controller: nuevoTipoController,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Por favor, ingrese un nombre';
+              }
+              if (value.trim().length < 3) {
+                return 'El nombre debe tener al menos 3 caracteres';
+              }
+              if (value.trim().length > 100) {
+                return 'El nombre no puede exceder los 100 caracteres';
+              }
+              return null;
+            },
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]')),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Nombre del tipo de trabajo',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(subContext).pop();
+              nuevoTipoController.dispose();
+            },
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.verdeApp,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              if (formKeyTipo.currentState!.validate()) {
+                final nuevoTipo = nuevoTipoController.text.trim();
+                widget.onNuevoTipoCreado(nuevoTipo);
+                setState(() {
+                  tipoSeleccionado = nuevoTipo;
+                });
+                Navigator.of(subContext).pop();
+                nuevoTipoController.dispose();
+              }
+            },
+            child: const Text('Crear'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: Row(
+        children: [
+          Icon(Icons.add_task, color: widget.verdeApp),
+          const SizedBox(width: 10),
+          const Text(
+            'Añadir Trabajo',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: widget.tiposDisponibles.contains(tipoSeleccionado) ? tipoSeleccionado : widget.tiposDisponibles.first,
+              decoration: const InputDecoration(
+                labelText: 'Tipo de Rubro',
+                border: OutlineInputBorder(),
+              ),
+              items: widget.tiposDisponibles
+                  .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => tipoSeleccionado = value);
+              },
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: _mostrarDialogoCrearTipoTrabajo,
+                icon: const Icon(Icons.add),
+                label: const Text('Crear nuevo tipo'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: m2ItemController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                    LengthLimitingTextInputFormatter(3),
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+              decoration: InputDecoration(
+                labelText: 'Cantidad Metros Cuadrados (m²)',
+                prefixIcon: const Icon(Icons.square_foot),
+                border: const OutlineInputBorder(),
+                errorText: errorM2,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: precioItemController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: false),
+              inputFormatters: [ClpInputFormatter(maxDigits: 9)],
+              decoration: InputDecoration(
+                labelText: 'Precio por m² (CLP)',
+                prefixIcon: const Icon(Icons.sell_outlined),
+                border: const OutlineInputBorder(),
+                errorText: errorPrecio,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: descripcionItemController,
+              maxLength: 200,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                labelText: 'Descripción breve (Opcional)',
+                hintText: 'Ej: Aplicación de dos manos de pintura látex...',
+                prefixIcon: Icon(Icons.description_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+          child: const Text(
+            'Cancelar',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final m2Texto = m2ItemController.text.trim();
+            final precioTexto = precioItemController.text.trim();
+            final descripcionTexto = descripcionItemController.text.trim();
+
+            final m2 = double.tryParse(m2Texto);
+            final precio =  ClpInputFormatter.toDouble(precioTexto);
+
+            setState(() {
+              errorM2 = null;
+              errorPrecio = null;
+
+              if (m2Texto.isEmpty) {
+                errorM2 = 'Debe ingresar la cantidad de metros cuadrados';
+              } else if (m2 == null || m2 <= 0) {
+                errorM2 = 'Ingrese un número positivo válido';
+              }
+
+              if (precioTexto.isEmpty) {
+                errorPrecio = 'Debe ingresar el precio por m²';
+              } else if (precio == null || precio <= 0) {
+                errorPrecio = 'Ingrese un precio positivo válido';
+              }
+            });
+
+            if (errorM2 != null || errorPrecio != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Formulario incompleto, debe rellenar los campos para continuar',
+                  ),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
+
+            widget.onGuardar(tipoSeleccionado, m2!, precio!, descripcionTexto);
+            Navigator.of(context).pop();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: widget.verdeApp,
+            foregroundColor: Colors.white,
+          ),
+          child: const Text('Guardar Ítem'),
+        ),
+      ],
     );
   }
 }
