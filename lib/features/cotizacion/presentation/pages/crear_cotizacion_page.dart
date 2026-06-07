@@ -15,7 +15,9 @@ import 'package:flutter/services.dart';
 import '../../../../core/utils/currency_formatter.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
-  const CrearCotizacionPage({super.key});
+  final Cliente? clienteInyectado;
+
+  const CrearCotizacionPage({super.key, this.clienteInyectado});
 
   @override
   State<CrearCotizacionPage> createState() => _CrearCotizacionPageState();
@@ -62,10 +64,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     super.initState();
 
     datasource = CotizacionFirestoreDataSource(FirebaseFirestore.instance);
-
     final repository = CotizacionRepositoryImpl(datasource);
-
     guardarCotizacionUseCase = GuardarCotizacion(repository);
+
+    if (widget.clienteInyectado != null) {
+      _clienteSeleccionado = widget.clienteInyectado;
+      _clienteController.text = widget.clienteInyectado!.nombre;
+    }
   }
 
   @override
@@ -425,11 +430,17 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 isActive: _currentStep >= 0,
-                content: SelectorCliente(
-                  controller: _clienteController,
-                  onClienteSeleccionado: (Cliente cliente) {
-                    setState(() => _clienteSeleccionado = cliente);
-                  },
+                content: IgnorePointer(
+                  ignoring: widget.clienteInyectado != null,
+                  child: Opacity(
+                    opacity: widget.clienteInyectado != null ? 0.6 : 1.0,
+                    child: SelectorCliente(
+                      controller: _clienteController,
+                      onClienteSeleccionado: (Cliente cliente) {
+                        setState(() => _clienteSeleccionado = cliente);
+                      },
+                    ),
+                  ),
                 ),
               ),
               Step(
@@ -667,7 +678,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       ),
                     ),
                     const SizedBox(height: 24),
-
                     if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
                       PrevisualizacionPdfWidget(
                         cotizacion: datosEnVivo,
@@ -677,9 +687,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
                         onListo: () async {
                           if (!mounted) return;
-
                           _mostrarMensaje('¡Cotización creada con éxito!');
-
                           Navigator.of(context).pop();
                         },
                       ),
@@ -696,9 +704,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 }
 
-// =========================================================================
-// 🚀 DIÁLOGO CUSTOM COMPLETAMENTE INDEPENDIENTE CON CICLO DE VIDA SEGURO
-// =========================================================================
 class DialogoTrabajoForm extends StatefulWidget {
   final List<String> tiposDisponibles;
   final Color verdeApp;
@@ -788,13 +793,10 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             onPressed: () {
               if (formKeyTipo.currentState!.validate()) {
                 final nuevoTipo = nuevoTipoController.text.trim();
-                
                 widget.onNuevoTipoCreado(nuevoTipo);
-                
                 setState(() {
                   tipoSeleccionado = nuevoTipo;
                 });
-
                 Navigator.of(subContext).pop();
                 nuevoTipoController.dispose();
               }

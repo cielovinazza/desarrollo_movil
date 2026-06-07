@@ -41,13 +41,33 @@ class _SelectorClienteState extends State<SelectorCliente> {
       ClientesRemoteDataSource(FirebaseFirestore.instance),
     );
     listarClientesUseCase = ListarClientes(repository);
-    _cargarClientes();
+    _cargarClientesIniciales();
   }
 
   @override
   void dispose() {
     _rutController.dispose();
     super.dispose();
+  }
+
+  Future<void> _cargarClientesIniciales() async {
+    final resultado = await listarClientesUseCase();
+    setState(() {
+      clientes = resultado;
+      
+      if (widget.controller.text.isNotEmpty) {
+        final encontrado = clientes.firstWhere(
+          (c) => c.nombre.trim() == widget.controller.text.trim(),
+          orElse: () => Cliente(id: '', nombre: '', correo: '', rut: '', telefono: '', direccion: ''),
+        );
+
+        if (encontrado.id != null && encontrado.id!.isNotEmpty) {
+          clienteSeleccionado = encontrado;
+          _rutController.text = encontrado.rut;
+          mensaje = 'Cliente precargado correctamente';
+        }
+      }
+    });
   }
 
   Future<void> _cargarClientes() async {
@@ -143,6 +163,8 @@ class _SelectorClienteState extends State<SelectorCliente> {
 
   @override
   Widget build(BuildContext context) {
+    final Cliente? valorDropdown = clientes.contains(clienteSeleccionado) ? clienteSeleccionado : null;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -180,7 +202,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
           const SizedBox(height: 20),
           DropdownButtonFormField<Cliente>(
             isExpanded: true,
-            initialValue: clienteSeleccionado,
+            value: valorDropdown,
             decoration: InputDecoration(
               labelText: 'Seleccionar cliente',
               prefixIcon: Icon(Icons.person_outline, color: verdeApp),

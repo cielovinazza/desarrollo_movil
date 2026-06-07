@@ -7,6 +7,8 @@ import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/usecases/listar_clientes.dart';
 import 'editar_cliente_page.dart';
+//AGREGAMOS LA IMPORTACIÓN DE LA PÁGINA DE COTIZACIÓN
+import '../../../cotizacion/presentation/pages/crear_cotizacion_page.dart';
 
 class ListadoClientesPage extends StatefulWidget {
   const ListadoClientesPage({super.key});
@@ -128,17 +130,10 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
       appBar: AppBar(
         backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
-        title: Text(
+        title: const Text(
           'Clientes',
           style: TextStyle(fontWeight: FontWeight.bold)
-          
         ),
-        /*actions: [
-          IconButton(
-            icon: Icon(Icons.menu, color: greenPrimary),
-            onPressed: () {},
-          ),
-        ],*/
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -152,11 +147,6 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                     decoration: InputDecoration(
                       hintText: 'Buscar cliente por nombre o RUT...',
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      /*suffixIcon: IconButton(
-                        icon: const Icon(Icons.tune, color: Colors.grey),
-                        onPressed: () {}, //puede ir si se añade un filtro en el buscador de clientes
-                        **yo pensaba en filtrar por empresa/persona**
-                      ),*/
                       filled: true,
                       fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -256,7 +246,6 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
 
     return Row(
       children: [
-        //total clientes
         Expanded(
           flex: 5,
           child: Container(
@@ -290,7 +279,6 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
         ),
         const SizedBox(width: 12),
         
-        
         Expanded(
           flex: 4,
           child: Column(
@@ -307,7 +295,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    color:Color(0xFFE8EAF6),
+                    color: const Color(0xFFE8EAF6),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -455,18 +443,25 @@ class _ClienteCardWidget extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   
-                  
                   Expanded(
                     child: FilledButton.icon(
                       style: FilledButton.styleFrom(
                         backgroundColor: primaryColor,
-                        foregroundColor: Colors.white70,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 0,
                       ),
+                      // 🚀 IMPLEMENTACIÓN DEL FLUJO DIRECTO CON PASO DE PARÁMETRO
                       onPressed: () {
-                        
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CrearCotizacionPage(
+                              clienteInyectado: cliente,
+                            ),
+                          ),
+                        );
                       },
                       icon: const Icon(Icons.request_quote_outlined, size: 18),
                       label: const Text('Cotizar', style: TextStyle(fontWeight: FontWeight.bold)),
