@@ -190,7 +190,11 @@ Future<void> enviarCorreoDirecto({
   final smtpServer = gmail('derick9103@gmail.com', 'rvcdvcocyqbrkqss');
   File? archivoTemporal;
 
-  try {
+  try{
+    if(clienteEmail.isEmpty || !clienteEmail.contains('@')){
+      throw Exception('El correo del cliente no tiene un formato válido.');
+    }
+  
     final response = await http.get(Uri.parse(pdfUrl));
     if (response.statusCode != 200) {
       throw Exception('No se pudo descargar el PDF de la cotización desde el servidor.');
@@ -206,22 +210,33 @@ Future<void> enviarCorreoDirecto({
     ''';
     final message = Message()
       ..from = Address('derick9103@gmail.com', 'Cotizaciones')
-      ..recipients.add(clienteEmail)
+      ..recipients.add(clienteEmail.trim())
       ..subject = asunto
       ..html = cuerpoHtml
       ..attachments.add(FileAttachment(archivoTemporal));
     final sendReport = await send(message, smtpServer);
-    print('¡Correo enviado con éxito por vía directa!: $sendReport');
+    print('¡Correo enviado con éxito!: $sendReport');
 
   } on MailerException catch (e) {
-    print('Error mandando el correo: $e');
+    print('Error al enviar el correo: $e');
+    String mensajeError='El servidor de correo rechazó la solicitud.';
+
     for (var p in e.problems) {
-      print('Problema: ${p.code}: ${p.msg}');
+      print('Problema detectado: ${p.code}: ${p.msg}');
+      final msgLower=p.msg.toLowerCase();
+
+      if (msgLower.contains('recipient')|| msgLower.contains('not found') || msgLower.contains('does not exist') 
+      || p.code =='550'){
+        mensajeError='La direccion de correo "$clienteEmail" no existe o fue rechazada por el servidor.';
+        break;
+      }
     }
-    throw Exception('Error al enviar el correo a través del servidor SMTP.');
+
+    throw Exception('mensajeError');
+
   } catch (e) {
     print('Error general en el envío: $e');
-    throw Exception('Error al procesar el archivo adjunto: $e');
+    throw Exception('Error inesperado al procesar el envío: ${e.toString().replaceAll('Exception: ', '')}');
   } finally {
     if (archivoTemporal != null && await archivoTemporal.exists()) {
       await archivoTemporal.delete();

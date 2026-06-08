@@ -28,12 +28,9 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
   ];
 
   late String cargoSeleccionado;
-
   final _formKey = GlobalKey<FormState>();
-
   final valorJornadaController = TextEditingController();
   final diasController = TextEditingController();
-
   double subtotal = 0;
 
   @override
@@ -101,7 +98,9 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(context);
+            },
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -113,12 +112,15 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
               if (!formCargoKey.currentState!.validate()) return;
 
               final nuevoCargo = nuevoCargoController.text.trim();
+              if (nuevoCargo.isEmpty) {
+                Navigator.pop(context);
+                return;
+              }
 
               setState(() {
                 if (!cargosDisponibles.contains(nuevoCargo)) {
                   cargosDisponibles.add(nuevoCargo);
                 }
-
                 cargoSeleccionado = nuevoCargo;
               });
 
@@ -184,9 +186,7 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
                   });
                 },
               ),
-
               const SizedBox(height: 8),
-
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
@@ -195,9 +195,7 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
                   label: const Text('Crear nuevo cargo'),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: valorJornadaController,
                 keyboardType: TextInputType.number,
@@ -212,7 +210,6 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
                 },
               ),
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: diasController,
                 keyboardType: TextInputType.number,
@@ -232,14 +229,12 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
                   );
                 },
               ),
-
               const SizedBox(height: 20),
-
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: widget.verdeApp.withValues(alpha: 0.08),
+                  color: widget.verdeApp.withAlpha((0.08 * 255).toInt()),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(
@@ -261,7 +256,6 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 24),
             ],
           ),
