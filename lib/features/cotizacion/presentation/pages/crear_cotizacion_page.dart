@@ -283,9 +283,32 @@ Future<void> _ejecutarGuardadoFinal() async {
 
   if (confirmar != true) return;
 
-  setState(() {
+  showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false, // 
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          content: const Row(
+            children: [
+              CircularProgressIndicator(color: Colors.green),
+              SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  'Guardando cotización y generando PDF...',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+  /*setState(() {
     _guardandoEnFirestore = true;
-  });
+  });*/
 
   try {
     final realId = await _guardarCotizacion();
@@ -298,12 +321,30 @@ Future<void> _ejecutarGuardadoFinal() async {
     await _localStorage.limpiarBorradorCotizacion();
 
     if (!context.mounted) return;
+
+    final repositoryPdf= CotizacionRepositoryImpl(datasource);
+    final modeloActualizado = _obtenerEstadoActual();
+
+    await PrevisualizacionPdfWidget.generarYsubirPdfEstatico(
+      cotizacion: modeloActualizado,
+      materiales: _materialesAgregados, 
+      codigoCotizacion: _codigoCotizacionCreada ?? widget.cotizacionAEditar?.codigo ?? 'CT-000', 
+      manoObra: _manoObraAgregada, 
+      idCotizacion: realId, 
+      repository: repositoryPdf
+    );
+
+    if (!context.mounted) return;
+    Navigator.pop(context);
+
     AppDialogs.mostrarSnackBar(
       context, 
       widget.cotizacionAEditar != null 
-          ? '¡Cotización actualizada con éxito!' 
+          ? '¡Cotización y Pdf actualizados con éxito!' 
           : '¡Cotización creada con éxito!'
     );
+
+    Navigator.pop(context, true);
     
   } catch (e) {
     setState(() {

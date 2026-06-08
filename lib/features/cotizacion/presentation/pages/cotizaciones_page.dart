@@ -910,8 +910,8 @@ class _CotizacionCard extends StatelessWidget {
                       ),
                       label: Text(noTienePdf ? 'Generar PDF' : 'Ver PDF'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: theme.colorScheme.error,
-                        side: BorderSide(color: theme.colorScheme.error),
+                        foregroundColor: tienePdf ? theme.colorScheme.error : theme.primaryColor,
+                        side: BorderSide(color: tienePdf ? theme.colorScheme.error : theme.primaryColor),
                       ),
                     ),
                   ),
