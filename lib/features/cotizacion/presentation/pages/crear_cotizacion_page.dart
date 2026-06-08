@@ -18,13 +18,16 @@ import '../../../../shared/widgets/app_dialogs.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../data/dtos/borrador_cotizacion_dto.dart';
 import '../../data/mappers/borrador_cotizacion_mapper.dart';
+import '../../../../shared/widgets/boton_bloqueo_visual.dart';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   final Cliente? clienteInyectado;
   final CotizacionDto? cotizacionAEditar;
 
   const CrearCotizacionPage({
-    super.key, 
+    super.key,
     this.clienteInyectado,
     this.cotizacionAEditar,
   });
@@ -93,7 +96,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       final edicion = widget.cotizacionAEditar!;
       _idCotizacionCreada = edicion.id;
       _codigoCotizacionCreada = edicion.codigo;
-      
+
       _clienteSeleccionado = Cliente(
         id: edicion.clienteId,
         nombre: edicion.clienteNombre,
@@ -131,9 +134,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             if (item is ManoDeObra) return item;
             final map = item as Map<String, dynamic>;
             return ManoDeObra(
-              cargo: map['cargo'] ?? map['detalle'] ?? '', 
+              cargo: map['cargo'] ?? map['detalle'] ?? '',
               dias: (map['dias'] ?? 0).toInt(),
-              valorJornada: (map['valorJornada'] ?? map['costo'] ?? 0).toDouble(),
+              valorJornada: (map['valorJornada'] ?? map['costo'] ?? 0)
+                  .toDouble(),
             );
           }),
         );
@@ -148,7 +152,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             return MaterialEntity(
               nombre: map['nombre'] ?? '',
               cantidad: (map['cantidad'] ?? 0).toDouble(),
-              costoUnitario: (map['costoUnitario'] ?? map['precioUnitario'] ?? 0).toDouble(),
+              costoUnitario:
+                  (map['costoUnitario'] ?? map['precioUnitario'] ?? 0)
+                      .toDouble(),
               unidadMedida: map['unidadMedida'] ?? '',
             );
           }),
@@ -202,12 +208,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
   Future<String> _guardarCotizacion() async {
     final cotizacion = _obtenerEstadoActual();
-    
-    final String idReal = widget.cotizacionAEditar?.id ?? 
+
+    final String idReal =
+        widget.cotizacionAEditar?.id ??
         FirebaseFirestore.instance.collection('cotizaciones').doc().id;
 
-    final int versionNueva = widget.cotizacionAEditar != null 
-        ? (widget.cotizacionAEditar!.version + 1) 
+    final int versionNueva = widget.cotizacionAEditar != null
+        ? (widget.cotizacionAEditar!.version + 1)
         : 1;
 
     final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
@@ -260,6 +267,52 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     }
 
     return idReal;
+  }
+
+  Future<void> _guardarCotizacionOffline() async {
+    final cotizacion = _obtenerEstadoActual();
+
+    final dto = CotizacionMapper.toDto(
+      cotizacion: cotizacion,
+      materiales: _materialesAgregados,
+      usuarioId: _auth.currentUser?.uid ?? '',
+      estado: 'Pendiente de sincronización',
+    );
+
+    final idLocal = 'local-${DateTime.now().millisecondsSinceEpoch}';
+    final codigoLocal = 'LOCAL-${DateTime.now().millisecondsSinceEpoch}';
+
+    final datosOffline = {
+      'id': idLocal,
+      'clienteId': dto.clienteId,
+      'clienteNombre': dto.clienteNombre,
+      'clienteEmail': dto.clienteEmail,
+      'clienteRut': dto.clienteRut,
+      'clienteTelefono': dto.clienteTelefono,
+      'clienteDireccion': dto.clienteDireccion,
+      'codigo': codigoLocal,
+      'direccion': dto.direccion,
+      'trabajos': dto.trabajos,
+      'manoObra': dto.manoObra,
+      'materiales': dto.materiales,
+      'subtotalObra': dto.subtotalObra,
+      'subtotalMateriales': dto.subtotalMateriales,
+      'subtotalManoObra': dto.subtotalManoObra,
+      'viatico': dto.viatico,
+      'porcentajeUtilidad': dto.porcentajeUtilidad,
+      'porcentajeIva': dto.porcentajeIva,
+      'totalFinal': dto.totalFinal,
+      'estado': 'Pendiente de sincronización',
+      'usuarioId': dto.usuarioId,
+      'version': 1,
+      'pdfUrl': null,
+      'pdfPendiente': true,
+      'guardadoOffline': true,
+      'fechaCreacionLocal': DateTime.now().toIso8601String(),
+    };
+
+    await _localStorage.guardarCotizacionPendiente(datosOffline);
+    await _localStorage.limpiarBorradorCotizacion();
   }
 
   Future<void> _agregarMaterial() async {
@@ -352,6 +405,64 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     return null;
   }
 
+  bool _pasoActualValido() {
+    switch (_currentStep) {
+      case 0:
+        return _clienteController.text.trim().isNotEmpty;
+
+      case 1:
+        return _direccionController.text.trim().isNotEmpty &&
+            _trabajosAgregados.isNotEmpty;
+
+      case 2:
+        return _manoObraAgregada.isNotEmpty;
+
+      case 3:
+        return _materialesAgregados.isNotEmpty;
+
+      case 4:
+        return _validarCampoNumerico(_viaticoController.text, 'Viático') ==
+                null &&
+            _validarCampoNumerico(_utilidadController.text, '% de utilidad') ==
+                null &&
+            _validarCampoNumerico(_ivaController.text, '% IVA Legal') == null;
+
+      default:
+        return false;
+    }
+  }
+
+  String _mensajeBloqueoPaso() {
+    switch (_currentStep) {
+      case 0:
+        return 'Selecciona o ingresa un cliente para continuar.';
+
+      case 1:
+        if (_direccionController.text.trim().isEmpty) {
+          return 'Ingresa la dirección general del proyecto.';
+        }
+        return 'Añade al menos un ítem de construcción.';
+
+      case 2:
+        return 'Añade al menos una carga de mano de obra.';
+
+      case 3:
+        return 'Añade al menos un material al catálogo.';
+
+      case 4:
+        return 'Corrige los campos numéricos antes de guardar.';
+
+      default:
+        return 'Completa la información requerida.';
+    }
+  }
+
+  Future<bool> _hayConexionInternet() async {
+    final resultados = await Connectivity().checkConnectivity();
+
+    return resultados.any((resultado) => resultado != ConnectivityResult.none);
+  }
+
   Future<bool> _mostrarAlertaRentabilidadBaja() async {
     return await showDialog<bool>(
           context: context,
@@ -409,6 +520,17 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           ),
         ) ??
         false;
+  }
+
+  Future<void> _cerrarFlujoOffline() async {
+    if (!context.mounted) return;
+
+    AppDialogs.mostrarSnackBar(
+      context,
+      'Datos guardados localmente. El PDF se podrá generar desde el historial cuando recuperes conexión.',
+    );
+
+    Navigator.of(context).pop();
   }
 
   Future<void> _autoguardar() async {
@@ -510,29 +632,61 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
-            controlsBuilder: (context, details) => Row(
-              children: [
-                ElevatedButton(
-                  onPressed: _guardandoEnFirestore
-                      ? null
-                      : details.onStepContinue,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _verdeApp,
-                    foregroundColor: Colors.white,
+            controlsBuilder: (context, details) {
+              final pasoValido = _pasoActualValido();
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      BotonBloqueoVisual(
+                        habilitado: pasoValido,
+                        cargando: _guardandoEnFirestore,
+                        onPressed: details.onStepContinue,
+                        texto: _currentStep == 4
+                            ? 'Guardar y Previsualizar'
+                            : 'Continuar',
+                        icon: _currentStep == 4
+                            ? Icons.save_alt_outlined
+                            : Icons.arrow_forward_rounded,
+                        colorActivo: _verdeApp,
+                      ),
+                      const SizedBox(width: 12),
+                      TextButton(
+                        onPressed: _guardandoEnFirestore
+                            ? null
+                            : details.onStepCancel,
+                        child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    _currentStep == 4 ? 'Guardar y Previsualizar' : 'Continuar',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: _guardandoEnFirestore
-                      ? null
-                      : details.onStepCancel,
-                  child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
-                ),
-              ],
-            ),
+
+                  if (!pasoValido) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _mensajeBloqueoPaso(),
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              );
+            },
             onStepContinue: () async {
               if (_currentStep == 0) {
                 if (_clienteController.text.trim().isEmpty) {
@@ -560,6 +714,21 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   return;
                 }
               }
+              if (_currentStep == 2 && _manoObraAgregada.isEmpty) {
+                AppDialogs.mostrarSnackBar(
+                  context,
+                  'Debes añadir al menos una carga de mano de obra',
+                );
+                return;
+              }
+
+              if (_currentStep == 3 && _materialesAgregados.isEmpty) {
+                AppDialogs.mostrarSnackBar(
+                  context,
+                  'Debes añadir al menos un material',
+                );
+                return;
+              }              
               await _autoguardar();
 
               if (_currentStep < 4) {
@@ -592,20 +761,50 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 setState(() => _guardandoEnFirestore = true);
 
                 try {
-                  final realId = await _guardarCotizacion();
+                  final hayConexion = await _hayConexionInternet();
+
+                  if (!hayConexion) {
+                    await _guardarCotizacionOffline();
+
+                    if (!context.mounted) return;
+
+                    setState(() => _guardandoEnFirestore = false);
+
+                    await _cerrarFlujoOffline();
+                    return;
+                  }
+
+                  final realId = await _guardarCotizacion().timeout(
+                    const Duration(seconds: 5),
+                  );
+
                   setState(() {
                     _idCotizacionCreada = realId;
                     _vistaPreviaCargada = true;
+                    _guardandoEnFirestore = false;
                   });
+
                   await _localStorage.limpiarBorradorCotizacion();
+
                   if (!context.mounted) return;
+
                   AppDialogs.mostrarSnackBar(
                     context,
-                    'Cotización creada con exito.',
+                    'Cotización creada con éxito.',
                   );
-                } catch (e) {
-                  setState(() => _guardandoEnFirestore = false);
+                } on TimeoutException {
+                  await _guardarCotizacionOffline();
+
                   if (!context.mounted) return;
+
+                  setState(() => _guardandoEnFirestore = false);
+
+                  await _cerrarFlujoOffline();
+                } catch (e) {
+                  if (!context.mounted) return;
+
+                  setState(() => _guardandoEnFirestore = false);
+
                   AppDialogs.mostrarSnackBar(
                     context,
                     'Error de persistencia: $e',
@@ -629,9 +828,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 ),
                 isActive: _currentStep >= 0,
                 content: IgnorePointer(
-                  ignoring: widget.clienteInyectado != null || widget.cotizacionAEditar != null,
+                  ignoring:
+                      widget.clienteInyectado != null ||
+                      widget.cotizacionAEditar != null,
                   child: Opacity(
-                    opacity: widget.clienteInyectado != null || widget.cotizacionAEditar != null ? 0.6 : 1.0,
+                    opacity:
+                        widget.clienteInyectado != null ||
+                            widget.cotizacionAEditar != null
+                        ? 0.6
+                        : 1.0,
                     child: SelectorCliente(
                       controller: _clienteController,
                       onClienteSeleccionado: (Cliente cliente) {
@@ -917,7 +1122,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 class DialogoTrabajoForm extends StatefulWidget {
   final List<String> tiposDisponibles;
   final Color verdeApp;
-  final void Function(String tipo, double m2, double precio, String descripcion) onGuardar;
+  final void Function(String tipo, double m2, double precio, String descripcion)
+  onGuardar;
   final void Function(String nuevoTipo) onNuevoTipoCreado;
 
   const DialogoTrabajoForm({
@@ -979,7 +1185,9 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
               return null;
             },
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]')),
+              FilteringTextInputFormatter.allow(
+                RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]'),
+              ),
             ],
             decoration: const InputDecoration(
               labelText: 'Nombre del tipo de trabajo',
@@ -1021,9 +1229,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
           Icon(Icons.add_task, color: widget.verdeApp),
@@ -1039,13 +1245,17 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              initialValue: widget.tiposDisponibles.contains(tipoSeleccionado) ? tipoSeleccionado : widget.tiposDisponibles.first,
+              initialValue: widget.tiposDisponibles.contains(tipoSeleccionado)
+                  ? tipoSeleccionado
+                  : widget.tiposDisponibles.first,
               decoration: const InputDecoration(
                 labelText: 'Tipo de Rubro',
                 border: OutlineInputBorder(),
               ),
               items: widget.tiposDisponibles
-                  .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
+                  .map(
+                    (tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)),
+                  )
                   .toList(),
               onChanged: (value) {
                 if (value == null) return;
@@ -1064,11 +1274,13 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             const SizedBox(height: 16),
             TextField(
               controller: m2ItemController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
-                    LengthLimitingTextInputFormatter(3),
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
+                LengthLimitingTextInputFormatter(3),
+                FilteringTextInputFormatter.digitsOnly,
+              ],
               decoration: InputDecoration(
                 labelText: 'Cantidad Metros Cuadrados (m²)',
                 prefixIcon: const Icon(Icons.square_foot),
@@ -1079,7 +1291,9 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             const SizedBox(height: 16),
             TextField(
               controller: precioItemController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: false),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: false,
+              ),
               inputFormatters: [ClpInputFormatter(maxDigits: 9)],
               decoration: InputDecoration(
                 labelText: 'Precio por m² (CLP)',
@@ -1108,10 +1322,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
           onPressed: () {
             Navigator.of(context).pop();
           },
-          child: const Text(
-            'Cancelar',
-            style: TextStyle(color: Colors.grey),
-          ),
+          child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
           onPressed: () {
@@ -1120,7 +1331,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             final descripcionTexto = descripcionItemController.text.trim();
 
             final m2 = double.tryParse(m2Texto);
-            final precio =  ClpInputFormatter.toDouble(precioTexto);
+            final precio = ClpInputFormatter.toDouble(precioTexto);
 
             setState(() {
               errorM2 = null;
