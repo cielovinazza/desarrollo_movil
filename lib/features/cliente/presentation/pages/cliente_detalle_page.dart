@@ -235,7 +235,7 @@ class _CotizacionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final totalFormateado = '\$${CurrencyFormatter.format(cotizacion.totalFinal)} CLP';
+    final totalFormateado = '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP';
     final colorEstado = _getEstadoColor(cotizacion.estado);
 
     return Card(

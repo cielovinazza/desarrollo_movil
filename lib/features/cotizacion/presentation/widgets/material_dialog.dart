@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:project/features/materiales/domain/entities/material.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/clp_input_formatter.dart';
+import '../../../../shared/widgets/boton_bloqueo_visual.dart';
 
 class MaterialDialog extends StatefulWidget {
   final Color verdeApp;
@@ -27,6 +28,7 @@ class _MaterialDialogState extends State<MaterialDialog> {
   final _costoController = TextEditingController();
 
   double _subtotal = 0;
+  bool _formValido = false;
 
   @override
   void initState() {
@@ -49,6 +51,14 @@ class _MaterialDialogState extends State<MaterialDialog> {
     _cantidadController.dispose();
     _costoController.dispose();
     super.dispose();
+  }
+
+  void _validarFormulario() {
+    final valido = _formKey.currentState?.validate() ?? false;
+
+    if (_formValido != valido) {
+      setState(() => _formValido = valido);
+    }
   }
 
   void _calcularSubtotal() {
@@ -79,6 +89,8 @@ class _MaterialDialogState extends State<MaterialDialog> {
       ),
       content: Form(
         key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        onChanged: _validarFormulario,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -113,7 +125,7 @@ class _MaterialDialogState extends State<MaterialDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-               
+
                 onChanged: (v) => _calcularSubtotal(),
                 decoration: const InputDecoration(
                   labelText: 'Cantidad',
@@ -190,22 +202,23 @@ class _MaterialDialogState extends State<MaterialDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(
+        BotonBloqueoVisual(
+          habilitado: _formValido,
           onPressed: () {
             if (!_formKey.currentState!.validate()) return;
+
             final material = MaterialEntity(
               nombre: _nombreController.text.trim(),
               unidadMedida: _unidadController.text.trim(),
               cantidad: double.parse(_cantidadController.text),
               costoUnitario: ClpInputFormatter.toDouble(_costoController.text),
             );
+
             Navigator.pop(context, material);
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: widget.verdeApp,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Guardar'),
+          texto: 'Guardar',
+          icon: Icons.save_outlined,
+          colorActivo: widget.verdeApp,
         ),
       ],
     );

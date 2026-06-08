@@ -8,6 +8,7 @@ import '../widgets/cliente_text_field.dart';
 import '../formatters/mascara_rut_formatters.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/utils/strings_extensions.dart';
+import '../../../../shared/widgets/boton_bloqueo_visual.dart';
 
 class RegistroClientePage extends StatefulWidget {
   final String? rutInicial;
@@ -41,7 +42,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   void initState() {
     super.initState();
     registrarClienteUseCase = RegistrarCliente(repository);
-    
+
     if (widget.rutInicial != null) {
       _rutController.text = widget.rutInicial!;
       WidgetsBinding.instance.addPostFrameCallback((_) => _validarFormulario());
@@ -131,9 +132,9 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     } catch (e, stack) {
       debugPrint('ERROR: $e');
       debugPrint('STACK: $stack');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -145,13 +146,16 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     _telefonoController.clear();
     _direccionController.clear();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Formulario limpiado'), behavior: SnackBarBehavior.floating),
+      const SnackBar(
+        content: Text('Formulario limpiado'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme=Theme.of(context);
+    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
@@ -163,7 +167,11 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
         ),
         title: Text(
           'Nuevo Cliente',
-          style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: theme.primaryColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -180,7 +188,9 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                  border: Border.all(
+                    color: Colors.grey.withValues(alpha: 0.15),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +203,11 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                             color: const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(Icons.person_add_alt_1_outlined, color: theme.primaryColor, size: 20),
+                          child: Icon(
+                            Icons.person_add_alt_1_outlined,
+                            color: theme.primaryColor,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -201,14 +215,21 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                           children: [
                             const Text(
                               'Datos de Registro',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black87,
+                              ),
                             ),
                             Text(
                               'Complete los campos requeridos',
-                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
                             ),
                           ],
-                        )
+                        ),
                       ],
                     ),
                     const Padding(
@@ -221,11 +242,15 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                       hint: 'Ingrese nombre completo',
                       icon: Icons.person_outline,
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑÁÉÍÓÚáéíóú ]')),
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-ZñÑÁÉÍÓÚáéíóú ]'),
+                        ),
                       ],
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return 'El nombre es obligatorio';
-                        if (value.trim().length < 3) return 'Mínimo 3 caracteres';
+                        if (value == null || value.trim().isEmpty)
+                          return 'El nombre es obligatorio';
+                        if (value.trim().length < 3)
+                          return 'Mínimo 3 caracteres';
                         return null;
                       },
                     ),
@@ -243,8 +268,10 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                         RutInputFormatter(),
                       ],
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return 'El RUT es obligatorio';
-                        if (!validaRut(value)) return 'RUT inválido, intente nuevamente.';
+                        if (value == null || value.trim().isEmpty)
+                          return 'El RUT es obligatorio';
+                        if (!validaRut(value))
+                          return 'RUT inválido, intente nuevamente.';
                         return null;
                       },
                     ),
@@ -257,9 +284,13 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return 'El correo es obligatorio';
-                        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-                        if (!emailRegex.hasMatch(value.trim())) return 'Formato inválido (usuario@correo.com)';
+                        if (value == null || value.trim().isEmpty)
+                          return 'El correo es obligatorio';
+                        final emailRegex = RegExp(
+                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                        );
+                        if (!emailRegex.hasMatch(value.trim()))
+                          return 'Formato inválido (usuario@correo.com)';
                         return null;
                       },
                     ),
@@ -277,8 +308,10 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                         LengthLimitingTextInputFormatter(9),
                       ],
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return 'El teléfono es obligatorio';
-                        if (value.replaceAll(RegExp(r'\D'), '').length != 9) return 'Debe tener exactamente 9 dígitos';
+                        if (value == null || value.trim().isEmpty)
+                          return 'El teléfono es obligatorio';
+                        if (value.replaceAll(RegExp(r'\D'), '').length != 9)
+                          return 'Debe tener exactamente 9 dígitos';
                         return null;
                       },
                     ),
@@ -300,25 +333,36 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        side: BorderSide(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       onPressed: _clearForm,
-                      icon: const Icon(Icons.clear_rounded, size: 18, color: Colors.black87),
-                      label: const Text('Limpiar', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+                      icon: const Icon(
+                        Icons.clear_rounded,
+                        size: 18,
+                        color: Colors.black87,
+                      ),
+                      label: const Text(
+                        'Limpiar',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: _formValido ? _submitForm : null,
-                      icon: const Icon(Icons.send_rounded, size: 18),
-                      label: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: BotonBloqueoVisual(
+                      habilitado: _formValido,
+                      onPressed: _submitForm,
+                      texto: 'Guardar',
+                      icon: Icons.send_rounded,
+                      colorActivo: theme.primaryColor,
                     ),
                   ),
                 ],

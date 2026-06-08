@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../domain/entities/mano_de_obra.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../../../../core/utils/clp_input_formatter.dart';
+import '../../../../shared/widgets/boton_bloqueo_visual.dart';
 
 class ManoObraDialog extends StatefulWidget {
   final Color verdeApp;
@@ -32,6 +33,7 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
   final valorJornadaController = TextEditingController();
   final diasController = TextEditingController();
   double subtotal = 0;
+  bool _formValido = false;
 
   @override
   void initState() {
@@ -44,6 +46,14 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
     valorJornadaController.dispose();
     diasController.dispose();
     super.dispose();
+  }
+
+  void _validarFormulario() {
+    final valido = _formKey.currentState?.validate() ?? false;
+
+    if (_formValido != valido) {
+      setState(() => _formValido = valido);
+    }
   }
 
   void calcularSubtotal() {
@@ -165,6 +175,8 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
       ),
       content: Form(
         key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
+        onChanged: _validarFormulario,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -266,7 +278,8 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(
+        BotonBloqueoVisual(
+          habilitado: _formValido,
           onPressed: () {
             if (!_formKey.currentState!.validate()) {
               return;
@@ -282,11 +295,9 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
 
             Navigator.pop(context, item);
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: widget.verdeApp,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Guardar'),
+          texto: 'Guardar',
+          icon: Icons.save_outlined,
+          colorActivo: widget.verdeApp,
         ),
       ],
     );
