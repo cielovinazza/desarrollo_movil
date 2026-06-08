@@ -202,70 +202,87 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   Future<String> _guardarCotizacion() async {
-    final cotizacion = _obtenerEstadoActual();
-    
-    final String idReal = widget.cotizacionAEditar?.id ?? 
-        FirebaseFirestore.instance.collection('cotizaciones').doc().id;
+  final cotizacion = _obtenerEstadoActual();
+  final String idReal = widget.cotizacionAEditar?.id ?? 
+      FirebaseFirestore.instance.collection('cotizaciones').doc().id;
 
-    final int versionNueva = widget.cotizacionAEditar != null 
-        ? (widget.cotizacionAEditar!.version + 1) 
-        : 1;
+  final int versionNueva = widget.cotizacionAEditar != null 
+      ? (widget.cotizacionAEditar!.version + 1) 
+      : 1;
 
-    final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
+  final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
+  final String stringEstado = 'Lista para Envío';
 
-    final dto = CotizacionMapper.toDto(
-      cotizacion: cotizacion,
-      materiales: _materialesAgregados,
-      usuarioId: _auth.currentUser?.uid ?? '',
-      estado: 'Lista para Envío',
-    );
+  final dto = CotizacionMapper.toDto(
+    cotizacion: cotizacion,
+    materiales: _materialesAgregados,
+    usuarioId: _auth.currentUser?.uid ?? '',
+    estado: stringEstado,
+  );
 
-    final dtoConId = CotizacionDto(
-      id: idReal,
-      clienteId: dto.clienteId,
-      clienteNombre: dto.clienteNombre,
-      clienteEmail: dto.clienteEmail,
-      clienteRut: dto.clienteRut,
-      clienteTelefono: dto.clienteTelefono,
-      clienteDireccion: dto.clienteDireccion,
-      codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
-      direccion: dto.direccion,
-      trabajos: dto.trabajos,
-      manoObra: dto.manoObra,
-      materiales: dto.materiales,
-      subtotalObra: dto.subtotalObra,
-      subtotalMateriales: dto.subtotalMateriales,
-      subtotalManoObra: dto.subtotalManoObra,
-      viatico: dto.viatico,
-      porcentajeUtilidad: dto.porcentajeUtilidad,
-      porcentajeIva: dto.porcentajeIva,
-      totalFinal: dto.totalFinal,
-      estado: widget.cotizacionAEditar != null 
-      ? widget.cotizacionAEditar!.estado
-      : 'Lista para Envío',
-      usuarioId: dto.usuarioId,
-      fechaCreacion: dto.fechaCreacion,
-      version: versionNueva,
-    );
-
-    await guardarCotizacionUseCase(dtoConId);
-    final docSnapshot = await FirebaseFirestore.instance
-        .collection('cotizaciones')
-        .doc(idReal)
-        .get();
-
-    if (docSnapshot.exists) {
-      final datosGuardados = docSnapshot.data();
-      final codigoAsignado = datosGuardados?['codigo'] as String?;
-      setState(() {
-        _codigoCotizacionCreada = codigoAsignado;
-      });
-    }
-
-    return idReal;
+  final dtoConId = dto.copyWith(
+    id: idReal,
+    version: versionNueva,
+    codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
+    estado: stringEstado,
+  );
+  await guardarCotizacionUseCase(dtoConId);
+  final docSnapshot = await FirebaseFirestore.instance
+      .collection('cotizaciones')
+      .doc(idReal)
+      .get();
+  if (docSnapshot.exists) {
+    final datosGuardados = docSnapshot.data();
+    final codigoAsignado = datosGuardados?['codigo'] as String?;
+    setState(() {
+      _codigoCotizacionCreada = codigoAsignado;
+    });
   }
 
-  Future<void> _ejecutarGuardadoFinal() async {
+  return idReal;
+}
+
+Future<void> _ejecutarGuardadoFinal() async {
+  final theme = Theme.of(context);
+  final bool? confirmar = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.help_outline, color: theme.primaryColor),
+            const SizedBox(width: 10),
+            const Text('Confirmación'),
+          ],
+        ),
+        content: Text(
+          widget.cotizacionAEditar != null 
+              ? '¿Está seguro de que desea realizar los cambios en la cotización?'
+              : '¿Está seguro de guardar esta cotización?, los datos no podrán ser editados nuevamente a menos que la cotización sea rechazada por el cliente.',
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _verdeApp,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirmar != true) return;
+
   setState(() {
     _guardandoEnFirestore = true;
   });
@@ -281,7 +298,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     await _localStorage.limpiarBorradorCotizacion();
 
     if (!context.mounted) return;
-    AppDialogs.mostrarSnackBar(context, '¡Cotización creada con éxito!');
+    AppDialogs.mostrarSnackBar(
+      context, 
+      widget.cotizacionAEditar != null 
+          ? '¡Cotización actualizada con éxito!' 
+          : '¡Cotización creada con éxito!'
+    );
+    
   } catch (e) {
     setState(() {
       _guardandoEnFirestore = false;
