@@ -272,9 +272,9 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                             ),
                             _buildVerticalDivider(theme),
                             _ItemResumenNeutro(
-                              label: 'En Proceso',
+                              label: 'Enviadas',
                               value:
-                                  (contarPorEstado('En Proceso') +
+                                  (contarPorEstado('Enviada') +
                                           contarPorEstado('Pendiente'))
                                       .toString(),
                               colorText: AppTheme.warning,

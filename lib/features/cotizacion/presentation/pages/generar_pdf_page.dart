@@ -30,6 +30,7 @@ class GenerarPdfPage extends StatelessWidget {
           codigoCotizacion: cotizacion.codigo,
           materiales: model.materiales,
           manoObra: model.listaManoObra,
+          habilitado: true,
           onListo: () async {
             Navigator.pop(context, true);
           },

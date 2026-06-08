@@ -19,6 +19,7 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
   final List<ManoDeObra> manoObra;
   final Future<void> Function() onListo;
   final String idCotizacion;
+  final bool habilitado;
 
   const PrevisualizacionPdfWidget({
     super.key,
@@ -28,6 +29,7 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
     required this.codigoCotizacion,
     required this.manoObra,
     required this.onListo,
+    required this.habilitado,
   });
 
   @override
@@ -38,6 +40,7 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
 class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   bool _cargado = false;
   bool _subiendo = false;
+  
 
   late final CotizacionRepositoryImpl _repository;
 
@@ -630,9 +633,9 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                     'CONFIRMAR Y SUBIR COTIZACIÓN',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  onPressed: () {
+                  onPressed: widget.habilitado ? () {
                     _procesarYSubirCotizacion(widget.idCotizacion);
-                  },
+                  }: null,
                 ),
               ),
             ],

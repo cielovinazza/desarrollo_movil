@@ -10,7 +10,7 @@ import '../../../cliente/presentation/formatters/mascara_rut_formatters.dart';
 
 class SelectorCliente extends StatefulWidget {
   final TextEditingController controller;
-  final Function(Cliente) onClienteSeleccionado;
+  final Function(Cliente?) onClienteSeleccionado; // Ahora acepta valores nulos
 
   const SelectorCliente({
     super.key,
@@ -86,7 +86,6 @@ class _SelectorClienteState extends State<SelectorCliente> {
     return rut.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
   }
 
-  // funcion para filtrar los clientes del selector segun lo escrito en el buscador por rut
   void _filtrarClientes() {
     final textoBusqueda = _normalizarRut(_rutController.text);
     
@@ -98,8 +97,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
           return _normalizarRut(cliente.rut).contains(textoBusqueda);
         }).toList();
       }
-      // si el cliente seleccionado actual ya no está en la lista filtrada se deselecciona
-      if (clienteSeleccionado != null && !clientesFiltrados.contains(clienteSeleccionado)) {
+      if (clienteSeleccionado != null && !clientesFiltrados.any((c) => c.id == clienteSeleccionado!.id)) {
         clienteSeleccionado = null;
       }
     });
@@ -113,6 +111,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
         mensaje = 'Ingrese un RUT para buscar';
         clienteSeleccionado = null;
       });
+      widget.onClienteSeleccionado(null);
       return;
     }
 
@@ -140,7 +139,6 @@ class _SelectorClienteState extends State<SelectorCliente> {
         buscando = false;
         mensaje = 'Cliente encontrado correctamente';
       });
-
       widget.onClienteSeleccionado(encontrado);
     } else {
       setState(() {
@@ -148,15 +146,14 @@ class _SelectorClienteState extends State<SelectorCliente> {
         buscando = false;
         mensaje = 'Cliente no encontrado. Debe registrar un nuevo cliente.';
       });
+      widget.onClienteSeleccionado(null);
       if (!mounted) return;
 
       final registrar = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
           title: const Text('Cliente no encontrado'),
-          content: Text(
-            'No existe un cliente con el RUT "$rutBuscado". ¿Deseas registrarlo ahora?',
-          ),
+          content: Text('No existe un cliente con el RUT "$rutBuscado". ¿Desea registrarlo ahora?'),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           actions: [
             TextButton(
@@ -164,10 +161,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: verdeApp,
-                foregroundColor: Colors.white,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: verdeApp, foregroundColor: Colors.white),
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Registrar cliente'),
             ),
@@ -178,9 +172,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
       if (registrar == true && mounted) {
         await Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => RegistroClientePage(rutInicial: rutBuscado),
-          ),
+          MaterialPageRoute(builder: (_) => RegistroClientePage(rutInicial: rutBuscado)),
         );
         await _cargarClientes();
       }
@@ -189,79 +181,75 @@ class _SelectorClienteState extends State<SelectorCliente> {
 
   @override
   Widget build(BuildContext context) {
-    final Cliente? valorDropdown = clientes.contains(clienteSeleccionado) ? clienteSeleccionado : null;
+    Cliente? valorDropdown;
+    if (clienteSeleccionado != null) {
+      final index = clientesFiltrados.indexWhere((c) => c.id == clienteSeleccionado!.id);
+      if (index != -1) {
+        valorDropdown = clientesFiltrados[index];
+      }
+    }
+
+    final List<DropdownMenuItem<Cliente?>> itemsDropdown = [
+      const DropdownMenuItem<Cliente?>(
+        value: null,
+        child: Text(
+          'Seleccione un cliente', 
+          style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+        ),
+      ),
+      ...clientesFiltrados.map((Cliente cliente) {
+        return DropdownMenuItem<Cliente?>(
+          value: cliente,
+          child: Text(
+            '${cliente.nombre} (${cliente.rut})',
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        );
+      }),
+    ];
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: verdeApp.withValues(alpha: 0.15),
-        ),
+        border: Border.all(color: verdeApp.withValues(alpha: 0.15)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Cliente',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const Text('Cliente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
-          const Text(
-            'Ingrese el RUT del cliente para buscarlo manualmente',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 13,
-            ),
-          ),
+          const Text('Ingrese el RUT del cliente para buscarlo manualmente', style: TextStyle(color: Colors.grey, fontSize: 13)),
           const SizedBox(height: 20),
           TextFormField(
             controller: _rutController,
             keyboardType: TextInputType.text,
             textCapitalization: TextCapitalization.characters,
             inputFormatters: [
-              FilteringTextInputFormatter.allow(
-                RegExp(r'[0-9kK]'),
-              ),
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9kK]')),
               RutInputFormatter(),
             ],
             decoration: InputDecoration(
               labelText: 'RUT del cliente',
               hintText: 'Ej: 12.345.678-9',
-              prefixIcon: Icon(
-                Icons.badge_outlined,
-                color: verdeApp,
-              ),
+              prefixIcon: Icon(Icons.badge_outlined, color: verdeApp),
               suffixIcon: IconButton(
                 icon: const Icon(Icons.search),
                 onPressed: buscando ? null : _buscarClientePorRut,
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: verdeApp.withValues(alpha: 0.25),
-                ),
+                borderSide: BorderSide(color: verdeApp.withValues(alpha: 0.25)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: verdeApp,
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: verdeApp, width: 2),
               ),
             ),
             onFieldSubmitted: (_) => buscando ? null : _buscarClientePorRut(),
@@ -283,70 +271,53 @@ class _SelectorClienteState extends State<SelectorCliente> {
                 backgroundColor: verdeApp,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ),
-          
-            const Padding(
+          const Padding(
             padding: EdgeInsets.symmetric(vertical: 16.0),
             child: Row(
               children: [
                 Expanded(child: Divider()),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    'O seleccione de la lista',
-                    style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w600),
-                  ),
+                  child: Text('O seleccione de la lista', style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
                 Expanded(child: Divider()),
               ],
             ),
           ),
           
-        
-          DropdownButtonFormField<Cliente>(
+          DropdownButtonFormField<Cliente?>(
+            itemHeight: 48,
+            key: Key('${valorDropdown?.id ?? 'ninguno'}_${clientesFiltrados.length}'),
             isExpanded: true,
-            initialValue: clienteSeleccionado, 
+            value: valorDropdown, 
             decoration: InputDecoration(
-              labelText: _rutController.text.isEmpty 
-                  ?  'Seleccione un cliente'
-                  : 'Resultados de coincidencia',
+              labelText: _rutController.text.isEmpty ? 'Seleccione un cliente' : 'Resultados de coincidencia',
               prefixIcon: Icon(Icons.person_outline, color: verdeApp),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: verdeApp.withValues(alpha: 0.25),
-                ),
+                borderSide: BorderSide(color: verdeApp.withValues(alpha: 0.25)),
               ),
             ),
-            // muestra los clientes que coincidan con lo escrito
-            items: clientesFiltrados.map((Cliente cliente) {
-              return DropdownMenuItem<Cliente>(
-                value: cliente,
-                child: Text(
-                  '${cliente.nombre} (${cliente.rut})',
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-              );
-            }).toList(),
+            items: itemsDropdown,
             onChanged: (Cliente? nuevoSeleccionado) {
-              if (nuevoSeleccionado != null) {
-                setState(() {
-                  clienteSeleccionado = nuevoSeleccionado;
+              setState(() {
+                clienteSeleccionado = nuevoSeleccionado;
+                if (nuevoSeleccionado != null) {
                   _rutController.text = nuevoSeleccionado.rut;
                   widget.controller.text = nuevoSeleccionado.nombre;
                   mensaje = 'Cliente seleccionado de la lista';
-                });
-                widget.onClienteSeleccionado(nuevoSeleccionado);
-              }
+                } else {
+                  _rutController.clear();
+                  widget.controller.clear();
+                  mensaje = null;
+                }
+              });
+              widget.onClienteSeleccionado(nuevoSeleccionado);
             },
           ),
           
@@ -378,21 +349,8 @@ class _SelectorClienteState extends State<SelectorCliente> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          clienteSeleccionado!.nombre,
-                          style: TextStyle(
-                            color: verdeApp,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                        Text(
-                          'RUT: ${clienteSeleccionado!.rut}',
-                          style: TextStyle(
-                            color: verdeApp.withValues(alpha: 0.8),
-                            fontSize: 13,
-                          ),
-                        ),
+                        Text(clienteSeleccionado!.nombre, style: TextStyle(color: verdeApp, fontWeight: FontWeight.bold, fontSize: 15)),
+                        Text('RUT: ${clienteSeleccionado!.rut}', style: TextStyle(color: verdeApp.withValues(alpha: 0.8), fontSize: 13)),
                       ],
                     ),
                   ),

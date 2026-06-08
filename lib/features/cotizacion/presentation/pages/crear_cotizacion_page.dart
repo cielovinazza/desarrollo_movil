@@ -40,7 +40,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   Cliente? _clienteSeleccionado;
   late final GuardarCotizacion guardarCotizacionUseCase;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  bool _vistaPreviaCargada = false;
+  bool _cotizacionGuardada = false;
   bool _guardandoEnFirestore = false;
   String? _idCotizacionCreada;
 
@@ -88,6 +88,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       _clienteSeleccionado = widget.clienteInyectado;
       _clienteController.text = widget.clienteInyectado!.nombre;
     }
+    _recuperarBorrador();
 
     if (widget.cotizacionAEditar != null) {
       final edicion = widget.cotizacionAEditar!;
@@ -216,7 +217,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       cotizacion: cotizacion,
       materiales: _materialesAgregados,
       usuarioId: _auth.currentUser?.uid ?? '',
-      estado: 'En Proceso',
+      estado: 'Lista para Envío',
     );
 
     final dtoConId = CotizacionDto(
@@ -239,7 +240,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       porcentajeUtilidad: dto.porcentajeUtilidad,
       porcentajeIva: dto.porcentajeIva,
       totalFinal: dto.totalFinal,
-      estado: 'En Proceso',
+      estado: 'Lista para Envío',
       usuarioId: dto.usuarioId,
       fechaCreacion: dto.fechaCreacion,
       version: versionNueva,
@@ -261,6 +262,33 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
     return idReal;
   }
+
+  Future<void> _ejecutarGuardadoFinal() async {
+  setState(() {
+    _guardandoEnFirestore = true;
+  });
+
+  try {
+    final realId = await _guardarCotizacion();
+
+    setState(() {
+      _idCotizacionCreada = realId;
+      _cotizacionGuardada = true;
+    });
+
+    await _localStorage.limpiarBorradorCotizacion();
+
+    if (!context.mounted) return;
+    AppDialogs.mostrarSnackBar(context, '¡Cotización creada con éxito!');
+  } catch (e) {
+    setState(() {
+      _guardandoEnFirestore = false;
+    });
+
+    if (!context.mounted) return;
+    AppDialogs.mostrarSnackBar(context, 'Error al guardar la cotización: $e');
+  }
+}
 
   Future<void> _agregarMaterial() async {
     final resultado = await showDialog<MaterialEntity>(
@@ -335,7 +363,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       return 'El campo $nombreCampo es obligatorio';
     }
 
-    final numero = double.tryParse(value.trim());
+    final double? numero = nombreCampo == 'Viático'
+        ? ClpInputFormatter.toDouble(value) : double.tryParse(value.trim());
 
     if (numero == null || numero < 0) {
       return 'Ingrese solo caracteres numéricos válidos';
@@ -377,7 +406,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               ),
             ),
             content: const Text(
-              '¡Atención contratista! El margen de utilidad ingresado es inferior al 10% mínimo recomendado. '
+              '¡Atención! El margen de utilidad ingresado es inferior al 10% mínimo recomendado. '
               '¿Está seguro de que desea continuar con esta tasa de ganancia para el proyecto?',
               style: TextStyle(fontSize: 15),
             ),
@@ -410,7 +439,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   Future<void> _autoguardar() async {
-    print('AUTOGUARDANDO');
+    //print('AUTOGUARDANDO');
     final dto = BorradorCotizacionMapper.toDto(
       cliente: _clienteSeleccionado,
       clienteTexto: _clienteController.text,
@@ -427,30 +456,53 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   Future<void> _recuperarBorrador() async {
-    final raw = await _localStorage.obtenerBorradorCotizacion();
-    if (raw == null) return;
-
-    final dto = BorradorCotizacionDto.fromJson(raw);
-
-    setState(() {
-      _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
-      _clienteController.text = dto.clienteTexto;
-      _direccionController.text = dto.direccion;
-      _viaticoController.text = dto.viatico;
-      _utilidadController.text = dto.utilidad;
-      _ivaController.text = dto.iva;
-      _currentStep = dto.currentStep;
-      _trabajosAgregados
-        ..clear()
-        ..addAll(BorradorCotizacionMapper.trabajosFromDto(dto));
-      _materialesAgregados
-        ..clear()
-        ..addAll(BorradorCotizacionMapper.materialesFromDto(dto));
-      _manoObraAgregada
-        ..clear()
-        ..addAll(BorradorCotizacionMapper.manoObraFromDto(dto));
-    });
+  final raw = await _localStorage.obtenerBorradorCotizacion();
+  
+  // SI NO HAY CACHÉ GUARDADA: Igual debemos verificar si venía un cliente inyectado
+  if (raw == null) {
+    if (widget.clienteInyectado != null) {
+      setState(() {
+        _clienteSeleccionado = widget.clienteInyectado;
+        _clienteController.text = widget.clienteInyectado!.nombre;
+      });
+    }
+    return;
   }
+
+  final dto = BorradorCotizacionDto.fromJson(raw);
+
+  setState(() {
+    
+    if (widget.clienteInyectado == null) {
+      _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
+      
+      if (dto.clienteTexto.trim().isEmpty) {
+        _clienteSeleccionado = null;
+      }
+      _clienteController.text = dto.clienteTexto;
+    } 
+    
+    else {
+      _clienteSeleccionado = widget.clienteInyectado;
+      _clienteController.text = widget.clienteInyectado!.nombre;
+    }
+    _direccionController.text = dto.direccion;
+    _viaticoController.text = dto.viatico;
+    _utilidadController.text = dto.utilidad;
+    _ivaController.text = dto.iva;
+    _currentStep = dto.currentStep;
+    
+    _trabajosAgregados
+      ..clear()
+      ..addAll(BorradorCotizacionMapper.trabajosFromDto(dto));
+    _materialesAgregados
+      ..clear()
+      ..addAll(BorradorCotizacionMapper.materialesFromDto(dto));
+    _manoObraAgregada
+      ..clear()
+      ..addAll(BorradorCotizacionMapper.manoObraFromDto(dto));
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -488,7 +540,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     foregroundColor: Colors.white,
                   ),
                   child: Text(
-                    _currentStep == 4 ? 'Guardar y Previsualizar' : 'Continuar',
+                    _currentStep == 5 ? (_cotizacionGuardada ? 'Cotización guardada' : 'Guardar Cotización') : 'Continuar',
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -502,7 +554,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             ),
             onStepContinue: () async {
               if (_currentStep == 0) {
-                if (_clienteController.text.trim().isEmpty) {
+                if (_clienteSeleccionado == null) {
                   AppDialogs.mostrarSnackBar(
                     context,
                     'Debes ingresar o seleccionar un cliente',
@@ -510,7 +562,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   return;
                 }
               }
-
               if (_currentStep == 1) {
                 if (_direccionController.text.trim().isEmpty) {
                   AppDialogs.mostrarSnackBar(
@@ -522,62 +573,35 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                 if (_trabajosAgregados.isEmpty) {
                   AppDialogs.mostrarSnackBar(
                     context,
-                    'Debes ingresar la dirección de la obra',
+                    'Debes añadir al menos un trabajo',
                   );
                   return;
                 }
               }
-
-              if (_currentStep < 4) {
-                setState(() {
-                  if (_currentStep == 3) {
-                    _vistaPreviaCargada = false;
-                  }
-                  _currentStep += 1;
-                });
-                _autoguardar();
-              } else {
+              if (_currentStep == 4) {
                 if (!_formKey.currentState!.validate()) {
                   AppDialogs.mostrarSnackBar(
                     context,
-                    'Formulario inválido. Corrija los campos en rojo antes de guardar.',
+                    'Formulario inválido. Corrija los campos en rojo antes de continuar.',
                   );
                   return;
                 }
-
-                final margenUtilidad =
-                    double.tryParse(_utilidadController.text) ?? 0.0;
+                final margenUtilidad = double.tryParse(_utilidadController.text) ?? 0.0;
                 if (margenUtilidad < 10.0) {
                   final deseaContinuar = await _mostrarAlertaRentabilidadBaja();
                   if (!deseaContinuar) return;
                 }
-
-                if (_guardandoEnFirestore) return;
-
-                setState(() => _guardandoEnFirestore = true);
-
-                try {
-                  final realId = await _guardarCotizacion();
-                  setState(() {
-                    _idCotizacionCreada = realId;
-                    _vistaPreviaCargada = true;
-                  });
-                  await _localStorage.limpiarBorradorCotizacion();
-                  if (!context.mounted) return;
-                  AppDialogs.mostrarSnackBar(
-                    context,
-                    'Cotización creada con exito.',
-                  );
-                } catch (e) {
-                  setState(() => _guardandoEnFirestore = false);
-                  if (!context.mounted) return;
-                  AppDialogs.mostrarSnackBar(
-                    context,
-                    'Error de persistencia: $e',
-                  );
-                }
               }
-            },
+              if (_currentStep < 5) {
+                setState(() {
+                  _currentStep += 1;
+                });
+                _autoguardar();
+              } else {
+                if (_cotizacionGuardada) return;
+                await _ejecutarGuardadoFinal();
+              }
+            },             
             onStepCancel: () {
               if (_currentStep > 0) {
                 setState(() => _currentStep -= 1);
@@ -599,8 +623,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     opacity: widget.clienteInyectado != null || widget.cotizacionAEditar != null ? 0.6 : 1.0,
                     child: SelectorCliente(
                       controller: _clienteController,
-                      onClienteSeleccionado: (Cliente cliente) {
+                      onClienteSeleccionado: (Cliente? cliente) {
                         setState(() => _clienteSeleccionado = cliente);
+                        if (cliente == null){
+                          _clienteController.clear();
+                        }else{
+                          _clienteController.text = cliente.nombre;
+                        }
+                        _autoguardar();
+                        
                       },
                     ),
                   ),
@@ -784,12 +815,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _utilidadController,
                       keyboardType: TextInputType.number,
-                      validator: (val) =>
-                          _validarCampoNumerico(val, '% de utilidad'),
+                      validator: (val) => _validarCampoNumerico(val, '% de utilidad'),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d{0,3}\.?\d{0,2}'),
-                        ),
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d{0,3}\.?\d{0,2}')),
                       ],
                       decoration: const InputDecoration(
                         labelText: '% Porcentaje de Utilidad',
@@ -801,8 +829,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                     TextFormField(
                       controller: _ivaController,
                       keyboardType: TextInputType.number,
-                      validator: (val) =>
-                          _validarCampoNumerico(val, '% IVA Legal'),
+                      validator: (val) => _validarCampoNumerico(val, '% IVA Legal'),
                       inputFormatters: [
                         LengthLimitingTextInputFormatter(3),
                         FilteringTextInputFormatter.digitsOnly,
@@ -844,40 +871,41 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    if (_vistaPreviaCargada && _idCotizacionCreada != null) ...[
-                      PrevisualizacionPdfWidget(
-                        cotizacion: datosEnVivo,
-                        materiales: _materialesAgregados,
-                        idCotizacion: _idCotizacionCreada!,
-                        manoObra: _manoObraAgregada,
-                        codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
-
-                        onListo: () async {
-                          await _localStorage.limpiarBorradorCotizacion();
-                           if (!context.mounted) return;
-
-                          AppDialogs.mostrarSnackBar(
-                            context,
-                            '¡Cotización creada con éxito!',
-                          );
-
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                    ],
                   ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+              //previsualización y guardado final
+              Step(
+                title: const Text(
+                  'Previsualización y Confirmación',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                isActive: _currentStep >= 5,
+                content: PrevisualizacionPdfWidget(
+                  cotizacion: datosEnVivo,
+                  materiales: _materialesAgregados,
+                  idCotizacion: _idCotizacionCreada ?? '', 
+                  manoObra: _manoObraAgregada,
+                  codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
+                  habilitado: _cotizacionGuardada,
+                  onListo: () async {
+                    if (!context.mounted) return;
 
+                    AppDialogs.mostrarSnackBar(context, 'Cotización subida con éxito.');
+                    if (!context.mounted)return;
+                    Navigator.pop(context);
+                    //await _ejecutarGuardadoFinal();
+                  },
+                ),
+             ),
+           ], 
+          )
+         )
+       )
+     ); 
+  } 
+}
+ 
 class DialogoTrabajoForm extends StatefulWidget {
   final List<String> tiposDisponibles;
   final Color verdeApp;
