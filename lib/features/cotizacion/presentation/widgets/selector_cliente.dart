@@ -189,7 +189,6 @@ class _SelectorClienteState extends State<SelectorCliente> {
 
   @override
   Widget build(BuildContext context) {
-    final Cliente? valorDropdown = clientes.contains(clienteSeleccionado) ? clienteSeleccionado : null;
 
     return Container(
       padding: const EdgeInsets.all(16),
