@@ -617,7 +617,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               if (_currentStep > 0) {
                 setState(() => _currentStep -= 1);
                 _autoguardar();
-                _autoguardar();
               } else {
                 Navigator.pop(context);
               }
