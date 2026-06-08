@@ -240,7 +240,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       porcentajeUtilidad: dto.porcentajeUtilidad,
       porcentajeIva: dto.porcentajeIva,
       totalFinal: dto.totalFinal,
-      estado: 'Lista para Envío',
+      estado: widget.cotizacionAEditar != null 
+      ? widget.cotizacionAEditar!.estado
+      : 'Lista para Envío',
       usuarioId: dto.usuarioId,
       fechaCreacion: dto.fechaCreacion,
       version: versionNueva,
@@ -440,6 +442,8 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
   Future<void> _autoguardar() async {
     //print('AUTOGUARDANDO');
+    if(widget.cotizacionAEditar != null) return;
+
     final dto = BorradorCotizacionMapper.toDto(
       cliente: _clienteSeleccionado,
       clienteTexto: _clienteController.text,
@@ -456,9 +460,45 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   Future<void> _recuperarBorrador() async {
+  
+  if (widget.cotizacionAEditar != null){
+    final edicion = widget.cotizacionAEditar!;
+    setState((){
+      _clienteSeleccionado= Cliente(
+        id: edicion.clienteId,
+        nombre: edicion.clienteNombre,
+        correo: edicion.clienteEmail,
+        rut: edicion.clienteRut,
+        telefono: edicion.clienteTelefono,
+        direccion: edicion.clienteDireccion,
+      );
+      _clienteController.text = edicion.clienteNombre;
+      _direccionController.text = edicion.direccion;
+      _viaticoController.text = edicion.viatico?.toString() ?? '';
+      _utilidadController.text = edicion.porcentajeUtilidad.toString();
+      _ivaController.text = edicion.porcentajeIva.toString();
+      _trabajosAgregados.addAll(edicion.trabajos.map((item) => ItemTrabajo(
+        tipo: item.tipo,
+        metrosCuadrados: item.metrosCuadrados,
+        precioPorMetro: item.precioPorMetro,
+        descripcionBreve: item.descripcionBreve,
+      )));
+      _manoObraAgregada.addAll(edicion.manoObra.map((item) => ManoDeObra(
+        cargo: item.cargo,
+        dias: item.dias,
+        valorJornada: item.valorJornada,
+      )));
+      _materialesAgregados.addAll(edicion.materiales.map((item) => MaterialEntity(
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        costoUnitario: item.costoUnitario,
+        unidadMedida: item.unidadMedida,
+      )));
+    });
+    return;
+  }
   final raw = await _localStorage.obtenerBorradorCotizacion();
   
-  // SI NO HAY CACHÉ GUARDADA: Igual debemos verificar si venía un cliente inyectado
   if (raw == null) {
     if (widget.clienteInyectado != null) {
       setState(() {

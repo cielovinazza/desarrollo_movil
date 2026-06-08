@@ -277,7 +277,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                                   (contarPorEstado('Enviada') +
                                           contarPorEstado('Pendiente'))
                                       .toString(),
-                              colorText: AppTheme.warning,
+                              colorText: Colors.blue,
                             ),
                             _buildVerticalDivider(theme),
                             _ItemResumenNeutro(
