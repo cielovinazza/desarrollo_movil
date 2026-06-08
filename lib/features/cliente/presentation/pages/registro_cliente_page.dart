@@ -142,13 +142,26 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
         ),
       );
       Navigator.pop(context);
-    } catch (e, stack) {
-      debugPrint('ERROR: $e');
-      debugPrint('STACK: $stack');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
+} catch (e, stack) {
+  debugPrint('ERROR: $e');
+  debugPrint('STACK: $stack');
+  await _localStorage.guardarClientePendiente({
+    'nombre': cliente.nombre,
+    'rut': cliente.rut,
+    'correo': cliente.correo,
+    'telefono': cliente.telefono,
+    'direccion': cliente.direccion ?? '',
+  });
+  await _localStorage.limpiarBorradorCliente();
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Sin conexión. Cliente guardado localmente y se sincronizará automáticamente.'),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+  Navigator.pop(context);
+}
   }
 
    Future<void> _clearForm() async {
