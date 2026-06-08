@@ -57,11 +57,9 @@ class ConnectivitySyncService {
           rutDuplicado: rut,
           idClienteOriginal: clienteExistenteId,
         );
-        // No crear el cliente duplicado
         continue;
       }
 
-      // No existe — crear normalmente
       final docRef = _firestore.collection('cliente').doc();
       await docRef.set({...cliente, 'id': docRef.id});
     }
