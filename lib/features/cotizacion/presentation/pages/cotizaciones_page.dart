@@ -13,7 +13,12 @@ import 'generar_pdf_page.dart';
 import '../../../../shared/widgets/app_dialogs.dart';
 
 class CotizacionesPage extends StatefulWidget {
-  const CotizacionesPage({super.key});
+  final bool filtrarMesActual;
+
+  const CotizacionesPage({
+    super.key,
+    this.filtrarMesActual = false,
+  });
 
   @override
   State<CotizacionesPage> createState() => _CotizacionesPageState();
@@ -40,6 +45,23 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   @override
   void initState() {
     super.initState();
+
+    if (widget.filtrarMesActual) {
+    final ahora = DateTime.now();
+
+    fechaInicioFiltro = DateTime(
+      ahora.year,
+      ahora.month,
+      1,
+    );
+
+    fechaFinFiltro = DateTime(
+      ahora.year,
+      ahora.month + 1,
+      0,
+    );
+  }
+
     final datasource = CotizacionFirestoreDataSource(
       FirebaseFirestore.instance,
     );

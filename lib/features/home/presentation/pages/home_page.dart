@@ -7,8 +7,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onGoToCotizaciones;
+  final bool isDarkMode;
+  final ValueChanged<bool> onThemeChanged;
 
-  const HomePage({super.key, required this.onGoToCotizaciones});
+  const HomePage({
+    super.key,
+    required this.onGoToCotizaciones,
+    required this.isDarkMode,
+    required this.onThemeChanged,
+  });
 
   void _mostrarConfiguracion(BuildContext context) {
     showModalBottomSheet(
@@ -27,9 +34,10 @@ class HomePage extends StatelessWidget {
               const SizedBox(height: 20),
               SwitchListTile(
                 title: const Text('Modo Oscuro'),
-                subtitle: const Text('Opción disponible próximamente'),
-                value: false,
-                onChanged: (value) {},
+                value: isDarkMode,
+                onChanged: (value) {
+                  onThemeChanged(value);
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.sync),
@@ -76,7 +84,7 @@ class HomePage extends StatelessWidget {
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.05),
@@ -98,22 +106,25 @@ class HomePage extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
-                const Text(
+                Text(
                   'App de Cotizaciones',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
 
                 const SizedBox(height: 6),
 
-                const Text(
+                Text(
                   'Gestione sus proyectos y clientes con precisión y rapidez profesional.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15, color: AppTheme.textGrey),
+                  style: TextStyle(
+                    fontSize: 15, 
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
 
                 const SizedBox(height: 28),
@@ -169,8 +180,8 @@ class HomePage extends StatelessWidget {
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppTheme.primary,
+                            backgroundColor: Theme.of(context).cardColor,
+                            foregroundColor: Theme.of(context).colorScheme.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -233,7 +244,7 @@ class HomePage extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: AppTheme.primary.withValues(alpha: 0.1),
@@ -261,10 +272,10 @@ class HomePage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Estado del Mes',
                                 style: TextStyle(
-                                  color: AppTheme.textGrey,
+                                  color: Theme.of(context).textTheme.bodyMedium?.color,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -292,10 +303,10 @@ class HomePage extends StatelessWidget {
 
                                   return Text(
                                     '$total Cotizaciones',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: AppTheme.textDark,
+                                      color: Theme.of(context).textTheme.bodyLarge?.color,
                                     ),
                                   );
                                 },
@@ -303,9 +314,9 @@ class HomePage extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           Icons.chevron_right,
-                          color: AppTheme.textGrey,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                         ),
                       ],
                     ),
@@ -336,7 +347,7 @@ class _ActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -368,10 +379,10 @@ class _ActionCard extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.textDark,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
                 ),
               ),
             ],

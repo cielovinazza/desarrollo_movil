@@ -16,10 +16,12 @@ import 'shared/design_system/app_theme.dart';
 import 'package:project/core/network/connectivity_sync_service.dart';
 
 late final ConnectivitySyncService _syncService;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
@@ -28,27 +30,40 @@ Future<void> main() async {
   final dataSource = AuthFirebaseDataSource();
   final repository = AuthRepositoryImpl(dataSource);
   final useCase = LoginUseCase(repository);
+
   _syncService = ConnectivitySyncService();
   _syncService.iniciar();
 
   runApp(MyApp(useCase: useCase));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final LoginUseCase useCase;
 
   const MyApp({super.key, required this.useCase});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  ThemeMode _themeMode = ThemeMode.light;
+
+  void cambiarTema(bool oscuro) {
+    setState(() {
+      _themeMode = oscuro ? ThemeMode.dark : ThemeMode.light;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      themeMode: ThemeMode.light,
-
+      darkTheme: AppTheme.darkTheme,
+      themeMode: _themeMode,
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(),
-
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
@@ -65,12 +80,18 @@ class MyApp extends StatelessWidget {
                     body: Center(child: CircularProgressIndicator()),
                   );
                 }
-                return const InactivityDetector(child: MainNavigation());
+
+                return InactivityDetector(
+                  child: MainNavigation(
+                    isDarkMode: _themeMode == ThemeMode.dark,
+                    onThemeChanged: cambiarTema,
+                  ),
+                );
               },
             );
           }
 
-          return LoginPage(useCase: useCase);
+          return LoginPage(useCase: widget.useCase);
         },
       ),
     );

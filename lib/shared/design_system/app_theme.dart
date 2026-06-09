@@ -12,7 +12,6 @@ class AppTheme {
   static const Color danger = Color(0xFFE53935);
   static const Color warning = Color(0xFFF9A825);
 
-  
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -37,6 +36,42 @@ class AppTheme {
       textTheme: const TextTheme(
         bodyLarge: TextStyle(color: textDark, fontWeight: FontWeight.w500),
         bodyMedium: TextStyle(color: textGrey),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          elevation: 1,
+        ),
+      ),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: const Color(0xFF121212),
+      primaryColor: primary,
+      cardColor: const Color(0xFF1E1E1E),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: primary,
+        brightness: Brightness.dark,
+        primary: primary,
+        secondary: lightGreen,
+        surface: const Color(0xFF1E1E1E),
+        error: danger,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF004D3A),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(color: Colors.white),
+        bodyMedium: TextStyle(color: Colors.white70),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
