@@ -61,7 +61,7 @@ class ClienteTextField
         fillColor: enabled ? Colors.white : Colors.grey.withValues(alpha: 0.1),
         prefixIcon: Icon(icon),
         border:
-            const OutlineInputBorder(),
+            OutlineInputBorder(),
         alignLabelWithHint:
             maxLines > 1,
       ),

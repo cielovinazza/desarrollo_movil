@@ -771,6 +771,7 @@ Future<void> _ejecutarGuardadoFinal() async {
   @override
   Widget build(BuildContext context) {
     final datosEnVivo = _obtenerEstadoActual();
+    
 
     return Scaffold(
       appBar: AppBar(
@@ -993,9 +994,9 @@ Future<void> _ejecutarGuardadoFinal() async {
                     TextFormField(
                       controller: _direccionController,
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Dirección general del proyecto',
-                        prefixIcon: Icon(Icons.location_on_outlined),
+                        prefixIcon: Icon(Icons.location_on_outlined,),
                         border: OutlineInputBorder(),
                       ),
                     ),

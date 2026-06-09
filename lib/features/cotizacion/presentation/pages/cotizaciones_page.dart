@@ -185,6 +185,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
     return Stack(
       children: [
         Scaffold(
@@ -274,7 +275,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       const SizedBox(height: 16),
                       Text(
                         'Cotizaciones por Estado',
-                        style: textTheme.titleLarge?.copyWith(color: AppTheme.darkPrimary),
+                        style: textTheme.titleLarge?.copyWith(color: esOscuro ? AppTheme.lightGreen : AppTheme.darkPrimary),
                       ),
                       const SizedBox(height: 20),
                       Container(
@@ -772,7 +773,7 @@ class _CotizacionCard extends StatelessWidget {
                       cliente,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.textDark, // Mantener color de texto solicitado
+                       // Mantener color de texto solicitado
                       ),
                     ),
                     Text(

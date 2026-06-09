@@ -116,13 +116,14 @@ class _ClienteCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
+    final esOscuro = theme.brightness == Brightness.dark;
     final cleanRut = cliente.rut.replaceAll('.', '').replaceAll('-', '');
     final bool isEmpresa = cleanRut.startsWith('76') || cleanRut.startsWith('77');
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
         boxShadow: [
@@ -143,7 +144,7 @@ class _ClienteCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
+                    color: esOscuro ? theme.primaryColor.withValues(alpha: 0.1) :const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -159,10 +160,10 @@ class _ClienteCard extends StatelessWidget {
                     children: [
                       Text(
                         cliente.nombre,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold, 
                           fontSize: 18,
-                          color: Colors.black, // Negro de alta fidelidad
+                          color: esOscuro ? Colors.white :Colors.black, // Negro de alta fidelidad
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
