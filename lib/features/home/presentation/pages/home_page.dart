@@ -62,6 +62,8 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme=Theme.of(context);
+    final esOscuro = theme.brightness==Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sistema de Cotizaciones'),
@@ -181,18 +183,19 @@ class HomePage extends StatelessWidget {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).cardColor,
-                            foregroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: esOscuro ? Colors.white : theme.primaryColor,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 2,
                           ),
-                          icon: const Icon(Icons.add_circle_outline),
-                          label: const Text(
+                          icon: Icon(Icons.add_circle_outline,),
+                          label: Text(
                             'Crear Ahora',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
+                              
                             ),
                           ),
                         ),
@@ -247,11 +250,11 @@ class HomePage extends StatelessWidget {
                       color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: AppTheme.primary.withValues(alpha: 0.1),
+                        color: esOscuro ?  Colors.white.withValues(alpha: 0.08) : AppTheme.primary.withValues(alpha: 0.1),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
+                          color: esOscuro ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -346,6 +349,8 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme=Theme.of(context);
+    final esOscuro = theme.brightness==Brightness.dark;
     return Material(
       color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(16),
@@ -358,11 +363,11 @@ class _ActionCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppTheme.primary.withValues(alpha: 0.1),
+              color: esOscuro ? Colors.white.withValues(alpha: 0.08):AppTheme.primary.withValues(alpha: 0.1),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.01),
+                color: esOscuro ? Colors.white.withValues(alpha: 0.015) :Colors.black.withValues(alpha: 0.01),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),

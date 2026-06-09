@@ -11,6 +11,7 @@ class AppTheme {
   static const Color softBlue = Color(0xFFDDEBFF);
   static const Color danger = Color(0xFFE53935);
   static const Color warning = Color(0xFFF9A825);
+  static const Color verdeApp =  Color.fromARGB(255, 43, 108, 71);
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -33,6 +34,28 @@ class AppTheme {
         elevation: 0,
         centerTitle: true,
       ),
+      inputDecorationTheme: InputDecorationTheme(
+        labelStyle: const TextStyle(color: textGrey),
+        hintStyle: const TextStyle(color: textGrey),
+        prefixIconColor: textGrey,
+        suffixIconColor: textGrey,
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: textGrey.withValues(alpha:0.5)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: primary, width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: danger),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: danger, width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
       textTheme: const TextTheme(
         bodyLarge: TextStyle(color: textDark, fontWeight: FontWeight.w500),
         bodyMedium: TextStyle(color: textGrey),
@@ -53,21 +76,45 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: const Color(0xFF121212),
-      primaryColor: primary,
+      primaryColor: verdeApp,
       cardColor: const Color(0xFF1E1E1E),
       colorScheme: ColorScheme.fromSeed(
-        seedColor: primary,
+        seedColor: verdeApp,
         brightness: Brightness.dark,
-        primary: primary,
+        primary: verdeApp,
         secondary: lightGreen,
         surface: const Color(0xFF1E1E1E),
         error: danger,
       ),
       appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF004D3A),
+        backgroundColor:  Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        labelStyle: const TextStyle(color: Colors.white70),
+        hintStyle: const TextStyle(color: Colors.white38),
+        prefixIconColor: Colors.white70,
+        suffixIconColor: Colors.white70,
+        enabledBorder: OutlineInputBorder(
+          // El borde pasivo se vuelve un gris/blanco sutil responsivo al ojo oscuro
+          borderSide: const BorderSide(color: Colors.white54),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        focusedBorder: OutlineInputBorder(
+          // Al hacer foco brilla con tu verde primary resaltando sobre el fondo negro
+          borderSide: const BorderSide(color: Color.fromARGB(255, 30, 146, 40), width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: danger),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: danger, width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
       ),
       textTheme: const TextTheme(
         bodyLarge: TextStyle(color: Colors.white),
@@ -75,7 +122,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
+          backgroundColor: verdeApp,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           elevation: 1,
