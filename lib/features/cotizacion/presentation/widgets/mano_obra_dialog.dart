@@ -296,7 +296,7 @@ class _ManoObraDialogState extends State<ManoObraDialog> {
             Navigator.pop(context, item);
           },
           texto: 'Guardar',
-          icon: Icons.save_outlined,
+          
           colorActivo: widget.verdeApp,
         ),
       ],

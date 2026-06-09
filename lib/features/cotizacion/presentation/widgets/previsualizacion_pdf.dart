@@ -531,7 +531,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     setState(() => _subiendo = true);
 
 try {
-      // Invocamos el utilitario estático que acabamos de crear
+      
       await PrevisualizacionPdfWidget.generarYsubirPdfEstatico(
         cotizacion: widget.cotizacion,
         materiales: widget.materiales,
@@ -801,6 +801,7 @@ try {
               ),
             ),
           ),
+          
         ],
       ),
     );
