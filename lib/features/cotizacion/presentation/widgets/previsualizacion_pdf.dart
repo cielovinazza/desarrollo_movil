@@ -521,33 +521,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     });
   }
 
-  /*Future<void> _procesarYSubirCotizacion(String docIdInyectado) async {
-    setState(() => _subiendo = true);
-
-try {
-      
-      await PrevisualizacionPdfWidget.generarYsubirPdfEstatico(
-        cotizacion: widget.cotizacion,
-        materiales: widget.materiales,
-        codigoCotizacion: widget.codigoCotizacion,
-        manoObra: widget.manoObra,
-        idCotizacion: widget.idCotizacion,
-        repository: _repository,
-      );
-
-      setState(() => _subiendo = false);
-      await widget.onListo();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _subiendo = false);
-      AppDialogs.mostrarError(
-        context,
-        'Error de Almacenamiento',
-        e.toString().replaceAll('Exception: ', ''),
-      );
-    }
-  }*/
-
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
@@ -644,28 +617,6 @@ try {
                   ),
                 ),
               ),
-
-              /*Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _verde,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  icon: const Icon(Icons.cloud_upload_outlined),
-                  label: const Text(
-                    'CONFIRMAR Y SUBIR COTIZACIÓN',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: widget.habilitado ? () {
-                    _procesarYSubirCotizacion(widget.idCotizacion);
-                  }: null,
-                ),
-              ),*/
             ],
           ),
         );

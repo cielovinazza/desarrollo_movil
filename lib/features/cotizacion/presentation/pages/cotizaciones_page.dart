@@ -11,6 +11,8 @@ import '../../domain/usecases/actualizar_estado_cotizacion.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import 'generar_pdf_page.dart';
 import '../../../../shared/widgets/app_dialogs.dart';
+import '../widgets/panel_filtros.dart';
+
 
 class CotizacionesPage extends StatefulWidget {
   final bool filtrarMesActual;
@@ -349,241 +351,34 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(
-                            color: Theme.of(
-                              context,
-                            ).dividerColor.withValues(alpha: 0.5),
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: ExpansionTile(
-                            title: Text(
-                              'Filtros Avanzados',
-                              style: textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            childrenPadding: const EdgeInsets.all(12),
-                            expandedCrossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            shape: const Border(),
-                            children: [
-                              TextField(
-                                controller: idSearchController,
-                                textCapitalization:
-                                    TextCapitalization.characters,
-                                enableSuggestions: false,
-                                autocorrect: false,
-                                onChanged: (value) {
-                                  filterId = value.trim().toUpperCase();
-                                  cargarCotizacion();
-                                },
-                                decoration: const InputDecoration(
-                                  labelText: 'Buscar por código único',
-                                  prefixIcon: Icon(Icons.key),
-                                  hintText: 'Ej: CT-001',
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: searchController,
-                                onChanged: (value) {
-                                  filterCliente = value;
-                                  cargarCotizacion();
-                                },
-                                decoration: const InputDecoration(
-                                  labelText: 'Buscar por nombre del cliente',
-                                  prefixIcon: Icon(Icons.person),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              DropdownButtonFormField<String>(
-                                initialValue: estadoFiltro,
-                                decoration: const InputDecoration(
-                                  labelText: 'Filtrar por Estado',
-                                ),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: null,
-                                    child: Text('Todos los estados'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'En Proceso',
-                                    child: Text('En Proceso'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Lista para Envío',
-                                    child: Text('Lista para Envío'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Enviada',
-                                    child: Text('Enviada'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Aprobada por el Cliente',
-                                    child: Text('Aprobada por el Cliente'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Rechazada por el Cliente',
-                                    child: Text('Rechazada por el Cliente'),
-                                  ),
-                                ],
-                                onChanged: (val) {
-                                  setState(() => estadoFiltro = val);
-                                  cargarCotizacion();
-                                },
-                              ),
-                              const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  //fecha desde
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                      ),
-                                      onPressed: () async {
-                                        final fecha = await showDatePicker(
-                                          context: context,
-                                          initialDate:
-                                              fechaInicioFiltro ??
-                                              DateTime.now(),
-                                          firstDate: DateTime(2020),
-                                          lastDate: DateTime(2100),
-                                        );
-                                        if (fecha != null) {
-                                          setState(
-                                            () => fechaInicioFiltro = fecha,
-                                          );
-                                          cargarCotizacion();
-                                        }
-                                      },
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(
-                                                Icons.date_range,
-                                                size: 18,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                fechaInicioFiltro == null
-                                                    ? 'Desde'
-                                                    : '${fechaInicioFiltro!.day}/${fechaInicioFiltro!.month}/${fechaInicioFiltro!.year}',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          // si hay fecha seleccionada, muestra una X para borrarla
-                                          if (fechaInicioFiltro != null)
-                                            GestureDetector(
-                                              onTap: () {
-                                                setState(
-                                                  () =>
-                                                      fechaInicioFiltro = null,
-                                                );
-                                                cargarCotizacion();
-                                              },
-                                              child: const Padding(
-                                                padding: EdgeInsets.all(4.0),
-                                                child: Icon(
-                                                  Icons.close,
-                                                  size: 16,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-
-                                  // fecha hasta
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                      ),
-                                      onPressed: () async {
-                                        final fecha = await showDatePicker(
-                                          context: context,
-                                          initialDate:
-                                              fechaFinFiltro ?? DateTime.now(),
-                                          firstDate: DateTime(2020),
-                                          lastDate: DateTime(2100),
-                                        );
-                                        if (fecha != null) {
-                                          setState(
-                                            () => fechaFinFiltro = fecha,
-                                          );
-                                          cargarCotizacion();
-                                        }
-                                      },
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(
-                                                Icons.date_range,
-                                                size: 18,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                fechaFinFiltro == null
-                                                    ? 'Hasta'
-                                                    : '${fechaFinFiltro!.day}/${fechaFinFiltro!.month}/${fechaFinFiltro!.year}',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          if (fechaFinFiltro != null)
-                                            GestureDetector(
-                                              onTap: () {
-                                                setState(
-                                                  () => fechaFinFiltro = null,
-                                                );
-                                                cargarCotizacion();
-                                              },
-                                              child: const Padding(
-                                                padding: EdgeInsets.all(4.0),
-                                                child: Icon(
-                                                  Icons.close,
-                                                  size: 16,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                      PanelFiltros(
+                        idSearchController: idSearchController,
+                        searchController: searchController,
+                        estadoFiltro: estadoFiltro,
+                        fechaInicioFiltro: fechaInicioFiltro,
+                        fechaFinFiltro: fechaFinFiltro,
+                        onFiltroIdChanged: (val) {
+                          filterId = val.trim().toUpperCase();
+                          cargarCotizacion();
+                        },
+                        onFiltroClienteChanged: (val) {
+                          filterCliente = val;
+                          cargarCotizacion();
+                        },
+                        onEstadoChanged: (val) {
+                          setState(() => estadoFiltro = val);
+                          cargarCotizacion();
+                        },
+                        onFechaInicioChanged: (val) {
+                          setState(() => fechaInicioFiltro = val);
+                          cargarCotizacion();
+                        },
+                        onFechaFinChanged: (val) {
+                          setState(() => fechaFinFiltro = val);
+                          cargarCotizacion();
+                        },
                       ),
+                      
                       const SizedBox(height: 20),
                       if (cargando)
                         const Center(

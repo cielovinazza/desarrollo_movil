@@ -30,7 +30,8 @@ class CotizacionMapper {
           'metrosCuadrados': trabajo.metrosCuadrados.toDouble(),
           'precioPorMetro': trabajo.precioPorMetro.toDouble(),
           'subtotal': trabajo.subtotal.toDouble(),
-          'descripcionBreve': trabajo.descripcionBreve, // <-- AGREGADO: Mapeo hacia Firestore
+          'descripcionBreve':
+              trabajo.descripcionBreve, // <-- AGREGADO: Mapeo hacia Firestore
         };
       }).toList(),
       manoObra: cotizacion.listaManoObra.map((mano) {
@@ -68,7 +69,8 @@ class CotizacionMapper {
         tipo: e['tipo'] ?? '',
         metrosCuadrados: (e['metrosCuadrados'] as num).toDouble(),
         precioPorMetro: (e['precioPorMetro'] as num).toDouble(),
-        descripcionBreve: e['descripcionBreve'] as String?, //Recuperación desde Firestore
+        descripcionBreve:
+            e['descripcionBreve'] as String?, //Recuperación desde Firestore
       );
     }).toList();
 
@@ -106,5 +108,44 @@ class CotizacionMapper {
       porcentajeUtilidad: dto.porcentajeUtilidad,
       porcentajeIva: dto.porcentajeIva,
     );
+  }
+
+  static List<ItemTrabajo> trabajosDesdeDto(List<dynamic> trabajos) {
+    return trabajos.map((item) {
+      if (item is ItemTrabajo) return item;
+      final map = item as Map<String, dynamic>;
+      return ItemTrabajo(
+        tipo: map['tipo'] ?? '',
+        metrosCuadrados: (map['metrosCuadrados'] ?? 0).toDouble(),
+        precioPorMetro: (map['precioPorMetro'] ?? 0).toDouble(),
+        descripcionBreve: map['descripcionBreve'],
+      );
+    }).toList();
+  }
+
+  static List<ManoDeObra> manoObraDesdeDto(List<dynamic> manoObra) {
+    return manoObra.map((item) {
+      if (item is ManoDeObra) return item;
+      final map = item as Map<String, dynamic>;
+      return ManoDeObra(
+        cargo: map['cargo'] ?? map['detalle'] ?? '',
+        dias: (map['dias'] ?? 0).toInt(),
+        valorJornada: (map['valorJornada'] ?? map['costo'] ?? 0).toDouble(),
+      );
+    }).toList();
+  }
+
+  static List<MaterialEntity> materialesDesdeDto(List<dynamic> materiales) {
+    return materiales.map((item) {
+      if (item is MaterialEntity) return item;
+      final map = item as Map<String, dynamic>;
+      return MaterialEntity(
+        nombre: map['nombre'] ?? '',
+        cantidad: (map['cantidad'] ?? 0).toDouble(),
+        costoUnitario: (map['costoUnitario'] ?? map['precioUnitario'] ?? 0)
+            .toDouble(),
+        unidadMedida: map['unidadMedida'] ?? '',
+      );
+    }).toList();
   }
 }
