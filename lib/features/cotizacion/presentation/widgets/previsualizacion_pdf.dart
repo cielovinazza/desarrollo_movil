@@ -527,7 +527,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     });
   }
 
-  Future<void> _procesarYSubirCotizacion(String docIdInyectado) async {
+  /*Future<void> _procesarYSubirCotizacion(String docIdInyectado) async {
     setState(() => _subiendo = true);
 
 try {
@@ -552,7 +552,7 @@ try {
         e.toString().replaceAll('Exception: ', ''),
       );
     }
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {

@@ -85,6 +85,11 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     String nuevoEstado,
   ) async {
     try {
+
+      if (nuevoEstado == 'Enviada'){
+        await procesarEnvioCorreo(cotizacion);
+        return;
+      }
       await actualizarEstadoUseCase(
         cotizacion.id,
         cotizacion.estado,
@@ -690,9 +695,7 @@ class _CotizacionCard extends StatelessWidget {
     required this.onEnviarCorreoSolicitado,
     required this.onRecargar,
   });
-
-  bool get _esEditable => estado == 'Rechazada por el Cliente' || estado == 'Rechazada';
-
+  
   @override
   Widget build(BuildContext context) {
     String estadoNormalizado = estado;

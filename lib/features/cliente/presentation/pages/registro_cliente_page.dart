@@ -37,7 +37,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
   late final RegistrarCliente registrarClienteUseCase;
 
-  // Tu paleta de colores corporativos
+  
   final Color greenPrimary = const Color(0xFF0F5A3C);
 
   @override
