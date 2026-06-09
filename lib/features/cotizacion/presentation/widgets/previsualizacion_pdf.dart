@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/cotizacion_model.dart';
 import '../../domain/entities/mano_de_obra.dart';
 import 'package:project/features/materiales/domain/entities/material.dart';
-import '../../data/datasources/cotizacion_firebase_datasource.dart';
 import '../../data/repositories/cotizacion_repository_impl.dart';
 import '../../../../core/utils/currency_formatter.dart';
 
@@ -474,8 +472,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   bool _subiendo = false;
   
 
-  late final CotizacionRepositoryImpl _repository;
-
   static const Color _verde = Color(0xFF2E7D32);
   static const Color _verdeSuave = Color(0xFFE8F5E9);
   static const Color _gris = Color(0xFF6B7280);
@@ -514,9 +510,8 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   @override
   void initState() {
     super.initState();
-    _repository = CotizacionRepositoryImpl(
-      CotizacionFirestoreDataSource(FirebaseFirestore.instance),
-    );
+ 
+   
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
