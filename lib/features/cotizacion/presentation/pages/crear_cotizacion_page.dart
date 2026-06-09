@@ -87,12 +87,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     _utilidadController.addListener(_autoguardar);
     _ivaController.addListener(_autoguardar);
 
-    if (widget.clienteInyectado != null) {
-      _clienteSeleccionado = widget.clienteInyectado;
-      _clienteController.text = widget.clienteInyectado!.nombre;
-    }
-    _recuperarBorrador();
-
     if (widget.cotizacionAEditar != null) {
       final edicion = widget.cotizacionAEditar!;
       _idCotizacionCreada = edicion.id;
@@ -344,8 +338,7 @@ Future<void> _ejecutarGuardadoFinal() async {
       idCotizacion: realId, 
       repository: repositoryPdf
     );
-
-    if (!context.mounted) return;
+    if (!mounted) return;
     Navigator.pop(context);
 
     AppDialogs.mostrarSnackBar(
@@ -654,8 +647,8 @@ Future<void> _ejecutarGuardadoFinal() async {
   }
 
   Future<void> _recuperarBorrador() async {
-  
-// 1. ESCENARIO A: Modo Edición (Prioridad Máxima)
+
+  // Escenario A: Modo edición — prioridad máxima, sin diálogo
   if (widget.cotizacionAEditar != null) {
     final edicion = widget.cotizacionAEditar!;
     setState(() {
@@ -669,23 +662,20 @@ Future<void> _ejecutarGuardadoFinal() async {
       );
       _clienteController.text = edicion.clienteNombre;
       _direccionController.text = edicion.direccion;
-      _viaticoController.text = edicion.viatico?.toString() ?? '';
+      _viaticoController.text = edicion.viatico.toString();
       _utilidadController.text = edicion.porcentajeUtilidad.toString();
       _ivaController.text = edicion.porcentajeIva.toString();
-      
       _trabajosAgregados.addAll(edicion.trabajos.map((item) => ItemTrabajo(
         tipo: item.tipo,
         metrosCuadrados: item.metrosCuadrados,
         precioPorMetro: item.precioPorMetro,
         descripcionBreve: item.descripcionBreve,
       )));
-      
       _manoObraAgregada.addAll(edicion.manoObra.map((item) => ManoDeObra(
         cargo: item.cargo,
         dias: item.dias,
         valorJornada: item.valorJornada,
       )));
-      
       _materialesAgregados.addAll(edicion.materiales.map((item) => MaterialEntity(
         nombre: item.nombre,
         cantidad: item.cantidad,
@@ -693,14 +683,51 @@ Future<void> _ejecutarGuardadoFinal() async {
         unidadMedida: item.unidadMedida,
       )));
     });
-    return; 
+    return;
   }
 
- 
   final raw = await _localStorage.obtenerBorradorCotizacion();
-  
+
+  // Sin borrador — solo inyectar cliente si viene
   if (raw == null) {
     if (widget.clienteInyectado != null) {
+      setState(() {
+        _clienteSeleccionado = widget.clienteInyectado;
+        _clienteController.text = widget.clienteInyectado!.nombre;
+      });
+    }
+    return;
+  }
+
+  if (!mounted) return;
+
+  // Hay borrador — preguntar al usuario
+  final continuar = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text(
+        'Borrador encontrado',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: const Text(
+        'Tienes un formulario sin terminar. ¿Deseas continuar donde lo dejaste?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Descartar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Continuar'),
+        ),
+      ],
+    ),
+  );
+
+  if (continuar != true) {
+    await _localStorage.limpiarBorradorCotizacion();
+    if (widget.clienteInyectado != null && mounted) {
       setState(() {
         _clienteSeleccionado = widget.clienteInyectado;
         _clienteController.text = widget.clienteInyectado!.nombre;
@@ -714,7 +741,6 @@ Future<void> _ejecutarGuardadoFinal() async {
   setState(() {
     if (widget.clienteInyectado == null) {
       _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
-      
       if (dto.clienteTexto.trim().isEmpty) {
         _clienteSeleccionado = null;
       }
@@ -723,13 +749,11 @@ Future<void> _ejecutarGuardadoFinal() async {
       _clienteSeleccionado = widget.clienteInyectado;
       _clienteController.text = widget.clienteInyectado!.nombre;
     }
-    
     _direccionController.text = dto.direccion;
     _viaticoController.text = dto.viatico;
     _utilidadController.text = dto.utilidad;
     _ivaController.text = dto.iva;
     _currentStep = dto.currentStep;
-    
     _trabajosAgregados
       ..clear()
       ..addAll(BorradorCotizacionMapper.trabajosFromDto(dto));
@@ -740,6 +764,8 @@ Future<void> _ejecutarGuardadoFinal() async {
       ..clear()
       ..addAll(BorradorCotizacionMapper.manoObraFromDto(dto));
   });
+
+  await _autoguardar();
 }
 
   @override
