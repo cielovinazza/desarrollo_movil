@@ -966,6 +966,7 @@ Future<void> _ejecutarGuardadoFinal() async {
                   children: [
                     TextFormField(
                       controller: _direccionController,
+                      textCapitalization: TextCapitalization.words,
                       decoration: const InputDecoration(
                         labelText: 'Dirección general del proyecto',
                         prefixIcon: Icon(Icons.location_on_outlined),
