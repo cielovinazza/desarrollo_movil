@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "20459132617",
+    "project_id": "proyecto-desarrollo-movi-47954",
+    "storage_bucket": "proyecto-desarrollo-movi-47954.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:20459132617:android:827702c7e87827dea35f18",
+        "android_client_info": {
+          "package_name": "com.example.project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDu_ZhkXz9pF48i5wCFzCGqdfYYx9OkH_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
