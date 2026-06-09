@@ -557,7 +557,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: cotizaciones.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 14),
+                          separatorBuilder: (_, _) => const SizedBox(height: 14),
                           itemBuilder: (context, index) {
                             final cotizacion = cotizaciones[index];
                             return _CotizacionCard(
@@ -692,22 +692,6 @@ class _CotizacionCard extends StatelessWidget {
   });
 
   bool get _esEditable => estado == 'Rechazada por el Cliente' || estado == 'Rechazada';
-
-  void _mostrarDialogoError(BuildContext context, String titulo, String mensaje) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: SelectableText(mensaje),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido', style: TextStyle(color: AppTheme.danger)),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

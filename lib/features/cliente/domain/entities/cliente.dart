@@ -43,7 +43,6 @@ class Cliente {
     );
   }
 
-  //simular el guardado
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -54,4 +53,13 @@ class Cliente {
       'direccion': direccion,
     };
   }
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Cliente && other.rut == rut;
+  }
+
+  @override
+  int get hashCode => rut.hashCode;
+
 } 

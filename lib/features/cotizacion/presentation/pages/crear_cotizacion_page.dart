@@ -18,13 +18,16 @@ import '../../../../shared/widgets/app_dialogs.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../data/dtos/borrador_cotizacion_dto.dart';
 import '../../data/mappers/borrador_cotizacion_mapper.dart';
+import '../../../../shared/widgets/boton_bloqueo_visual.dart';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class CrearCotizacionPage extends StatefulWidget {
   final Cliente? clienteInyectado;
   final CotizacionDto? cotizacionAEditar;
 
   const CrearCotizacionPage({
-    super.key, 
+    super.key,
     this.clienteInyectado,
     this.cotizacionAEditar,
   });
@@ -94,7 +97,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       final edicion = widget.cotizacionAEditar!;
       _idCotizacionCreada = edicion.id;
       _codigoCotizacionCreada = edicion.codigo;
-      
+
       _clienteSeleccionado = Cliente(
         id: edicion.clienteId,
         nombre: edicion.clienteNombre,
@@ -105,7 +108,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       );
       _clienteController.text = edicion.clienteNombre;
       _direccionController.text = edicion.direccion;
-      _viaticoController.text = edicion.viatico?.toString() ?? '';
+      _viaticoController.text = edicion.viatico.toString();
       _utilidadController.text = edicion.porcentajeUtilidad.toString();
       _ivaController.text = edicion.porcentajeIva.toString();
 
@@ -132,9 +135,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             if (item is ManoDeObra) return item;
             final map = item as Map<String, dynamic>;
             return ManoDeObra(
-              cargo: map['cargo'] ?? map['detalle'] ?? '', 
+              cargo: map['cargo'] ?? map['detalle'] ?? '',
               dias: (map['dias'] ?? 0).toInt(),
-              valorJornada: (map['valorJornada'] ?? map['costo'] ?? 0).toDouble(),
+              valorJornada: (map['valorJornada'] ?? map['costo'] ?? 0)
+                  .toDouble(),
             );
           }),
         );
@@ -149,7 +153,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
             return MaterialEntity(
               nombre: map['nombre'] ?? '',
               cantidad: (map['cantidad'] ?? 0).toDouble(),
-              costoUnitario: (map['costoUnitario'] ?? map['precioUnitario'] ?? 0).toDouble(),
+              costoUnitario:
+                  (map['costoUnitario'] ?? map['precioUnitario'] ?? 0)
+                      .toDouble(),
               unidadMedida: map['unidadMedida'] ?? '',
             );
           }),
@@ -282,6 +288,11 @@ Future<void> _ejecutarGuardadoFinal() async {
   );
 
   if (confirmar != true) return;
+  if (!mounted) return;
+
+  setState(() {
+    _guardandoEnFirestore = true;
+  });
 
   showDialog(
       context: context,
@@ -355,6 +366,51 @@ Future<void> _ejecutarGuardadoFinal() async {
     AppDialogs.mostrarSnackBar(context, 'Error al guardar la cotización: $e');
   }
 }
+  Future<void> _guardarCotizacionOffline() async {
+    final cotizacion = _obtenerEstadoActual();
+
+    final dto = CotizacionMapper.toDto(
+      cotizacion: cotizacion,
+      materiales: _materialesAgregados,
+      usuarioId: _auth.currentUser?.uid ?? '',
+      estado: 'Pendiente de sincronización',
+    );
+
+    final idLocal = 'local-${DateTime.now().millisecondsSinceEpoch}';
+    final codigoLocal = 'LOCAL-${DateTime.now().millisecondsSinceEpoch}';
+
+    final datosOffline = {
+      'id': idLocal,
+      'clienteId': dto.clienteId,
+      'clienteNombre': dto.clienteNombre,
+      'clienteEmail': dto.clienteEmail,
+      'clienteRut': dto.clienteRut,
+      'clienteTelefono': dto.clienteTelefono,
+      'clienteDireccion': dto.clienteDireccion,
+      'codigo': codigoLocal,
+      'direccion': dto.direccion,
+      'trabajos': dto.trabajos,
+      'manoObra': dto.manoObra,
+      'materiales': dto.materiales,
+      'subtotalObra': dto.subtotalObra,
+      'subtotalMateriales': dto.subtotalMateriales,
+      'subtotalManoObra': dto.subtotalManoObra,
+      'viatico': dto.viatico,
+      'porcentajeUtilidad': dto.porcentajeUtilidad,
+      'porcentajeIva': dto.porcentajeIva,
+      'totalFinal': dto.totalFinal,
+      'estado': 'Pendiente de sincronización',
+      'usuarioId': dto.usuarioId,
+      'version': 1,
+      'pdfUrl': null,
+      'pdfPendiente': true,
+      'guardadoOffline': true,
+      'fechaCreacionLocal': DateTime.now().toIso8601String(),
+    };
+
+    await _localStorage.guardarCotizacionPendiente(datosOffline);
+    await _localStorage.limpiarBorradorCotizacion();
+  }
 
   Future<void> _agregarMaterial() async {
     final resultado = await showDialog<MaterialEntity>(
@@ -429,10 +485,11 @@ Future<void> _ejecutarGuardadoFinal() async {
       return 'El campo $nombreCampo es obligatorio';
     }
 
-    final double? numero = nombreCampo == 'Viático'
-        ? ClpInputFormatter.toDouble(value) : double.tryParse(value.trim());
+    final numero = value.trim().isEmpty
+        ? 0.0
+        : ClpInputFormatter.toDouble(value.trim());
 
-    if (numero == null || numero < 0) {
+    if (numero < 0) {
       return 'Ingrese solo caracteres numéricos válidos';
     }
 
@@ -443,6 +500,68 @@ Future<void> _ejecutarGuardadoFinal() async {
       return 'La utilidad no puede superar el 500%';
     }
     return null;
+  }
+
+  bool _pasoActualValido() {
+    switch (_currentStep) {
+      case 0:
+        return _clienteController.text.trim().isNotEmpty;
+
+      case 1:
+        return _direccionController.text.trim().isNotEmpty &&
+            _trabajosAgregados.isNotEmpty;
+
+      case 2:
+        return _manoObraAgregada.isNotEmpty;
+      
+      case 3:
+        return true;
+
+
+      case 4:
+        return _validarCampoNumerico(_viaticoController.text, 'Viático') ==
+                null &&
+            _validarCampoNumerico(_utilidadController.text, '% de utilidad') ==
+                null &&
+            _validarCampoNumerico(_ivaController.text, '% IVA Legal') == null;
+      
+      case 5:
+      return !_cotizacionGuardada;
+
+      default:
+        return false;
+    }
+  }
+
+  String _mensajeBloqueoPaso() {
+    switch (_currentStep) {
+      case 0:
+        return 'Selecciona o ingresa un cliente para continuar.';
+
+      case 1:
+        if (_direccionController.text.trim().isEmpty) {
+          return 'Ingresa la dirección general del proyecto.';
+        }
+        return 'Añade al menos un ítem de construcción.';
+
+      case 2:
+        return 'Añade al menos una carga de mano de obra.';
+
+      case 3:
+        return '';
+
+      case 4:
+        return 'Corrige los campos numéricos antes de guardar.';
+
+      default:
+        return 'Completa la información requerida.';
+    }
+  }
+
+  Future<bool> _hayConexionInternet() async {
+    final resultados = await Connectivity().checkConnectivity();
+
+    return resultados.any((resultado) => resultado != ConnectivityResult.none);
   }
 
   Future<bool> _mostrarAlertaRentabilidadBaja() async {
@@ -504,6 +623,17 @@ Future<void> _ejecutarGuardadoFinal() async {
         false;
   }
 
+  Future<void> _cerrarFlujoOffline() async {
+    if (!context.mounted) return;
+
+    AppDialogs.mostrarSnackBar(
+      context,
+      'Datos guardados localmente. El PDF se podrá generar desde el historial cuando recuperes conexión.',
+    );
+
+    Navigator.of(context).pop();
+  }
+
   Future<void> _autoguardar() async {
     //print('AUTOGUARDANDO');
     if(widget.cotizacionAEditar != null) return;
@@ -525,10 +655,11 @@ Future<void> _ejecutarGuardadoFinal() async {
 
   Future<void> _recuperarBorrador() async {
   
-  if (widget.cotizacionAEditar != null){
+// 1. ESCENARIO A: Modo Edición (Prioridad Máxima)
+  if (widget.cotizacionAEditar != null) {
     final edicion = widget.cotizacionAEditar!;
-    setState((){
-      _clienteSeleccionado= Cliente(
+    setState(() {
+      _clienteSeleccionado = Cliente(
         id: edicion.clienteId,
         nombre: edicion.clienteNombre,
         correo: edicion.clienteEmail,
@@ -541,17 +672,20 @@ Future<void> _ejecutarGuardadoFinal() async {
       _viaticoController.text = edicion.viatico?.toString() ?? '';
       _utilidadController.text = edicion.porcentajeUtilidad.toString();
       _ivaController.text = edicion.porcentajeIva.toString();
+      
       _trabajosAgregados.addAll(edicion.trabajos.map((item) => ItemTrabajo(
         tipo: item.tipo,
         metrosCuadrados: item.metrosCuadrados,
         precioPorMetro: item.precioPorMetro,
         descripcionBreve: item.descripcionBreve,
       )));
+      
       _manoObraAgregada.addAll(edicion.manoObra.map((item) => ManoDeObra(
         cargo: item.cargo,
         dias: item.dias,
         valorJornada: item.valorJornada,
       )));
+      
       _materialesAgregados.addAll(edicion.materiales.map((item) => MaterialEntity(
         nombre: item.nombre,
         cantidad: item.cantidad,
@@ -559,8 +693,10 @@ Future<void> _ejecutarGuardadoFinal() async {
         unidadMedida: item.unidadMedida,
       )));
     });
-    return;
+    return; 
   }
+
+ 
   final raw = await _localStorage.obtenerBorradorCotizacion();
   
   if (raw == null) {
@@ -576,7 +712,6 @@ Future<void> _ejecutarGuardadoFinal() async {
   final dto = BorradorCotizacionDto.fromJson(raw);
 
   setState(() {
-    
     if (widget.clienteInyectado == null) {
       _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
       
@@ -584,12 +719,11 @@ Future<void> _ejecutarGuardadoFinal() async {
         _clienteSeleccionado = null;
       }
       _clienteController.text = dto.clienteTexto;
-    } 
-    
-    else {
+    } else {
       _clienteSeleccionado = widget.clienteInyectado;
       _clienteController.text = widget.clienteInyectado!.nombre;
     }
+    
     _direccionController.text = dto.direccion;
     _viaticoController.text = dto.viatico;
     _utilidadController.text = dto.utilidad;
@@ -627,35 +761,66 @@ Future<void> _ejecutarGuardadoFinal() async {
         autovalidateMode: AutovalidateMode.onUserInteraction,
         onChanged: () => setState(() {}),
         child: Theme(
-          data: Theme.of(
-            context,
-          ).copyWith(colorScheme: ColorScheme.light(primary: _verdeApp)),
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(primary: _verdeApp),
+          ),
           child: Stepper(
             type: StepperType.vertical,
             currentStep: _currentStep,
-            controlsBuilder: (context, details) => Row(
-              children: [
-                ElevatedButton(
-                  onPressed: _guardandoEnFirestore
-                      ? null
-                      : details.onStepContinue,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _verdeApp,
-                    foregroundColor: Colors.white,
+            controlsBuilder: (context, details) {
+              final pasoValido = _pasoActualValido();
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  
+                  Row(
+                    children: [
+                      BotonBloqueoVisual(
+                        habilitado: pasoValido,
+                        cargando: _guardandoEnFirestore,
+                        onPressed: details.onStepContinue,
+                        texto: _currentStep == 5
+                            ? (_cotizacionGuardada
+                                ? 'Cotización guardada'
+                                : (widget.cotizacionAEditar != null ? 'Guardar Cambios' : 'Guardar Cotización'))
+                            : 'Continuar',
+                        colorActivo: _verdeApp,
+                      ),
+                      const SizedBox(width: 12),
+                      TextButton(
+                        onPressed: _guardandoEnFirestore
+                            ? null
+                            : details.onStepCancel,
+                        child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    _currentStep == 5 ? (_cotizacionGuardada ? 'Cotización guardada' : 'Guardar Cotización') : 'Continuar',
-                  ),
-                ),
-                const SizedBox(width: 12),
-                TextButton(
-                  onPressed: _guardandoEnFirestore
-                      ? null
-                      : details.onStepCancel,
-                  child: Text(_currentStep == 0 ? 'Salir' : 'Atrás'),
-                ),
-              ],
-            ),
+                  if (!pasoValido) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _mensajeBloqueoPaso(),
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              );
+            },
             onStepContinue: () async {
               if (_currentStep == 0) {
                 if (_clienteSeleccionado == null) {
@@ -666,6 +831,7 @@ Future<void> _ejecutarGuardadoFinal() async {
                   return;
                 }
               }
+              
               if (_currentStep == 1) {
                 if (_direccionController.text.trim().isEmpty) {
                   AppDialogs.mostrarSnackBar(
@@ -682,30 +848,79 @@ Future<void> _ejecutarGuardadoFinal() async {
                   return;
                 }
               }
-              if (_currentStep == 4) {
+
+              if (_currentStep == 2) {
+                if (_manoObraAgregada.isEmpty) {
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Debes añadir al menos una carga de mano de obra',
+                  );
+                  return;
+                }
+              }             
+
+              await _autoguardar();
+
+              if (_currentStep == 4){
+                final margenUtilidad = double.tryParse(_utilidadController.text) ?? 0.0;
+                if (margenUtilidad < 10.0) {
+                  final deseaContinuar = await _mostrarAlertaRentabilidadBaja();
+                  if (!deseaContinuar) return;
+                }
+
+              }
+
+              if (_currentStep < 5) {
+                // Pasos regulares de carga (0 al 3)
+                setState(() {
+                  _currentStep += 1;
+                });
+                await _autoguardar();
+              } 
+              else{
+                if (_cotizacionGuardada) return;
+              
                 if (!_formKey.currentState!.validate()) {
+                  if (!context.mounted) return;
                   AppDialogs.mostrarSnackBar(
                     context,
                     'Formulario inválido. Corrija los campos en rojo antes de continuar.',
                   );
                   return;
                 }
-                final margenUtilidad = double.tryParse(_utilidadController.text) ?? 0.0;
-                if (margenUtilidad < 10.0) {
-                  final deseaContinuar = await _mostrarAlertaRentabilidadBaja();
-                  if (!deseaContinuar) return;
+
+                
+                if (_guardandoEnFirestore) return;
+
+                
+                try {
+                  final hayConexion = await _hayConexionInternet();
+
+                  if (!hayConexion) {
+                    await _guardarCotizacionOffline();
+                    if (!context.mounted) return;
+                    setState(() => _guardandoEnFirestore = false);
+                    await _cerrarFlujoOffline();
+                    return;
+                  }
+                  await _ejecutarGuardadoFinal();
+                  
+                } on TimeoutException {
+                  await _guardarCotizacionOffline();
+                  if (!context.mounted) return;
+                  setState(() => _guardandoEnFirestore = false);
+                  await _cerrarFlujoOffline();
+
+                } catch (e) {
+                  if (!context.mounted) return;
+                  setState(() => _guardandoEnFirestore = false);
+                  AppDialogs.mostrarSnackBar(
+                    context,
+                    'Error de persistencia: $e',
+                  );
                 }
-              }
-              if (_currentStep < 5) {
-                setState(() {
-                  _currentStep += 1;
-                });
-                _autoguardar();
-              } else {
-                if (_cotizacionGuardada) return;
-                await _ejecutarGuardadoFinal();
-              }
-            },             
+              } 
+            },            
             onStepCancel: () {
               if (_currentStep > 0) {
                 setState(() => _currentStep -= 1);
@@ -729,13 +944,12 @@ Future<void> _ejecutarGuardadoFinal() async {
                       controller: _clienteController,
                       onClienteSeleccionado: (Cliente? cliente) {
                         setState(() => _clienteSeleccionado = cliente);
-                        if (cliente == null){
+                        if (cliente == null) {
                           _clienteController.clear();
-                        }else{
+                        } else {
                           _clienteController.text = cliente.nombre;
                         }
                         _autoguardar();
-                        
                       },
                     ),
                   ),
@@ -972,9 +1186,11 @@ Future<void> _ejecutarGuardadoFinal() async {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          
                         ],
                       ),
                     ),
+                    const SizedBox(height: 6,)
                   ],
                 ),
               ),
@@ -991,14 +1207,20 @@ Future<void> _ejecutarGuardadoFinal() async {
                   idCotizacion: _idCotizacionCreada ?? '', 
                   manoObra: _manoObraAgregada,
                   codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
-                  habilitado: _cotizacionGuardada,
+                  habilitado: true,
                   onListo: () async {
-                    if (!context.mounted) return;
+                    if (_cotizacionGuardada) return;
+
+                    if (!_formKey.currentState!.validate()){
+                      if (!context.mounted) return;
+                      AppDialogs.mostrarSnackBar(context, 'Formulario inválido, corrija los campos en rojo.');
+                      return;
+                    }
 
                     AppDialogs.mostrarSnackBar(context, 'Cotización subida con éxito.');
                     if (!context.mounted)return;
                     Navigator.pop(context);
-                    //await _ejecutarGuardadoFinal();
+                    
                   },
                 ),
              ),
@@ -1013,7 +1235,8 @@ Future<void> _ejecutarGuardadoFinal() async {
 class DialogoTrabajoForm extends StatefulWidget {
   final List<String> tiposDisponibles;
   final Color verdeApp;
-  final void Function(String tipo, double m2, double precio, String descripcion) onGuardar;
+  final void Function(String tipo, double m2, double precio, String descripcion)
+  onGuardar;
   final void Function(String nuevoTipo) onNuevoTipoCreado;
 
   const DialogoTrabajoForm({
@@ -1075,7 +1298,9 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
               return null;
             },
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]')),
+              FilteringTextInputFormatter.allow(
+                RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]'),
+              ),
             ],
             decoration: const InputDecoration(
               labelText: 'Nombre del tipo de trabajo',
@@ -1117,9 +1342,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
           Icon(Icons.add_task, color: widget.verdeApp),
@@ -1135,13 +1358,17 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              initialValue: widget.tiposDisponibles.contains(tipoSeleccionado) ? tipoSeleccionado : widget.tiposDisponibles.first,
+              initialValue: widget.tiposDisponibles.contains(tipoSeleccionado)
+                  ? tipoSeleccionado
+                  : widget.tiposDisponibles.first,
               decoration: const InputDecoration(
                 labelText: 'Tipo de Rubro',
                 border: OutlineInputBorder(),
               ),
               items: widget.tiposDisponibles
-                  .map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)))
+                  .map(
+                    (tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)),
+                  )
                   .toList(),
               onChanged: (value) {
                 if (value == null) return;
@@ -1160,11 +1387,13 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             const SizedBox(height: 16),
             TextField(
               controller: m2ItemController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
-                    LengthLimitingTextInputFormatter(3),
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
+                LengthLimitingTextInputFormatter(3),
+                FilteringTextInputFormatter.digitsOnly,
+              ],
               decoration: InputDecoration(
                 labelText: 'Cantidad Metros Cuadrados (m²)',
                 prefixIcon: const Icon(Icons.square_foot),
@@ -1175,7 +1404,9 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             const SizedBox(height: 16),
             TextField(
               controller: precioItemController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: false),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: false,
+              ),
               inputFormatters: [ClpInputFormatter(maxDigits: 9)],
               decoration: InputDecoration(
                 labelText: 'Precio por m² (CLP)',
@@ -1204,10 +1435,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
           onPressed: () {
             Navigator.of(context).pop();
           },
-          child: const Text(
-            'Cancelar',
-            style: TextStyle(color: Colors.grey),
-          ),
+          child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
           onPressed: () {
@@ -1216,7 +1444,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             final descripcionTexto = descripcionItemController.text.trim();
 
             final m2 = double.tryParse(m2Texto);
-            final precio =  ClpInputFormatter.toDouble(precioTexto);
+            final precio = ClpInputFormatter.toDouble(precioTexto);
 
             setState(() {
               errorM2 = null;
@@ -1230,7 +1458,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
 
               if (precioTexto.isEmpty) {
                 errorPrecio = 'Debe ingresar el precio por m²';
-              } else if (precio == null || precio <= 0) {
+              } else if (precio <= 0) {
                 errorPrecio = 'Ingrese un precio positivo válido';
               }
             });
@@ -1247,7 +1475,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
               return;
             }
 
-            widget.onGuardar(tipoSeleccionado, m2!, precio!, descripcionTexto);
+            widget.onGuardar(tipoSeleccionado, m2!, precio, descripcionTexto);
             Navigator.of(context).pop();
           },
           style: ElevatedButton.styleFrom(

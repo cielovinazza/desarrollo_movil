@@ -7,14 +7,12 @@ import '../../domain/entities/cliente.dart';
 import '../widgets/cliente_text_field.dart';
 import '../formatters/mascara_rut_formatters.dart';
 import '../../../../core/utils/strings_extensions.dart';
+import '../../../../shared/widgets/boton_bloqueo_visual.dart';
 
 class EditarClientePage extends StatefulWidget {
   final Cliente cliente;
 
-  const EditarClientePage({
-    super.key,
-    required this.cliente,
-  });
+  const EditarClientePage({super.key, required this.cliente});
 
   @override
   State<EditarClientePage> createState() => _EditarClientePageState();
@@ -24,7 +22,9 @@ class _EditarClientePageState extends State<EditarClientePage> {
   final _formKey = GlobalKey<FormState>();
   bool _formValido = true;
 
-  final repository = ClienteRepositoryImpl(ClientesRemoteDataSource(FirebaseFirestore.instance));
+  final repository = ClienteRepositoryImpl(
+    ClientesRemoteDataSource(FirebaseFirestore.instance),
+  );
 
   late TextEditingController nombreController;
   late TextEditingController rutController;
@@ -94,7 +94,7 @@ class _EditarClientePageState extends State<EditarClientePage> {
       correo: correoController.text,
       telefono: telefonoController.text,
       direccion: direccionController.text.trim().isEmpty
-          ? null 
+          ? null
           : direccionController.text.trim(),
     );
 
@@ -123,7 +123,7 @@ class _EditarClientePageState extends State<EditarClientePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme =Theme.of(context);
+    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
@@ -135,7 +135,11 @@ class _EditarClientePageState extends State<EditarClientePage> {
         ),
         title: Text(
           'Editar cliente',
-          style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: theme.primaryColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -153,7 +157,9 @@ class _EditarClientePageState extends State<EditarClientePage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                  border: Border.all(
+                    color: Colors.grey.withValues(alpha: 0.15),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,7 +172,11 @@ class _EditarClientePageState extends State<EditarClientePage> {
                             color: const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(Icons.mode_edit_outline_outlined, color: theme.primaryColor, size: 20),
+                          child: Icon(
+                            Icons.mode_edit_outline_outlined,
+                            color: theme.primaryColor,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -174,14 +184,21 @@ class _EditarClientePageState extends State<EditarClientePage> {
                           children: [
                             const Text(
                               'Modificar Información',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black87,
+                              ),
                             ),
                             Text(
                               'Actualice los campos que correspondan',
-                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
                             ),
                           ],
-                        )
+                        ),
                       ],
                     ),
                     const Padding(
@@ -196,7 +213,9 @@ class _EditarClientePageState extends State<EditarClientePage> {
                       icon: Icons.person_outline,
                       textCapitalization: TextCapitalization.words,
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]')),
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]'),
+                        ),
                       ],
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'El nombre es obligatorio';
@@ -217,7 +236,6 @@ class _EditarClientePageState extends State<EditarClientePage> {
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9kK]')),
                         RutInputFormatter(),
                       ],
-                     
                     ),
                     const SizedBox(height: 16),
 
@@ -229,7 +247,9 @@ class _EditarClientePageState extends State<EditarClientePage> {
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) return 'El correo es obligatorio';
-                        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                        final emailRegex = RegExp(
+                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                        );
                         if (!emailRegex.hasMatch(value.trim())) return 'Correo inválido (usuario@correo.com)';
                         return null;
                       },
@@ -248,9 +268,9 @@ class _EditarClientePageState extends State<EditarClientePage> {
                         LengthLimitingTextInputFormatter(9),
                       ],
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return 'El teléfono es obligatorio';
+                        if (value == null || value.trim().isEmpty)return 'El teléfono es obligatorio';
                         String numeros = value.replaceAll(RegExp(r'\D'), '');
-                        if (numeros.length != 9) return 'Debe tener exactamente 9 dígitos';
+                        if (numeros.length != 9)return 'Debe tener exactamente 9 dígitos';
                         return null;
                       },
                     ),
@@ -269,18 +289,14 @@ class _EditarClientePageState extends State<EditarClientePage> {
               const SizedBox(height: 24),
               Row(
                 children: [
-                  
                   const SizedBox(width: 12),
                   Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: _formValido ? guardarCambios : null,
-                      icon: const Icon(Icons.save_as_outlined, size: 18),
-                      label: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: BotonBloqueoVisual(
+                      habilitado: _formValido,
+                      onPressed: guardarCambios,
+                      texto: 'Guardar',
+                      icon: Icons.save_as_outlined,
+                      colorActivo: theme.primaryColor,
                     ),
                   ),
                 ],

@@ -232,7 +232,7 @@ Future<void> enviarCorreoDirecto({
       }
     }
 
-    throw Exception('mensajeError');
+    throw Exception(mensajeError);
 
   } catch (e) {
     print('Error general en el envío: $e');

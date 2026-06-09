@@ -97,32 +97,46 @@ class MaterialLista extends StatelessWidget {
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 24,
+          ),
           title: const Row(
             children: [
               Icon(Icons.warning_amber_outlined, color: Colors.orange),
               SizedBox(width: 8),
-              Text('Importación parcial'),
+              Expanded(child: Text('Importación parcial')),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Importados: ${parseado.materialesValidos.length}'),
-              Text(
-                'Rechazados: ${parseado.filasRechazadas.length}',
-                style: const TextStyle(color: Colors.red),
-              ),
-              const SizedBox(height: 12),
-              const Text('Filas con error:'),
-              const SizedBox(height: 6),
-              ...parseado.filasRechazadas.map(
-                (error) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('• $error', style: const TextStyle(fontSize: 13)),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Importados: ${parseado.materialesValidos.length}'),
+                Text(
+                  'Rechazados: ${parseado.filasRechazadas.length}',
+                  style: const TextStyle(color: Colors.red),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                const Text('Filas con error:'),
+                const SizedBox(height: 6),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: parseado.filasRechazadas.length,
+                    itemBuilder: (_, i) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text(
+                        '• ${parseado.filasRechazadas[i]}',
+                        style: const TextStyle(fontSize: 13, height: 1.4),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(

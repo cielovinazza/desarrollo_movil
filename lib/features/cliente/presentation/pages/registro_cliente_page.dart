@@ -8,6 +8,8 @@ import '../widgets/cliente_text_field.dart';
 import '../formatters/mascara_rut_formatters.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/utils/strings_extensions.dart';
+import '../../../../core/storage/local_storage.dart';
+import '../../../../shared/widgets/boton_bloqueo_visual.dart';
 
 class RegistroClientePage extends StatefulWidget {
   final String? rutInicial;
@@ -31,6 +33,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   final _correoController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _direccionController = TextEditingController();
+  final _localStorage = LocalStorage();
 
   late final RegistrarCliente registrarClienteUseCase;
 
@@ -41,6 +44,12 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   void initState() {
     super.initState();
     registrarClienteUseCase = RegistrarCliente(repository);
+    _recuperarBorradorCliente();
+    _nombreController.addListener(_autoguardarCliente);
+    _rutController.addListener(_autoguardarCliente);
+    _correoController.addListener(_autoguardarCliente);
+    _telefonoController.addListener(_autoguardarCliente);
+    _direccionController.addListener(_autoguardarCliente);
     
     if (widget.rutInicial != null) {
       _rutController.text = widget.rutInicial!;
@@ -62,6 +71,11 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     _correoController.dispose();
     _telefonoController.dispose();
     _direccionController.dispose();
+    _nombreController.removeListener(_autoguardarCliente);
+    _rutController.removeListener(_autoguardarCliente);
+    _correoController.removeListener(_autoguardarCliente);
+    _telefonoController.removeListener(_autoguardarCliente);
+    _direccionController.removeListener(_autoguardarCliente);
     super.dispose();
   }
 
@@ -119,6 +133,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
     try {
       await registrarClienteUseCase(cliente);
+      await _localStorage.limpiarBorradorCliente();
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -128,30 +143,73 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
         ),
       );
       Navigator.pop(context);
-    } catch (e, stack) {
-      debugPrint('ERROR: $e');
-      debugPrint('STACK: $stack');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
+} catch (e, stack) {
+  debugPrint('ERROR: $e');
+  debugPrint('STACK: $stack');
+  await _localStorage.guardarClientePendiente({
+    'nombre': cliente.nombre,
+    'rut': cliente.rut,
+    'correo': cliente.correo,
+    'telefono': cliente.telefono,
+    'direccion': cliente.direccion ?? '',
+  });
+  await _localStorage.limpiarBorradorCliente();
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Sin conexión. Cliente guardado localmente y se sincronizará automáticamente.'),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+  Navigator.pop(context);
+}
   }
 
-  void _clearForm() {
+   Future<void> _clearForm() async {
     _formKey.currentState?.reset();
     _nombreController.clear();
     _rutController.clear();
     _correoController.clear();
     _telefonoController.clear();
     _direccionController.clear();
+    await _localStorage.limpiarBorradorCliente();
+    if(!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Formulario limpiado'), behavior: SnackBarBehavior.floating),
+      const SnackBar(
+        content: Text('Formulario limpiado'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
+  Future<void> _autoguardarCliente() async {
+    await _localStorage.guardarBorradorCliente({
+      'nombre': _nombreController.text,
+      'rut': _rutController.text,
+      'correo': _correoController.text,
+      'telefono': _telefonoController.text,
+      'direccion': _direccionController.text,
+    });
+  }
+
+  Future<void> _recuperarBorradorCliente() async {
+    final borrador = await _localStorage.obtenerBorradorCliente();
+    if (borrador == null) return;
+
+    setState(() {
+      _nombreController.text = borrador['nombre'] ?? '';
+      _rutController.text = borrador['rut'] ?? '';
+      _correoController.text = borrador['correo'] ?? '';
+      _telefonoController.text = borrador['telefono'] ?? '';
+      _direccionController.text = borrador['direccion'] ?? '';
+    });
+
+    _validarFormulario();
+  }
+  
 
   @override
   Widget build(BuildContext context) {
-    final theme=Theme.of(context);
+    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
@@ -163,7 +221,11 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
         ),
         title: Text(
           'Nuevo Cliente',
-          style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: theme.primaryColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -180,7 +242,9 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                  border: Border.all(
+                    color: Colors.grey.withValues(alpha: 0.15),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,7 +257,11 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                             color: const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(Icons.person_add_alt_1_outlined, color: theme.primaryColor, size: 20),
+                          child: Icon(
+                            Icons.person_add_alt_1_outlined,
+                            color: theme.primaryColor,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Column(
@@ -201,14 +269,21 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                           children: [
                             const Text(
                               'Datos de Registro',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.black87,
+                              ),
                             ),
                             Text(
                               'Complete los campos requeridos',
-                              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
                             ),
                           ],
-                        )
+                        ),
                       ],
                     ),
                     const Padding(
@@ -221,7 +296,9 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                       hint: 'Ingrese nombre completo',
                       icon: Icons.person_outline,
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZñÑÁÉÍÓÚáéíóú ]')),
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-ZñÑÁÉÍÓÚáéíóú ]'),
+                        ),
                       ],
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) return 'El nombre es obligatorio';
@@ -258,8 +335,10 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) return 'El correo es obligatorio';
-                        final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-                        if (!emailRegex.hasMatch(value.trim())) return 'Formato inválido (usuario@correo.com)';
+                        final emailRegex = RegExp(
+                          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                        );
+                        if (!emailRegex.hasMatch(value.trim()))return 'Formato inválido (usuario@correo.com)';
                         return null;
                       },
                     ),
@@ -278,7 +357,8 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                       ],
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) return 'El teléfono es obligatorio';
-                        if (value.replaceAll(RegExp(r'\D'), '').length != 9) return 'Debe tener exactamente 9 dígitos';
+                        
+                        if (value.replaceAll(RegExp(r'\D'), '').length != 9)return 'Debe tener exactamente 9 dígitos';
                         return null;
                       },
                     ),
@@ -300,25 +380,36 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        side: BorderSide(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       onPressed: _clearForm,
-                      icon: const Icon(Icons.clear_rounded, size: 18, color: Colors.black87),
-                      label: const Text('Limpiar', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+                      icon: const Icon(
+                        Icons.clear_rounded,
+                        size: 18,
+                        color: Colors.black87,
+                      ),
+                      label: const Text(
+                        'Limpiar',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: _formValido ? _submitForm : null,
-                      icon: const Icon(Icons.send_rounded, size: 18),
-                      label: const Text('Guardar', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: BotonBloqueoVisual(
+                      habilitado: _formValido,
+                      onPressed: _submitForm,
+                      texto: 'Guardar',
+                      icon: Icons.send_rounded,
+                      colorActivo: theme.primaryColor,
                     ),
                   ),
                 ],
