@@ -19,6 +19,7 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
   final List<ManoDeObra> manoObra;
   final Future<void> Function() onListo;
   final String idCotizacion;
+  final bool habilitado;
 
   const PrevisualizacionPdfWidget({
     super.key,
@@ -28,77 +29,33 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
     required this.codigoCotizacion,
     required this.manoObra,
     required this.onListo,
+    required this.habilitado,
   });
 
-  @override
-  State<PrevisualizacionPdfWidget> createState() =>
-      _PrevisualizacionPdfWidgetState();
-}
+  static Future<void> generarYsubirPdfEstatico({
+    required CotizacionModel cotizacion,
+    required List<MaterialEntity> materiales,
+    required String codigoCotizacion,
+    required List<ManoDeObra> manoObra,
+    required String idCotizacion,
+    required CotizacionRepositoryImpl repository,
+  }) async {
+    final pdf = pw.Document();
+    final cliente = cotizacion.cliente;
 
-class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
-  bool _cargado = false;
-  bool _subiendo = false;
+    double subtotalMateriales = materiales.fold(0.0, (suma, m) => suma + m.subtotal);
+    double subtotalManoObra = manoObra.fold(0.0, (suma, mo) => suma + mo.subtotal);
+    double gastoTransporte = cotizacion.viatico ?? 0.0;
+    double subtotalTrabajosObra = cotizacion.subtotalObraTotal;
+    double subtotalCostosDirectos = subtotalTrabajosObra + subtotalMateriales + subtotalManoObra + gastoTransporte;
+    double montoUtilidad = subtotalCostosDirectos * (cotizacion.porcentajeUtilidad / 100);
+    double baseConUtilidad = subtotalCostosDirectos + montoUtilidad;
+    double montoIva = baseConUtilidad * (cotizacion.porcentajeIva / 100);
+    double totalFinal = baseConUtilidad + montoIva;
 
-  late final CotizacionRepositoryImpl _repository;
+    String clp(double valor) => '${CurrencyFormatter.format(valor)} CLP';
 
-  static const Color _verde = Color(0xFF2E7D32);
-  static const Color _verdeSuave = Color(0xFFE8F5E9);
-  static const Color _gris = Color(0xFF6B7280);
-  static const Color _texto = Color(0xFF0F172A);
-
-  double get _subtotalMateriales =>
-      widget.materiales.fold(0.0, (suma, material) => suma + material.subtotal);
-
-  double get _subtotalManoObra =>
-      widget.manoObra.fold(0.0, (suma, manoObra) => suma + manoObra.subtotal);
-
-  double get _gastoTransporte => widget.cotizacion.viatico ?? 0.0;
-
-  double get _subtotalTrabajosObra => widget.cotizacion.subtotalObraTotal;
-
-  double get _subtotalCostosDirectos =>
-      _subtotalTrabajosObra +
-      _subtotalMateriales +
-      _subtotalManoObra +
-      _gastoTransporte;
-
-  double get _montoUtilidad =>
-      _subtotalCostosDirectos * (widget.cotizacion.porcentajeUtilidad / 100);
-
-  double get _baseConUtilidad => _subtotalCostosDirectos + _montoUtilidad;
-
-  double get _montoIva =>
-      _baseConUtilidad * (widget.cotizacion.porcentajeIva / 100);
-
-  double get _totalFinal => _baseConUtilidad + _montoIva;
-
-  String _clp(double valor) {
-    return '${CurrencyFormatter.format(valor)} CLP';
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _repository = CotizacionRepositoryImpl(
-      CotizacionFirestoreDataSource(FirebaseFirestore.instance),
-    );
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if (mounted) {
-        setState(() {
-          _cargado = true;
-        });
-      }
-    });
-  }
-
-  Future<void> _procesarYSubirCotizacion(String docIdInyectado) async {
-    setState(() => _subiendo = true);
-
-    try {
-      final pdf = pw.Document();
-      final codigoCotizacion = widget.codigoCotizacion;
-      final cliente = widget.cotizacion.cliente;
-      pdf.addPage(
+    pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.letter,
           margin: const pw.EdgeInsets.all(28),
@@ -191,9 +148,9 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                         ),
                         pw.SizedBox(height: 4),
                         pw.Text(
-                          widget.cotizacion.direccionObra.isEmpty
+                          cotizacion.direccionObra.isEmpty
                               ? 'Sin dirección'
-                              : widget.cotizacion.direccionObra,
+                              : cotizacion.direccionObra,
                           style: const pw.TextStyle(fontSize: 11),
                           textAlign: pw.TextAlign.right,
                         ),
@@ -215,7 +172,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               ),
               pw.Divider(),
 
-              if (widget.cotizacion.listaTrabajos.isEmpty)
+              if (cotizacion.listaTrabajos.isEmpty)
                 pw.Text(
                   'Sin trabajos registrados',
                   style: pw.TextStyle(
@@ -224,7 +181,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                   ),
                 )
               else
-                ...widget.cotizacion.listaTrabajos.map(
+                ...cotizacion.listaTrabajos.map(
                   (t) => pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),
                     child: pw.Row(
@@ -239,7 +196,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                         pw.Expanded(
                           flex: 4,
                           child: pw.Text(
-                            '${t.metrosCuadrados.toStringAsFixed(1)} m² × ${_clp(t.precioPorMetro)}',
+                            '${t.metrosCuadrados.toStringAsFixed(1)} m² × ${clp(t.precioPorMetro)}',
                             style: const pw.TextStyle(fontSize: 10),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -247,7 +204,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                         pw.Expanded(
                           flex: 3,
                           child: pw.Text(
-                            _clp(t.subtotal),
+                            clp(t.subtotal),
                             style: const pw.TextStyle(fontSize: 10),
                             textAlign: pw.TextAlign.end,
                           ),
@@ -262,7 +219,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               pw.Align(
                 alignment: pw.Alignment.centerRight,
                 child: pw.Text(
-                  'Subtotal Trabajos de Obra: ${_clp(_subtotalTrabajosObra)}',
+                  'Subtotal Trabajos de Obra: ${clp(subtotalTrabajosObra)}',
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 10,
@@ -282,7 +239,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               ),
               pw.Divider(),
 
-              if (widget.materiales.isEmpty)
+              if (materiales.isEmpty)
                 pw.Text(
                   'Sin materiales registrados',
                   style: pw.TextStyle(
@@ -291,7 +248,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                   ),
                 )
               else
-                ...widget.materiales.map(
+                ...materiales.map(
                   (m) => pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),
                     child: pw.Row(
@@ -314,7 +271,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                         pw.Expanded(
                           flex: 3,
                           child: pw.Text(
-                            _clp(m.subtotal),
+                            clp(m.subtotal),
                             style: const pw.TextStyle(fontSize: 10),
                             textAlign: pw.TextAlign.end,
                           ),
@@ -329,7 +286,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               pw.Align(
                 alignment: pw.Alignment.centerRight,
                 child: pw.Text(
-                  'Subtotal Materiales: ${_clp(_subtotalMateriales)}',
+                  'Subtotal Materiales: ${clp(subtotalMateriales)}',
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 10,
@@ -349,7 +306,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               ),
               pw.Divider(),
 
-              if (widget.manoObra.isEmpty)
+              if (manoObra.isEmpty)
                 pw.Text(
                   'Sin mano de obra registrada',
                   style: pw.TextStyle(
@@ -358,7 +315,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                   ),
                 )
               else
-                ...widget.manoObra.map(
+                ...manoObra.map(
                   (mo) => pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),
                     child: pw.Row(
@@ -373,7 +330,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                         pw.Expanded(
                           flex: 4,
                           child: pw.Text(
-                            '${mo.dias} días × ${_clp(mo.valorJornada)}',
+                            '${mo.dias} días × ${clp(mo.valorJornada)}',
                             style: const pw.TextStyle(fontSize: 10),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -381,7 +338,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                         pw.Expanded(
                           flex: 3,
                           child: pw.Text(
-                            _clp(mo.subtotal),
+                            clp(mo.subtotal),
                             style: const pw.TextStyle(fontSize: 10),
                             textAlign: pw.TextAlign.end,
                           ),
@@ -396,7 +353,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               pw.Align(
                 alignment: pw.Alignment.centerRight,
                 child: pw.Text(
-                  'Subtotal Mano de Obra: ${_clp(_subtotalManoObra)}',
+                  'Subtotal Mano de Obra: ${clp(subtotalManoObra)}',
                   style: pw.TextStyle(
                     fontWeight: pw.FontWeight.bold,
                     fontSize: 10,
@@ -424,7 +381,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                     style: const pw.TextStyle(fontSize: 10),
                   ),
                   pw.Text(
-                    _clp(_gastoTransporte),
+                    clp(gastoTransporte),
                     style: const pw.TextStyle(fontSize: 10),
                   ),
                 ],
@@ -443,23 +400,23 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Text('Costos Directos:'),
-                        pw.Text(_clp(_subtotalCostosDirectos)),
+                        pw.Text(clp(subtotalCostosDirectos)),
                       ],
                     ),
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Text(
-                          'Utilidad (${widget.cotizacion.porcentajeUtilidad}%):',
+                          'Utilidad (${cotizacion.porcentajeUtilidad}%):',
                         ),
-                        pw.Text(_clp(_montoUtilidad)),
+                        pw.Text(clp(montoUtilidad)),
                       ],
                     ),
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('IVA (${widget.cotizacion.porcentajeIva}%):'),
-                        pw.Text(_clp(_montoIva)),
+                        pw.Text('IVA (${cotizacion.porcentajeIva}%):'),
+                        pw.Text(clp(montoIva)),
                       ],
                     ),
                     pw.Divider(),
@@ -474,7 +431,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                           ),
                         ),
                         pw.Text(
-                          _clp(_totalFinal),
+                          clp(totalFinal),
                           style: pw.TextStyle(
                             fontWeight: pw.FontWeight.bold,
                             fontSize: 13,
@@ -488,20 +445,100 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
             ];
           },
         ),
-      );
+    );
 
-      final directorio = await getTemporaryDirectory();
-      final nombreSeguro = widget.codigoCotizacion.replaceAll('/', '-');
-      final nombrePdf = '$nombreSeguro.pdf';
-      final rutaArchivo = '${directorio.path}/$nombrePdf';
-      final archivoFisico = File(rutaArchivo);
+    final directorio = await getTemporaryDirectory();
+    final nombreSeguro = codigoCotizacion.replaceAll('/', '-');
+    final nombrePdf = '$nombreSeguro.pdf';
+    final rutaArchivo = '${directorio.path}/$nombrePdf';
+    final archivoFisico = File(rutaArchivo);
+    
+    await archivoFisico.writeAsBytes(await pdf.save());
+    
+    
+    await repository.gestionarYSubirPdf(
+      id: idCotizacion,
+      codigo: codigoCotizacion,
+      archivo: archivoFisico,
+    );
+  }
 
-      await archivoFisico.writeAsBytes(await pdf.save());
+  @override
+  State<PrevisualizacionPdfWidget> createState() =>
+      _PrevisualizacionPdfWidgetState();
 
-      await _repository.gestionarYSubirPdf(
-        id: widget.idCotizacion,
-        codigo: widget.codigoCotizacion,
-        archivo: archivoFisico,
+  
+}
+
+class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
+  bool _cargado = false;
+  bool _subiendo = false;
+  
+
+  late final CotizacionRepositoryImpl _repository;
+
+  static const Color _verde = Color(0xFF2E7D32);
+  static const Color _verdeSuave = Color(0xFFE8F5E9);
+  static const Color _gris = Color(0xFF6B7280);
+  static const Color _texto = Color(0xFF0F172A);
+
+  double get _subtotalMateriales =>
+      widget.materiales.fold(0.0, (suma, material) => suma + material.subtotal);
+
+  double get _subtotalManoObra =>
+      widget.manoObra.fold(0.0, (suma, manoObra) => suma + manoObra.subtotal);
+
+  double get _gastoTransporte => widget.cotizacion.viatico ?? 0.0;
+
+  double get _subtotalTrabajosObra => widget.cotizacion.subtotalObraTotal;
+
+  double get _subtotalCostosDirectos =>
+      _subtotalTrabajosObra +
+      _subtotalMateriales +
+      _subtotalManoObra +
+      _gastoTransporte;
+
+  double get _montoUtilidad =>
+      _subtotalCostosDirectos * (widget.cotizacion.porcentajeUtilidad / 100);
+
+  double get _baseConUtilidad => _subtotalCostosDirectos + _montoUtilidad;
+
+  double get _montoIva =>
+      _baseConUtilidad * (widget.cotizacion.porcentajeIva / 100);
+
+  double get _totalFinal => _baseConUtilidad + _montoIva;
+
+  String _clp(double valor) {
+    return '${CurrencyFormatter.format(valor)} CLP';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _repository = CotizacionRepositoryImpl(
+      CotizacionFirestoreDataSource(FirebaseFirestore.instance),
+    );
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _cargado = true;
+        });
+      }
+    });
+  }
+
+  Future<void> _procesarYSubirCotizacion(String docIdInyectado) async {
+    setState(() => _subiendo = true);
+
+try {
+      
+      await PrevisualizacionPdfWidget.generarYsubirPdfEstatico(
+        cotizacion: widget.cotizacion,
+        materiales: widget.materiales,
+        codigoCotizacion: widget.codigoCotizacion,
+        manoObra: widget.manoObra,
+        idCotizacion: widget.idCotizacion,
+        repository: _repository,
       );
 
       setState(() => _subiendo = false);
@@ -614,7 +651,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                 ),
               ),
 
-              Padding(
+              /*Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -630,11 +667,11 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                     'CONFIRMAR Y SUBIR COTIZACIÓN',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  onPressed: () {
+                  onPressed: widget.habilitado ? () {
                     _procesarYSubirCotizacion(widget.idCotizacion);
-                  },
+                  }: null,
                 ),
-              ),
+              ),*/
             ],
           ),
         );
@@ -764,6 +801,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               ),
             ),
           ),
+          
         ],
       ),
     );

@@ -232,7 +232,7 @@ Future<void> enviarCorreoDirecto({
       }
     }
 
-    throw Exception('mensajeError');
+    throw Exception(mensajeError);
 
   } catch (e) {
     print('Error general en el envío: $e');
@@ -243,25 +243,5 @@ Future<void> enviarCorreoDirecto({
     }
   }
 }
-  
 
-  /*Future<void> enviarCorreoDesdeFirebase(CotizacionDto cotizacion) async {
-    await firestore.collection('historial_correos').add({
-      'to': cotizacion.clienteEmail,
-      'message': {
-        'subject': 'Cotización N°${cotizacion.codigo}',
-        'html': '''
-          <h3>Estimado/a ${cotizacion.clienteNombre},</h3>
-          <p>Junto con saludar, adjuntamos la propuesta correspondiente al proyecto ubicado en <strong>${cotizacion.direccion}</strong>.</p>
-          <p>Saludos cordiales,</p>
-        ''',
-        'attachments': [
-          {
-            'filename': 'Cotizacion_${cotizacion.codigo}.pdf',
-            'path': cotizacion.pdfUrl, // La extensión lee la URL y la adjunta
-          }
-        ],
-      },
-    });
-  }*/ //no se ocupa por ahora porque la extension para enviar correos de firebase se bugueo
 }

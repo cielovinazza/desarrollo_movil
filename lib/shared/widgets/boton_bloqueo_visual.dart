@@ -24,19 +24,8 @@ class BotonBloqueoVisual extends StatelessWidget {
   Widget build(BuildContext context) {
     final puedePresionar = habilitado && !cargando;
 
-    return ElevatedButton.icon(
+    return ElevatedButton(
       onPressed: puedePresionar ? onPressed : null,
-      icon: cargando
-          ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(icon ?? Icons.check_circle_outline, size: 18),
-      label: Text(
-        cargando ? 'Procesando...' : texto,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: colorActivo,
         foregroundColor: Colors.white,
@@ -44,6 +33,28 @@ class BotonBloqueoVisual extends StatelessWidget {
         disabledForegroundColor: Colors.grey.shade600,
         padding: padding,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (cargando) ...[
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            const SizedBox(width: 8),
+          ] 
+          else if (icon != null) ...[
+            Icon(icon, size: 18),
+            const SizedBox(width: 8),
+          ],
+          const SizedBox(height: 6,),
+          Text(
+            cargando ? 'Procesando...' : texto,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }

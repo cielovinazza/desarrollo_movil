@@ -218,10 +218,8 @@ class _EditarClientePageState extends State<EditarClientePage> {
                         ),
                       ],
                       validator: (value) {
-                        if (value == null || value.isEmpty)
-                          return 'El nombre es obligatorio';
-                        if (value.trim().length < 3)
-                          return 'El nombre debe contener mínimo 3 caracteres';
+                        if (value == null || value.isEmpty) return 'El nombre es obligatorio';
+                        if (value.trim().length < 3) return 'El nombre debe contener mínimo 3 caracteres';
                         return null;
                       },
                     ),
@@ -248,13 +246,11 @@ class _EditarClientePageState extends State<EditarClientePage> {
                       icon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty)
-                          return 'El correo es obligatorio';
+                        if (value == null || value.trim().isEmpty) return 'El correo es obligatorio';
                         final emailRegex = RegExp(
                           r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
                         );
-                        if (!emailRegex.hasMatch(value.trim()))
-                          return 'Correo inválido (usuario@correo.com)';
+                        if (!emailRegex.hasMatch(value.trim())) return 'Correo inválido (usuario@correo.com)';
                         return null;
                       },
                     ),
@@ -272,11 +268,9 @@ class _EditarClientePageState extends State<EditarClientePage> {
                         LengthLimitingTextInputFormatter(9),
                       ],
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty)
-                          return 'El teléfono es obligatorio';
+                        if (value == null || value.trim().isEmpty)return 'El teléfono es obligatorio';
                         String numeros = value.replaceAll(RegExp(r'\D'), '');
-                        if (numeros.length != 9)
-                          return 'Debe tener exactamente 9 dígitos';
+                        if (numeros.length != 9)return 'Debe tener exactamente 9 dígitos';
                         return null;
                       },
                     ),

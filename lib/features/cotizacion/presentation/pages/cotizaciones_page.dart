@@ -272,12 +272,12 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                             ),
                             _buildVerticalDivider(theme),
                             _ItemResumenNeutro(
-                              label: 'En Proceso',
+                              label: 'Enviadas',
                               value:
-                                  (contarPorEstado('En Proceso') +
+                                  (contarPorEstado('Enviada') +
                                           contarPorEstado('Pendiente'))
                                       .toString(),
-                              colorText: AppTheme.warning,
+                              colorText: Colors.blueGrey,
                             ),
                             _buildVerticalDivider(theme),
                             _ItemResumenNeutro(
@@ -557,7 +557,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: cotizaciones.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 14),
+                          separatorBuilder: (_, _) => const SizedBox(height: 14),
                           itemBuilder: (context, index) {
                             final cotizacion = cotizaciones[index];
                             return _CotizacionCard(
@@ -693,22 +693,6 @@ class _CotizacionCard extends StatelessWidget {
 
   bool get _esEditable => estado == 'Rechazada por el Cliente' || estado == 'Rechazada';
 
-  void _mostrarDialogoError(BuildContext context, String titulo, String mensaje) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: SelectableText(mensaje),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido', style: TextStyle(color: AppTheme.danger)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     String estadoNormalizado = estado;
@@ -717,15 +701,22 @@ class _CotizacionCard extends StatelessWidget {
     if (estado == 'Rechazada') estadoNormalizado = 'Rechazada por el Cliente';
 
     final textTheme = Theme.of(context).textTheme;
-    final bool noTienePdf = cotizacionRaw.pdfUrl == null || cotizacionRaw.pdfUrl!.isEmpty;
+    final theme = Theme.of(context);
+    final bool tienePdf = cotizacionRaw.pdfUrl != null && cotizacionRaw.pdfUrl!.isNotEmpty;
+    final bool noTienePdf = !tienePdf;
+
+    final bool esListaParaEnvio = estado == 'Lista para Envío';
+    final bool esRechazada = estado == 'Rechazada por el Cliente' || estado == 'Rechazada';
+    final bool esEnProceso = estado == 'En Proceso';
+    final bool esEnviadaOAprobada = estado == 'Enviada' || estado == 'Aprobada por el Cliente' || estado == 'Aceptada';
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          color: theme.dividerColor.withValues(alpha: 0.1),
         ),
         boxShadow: [
           BoxShadow(
@@ -741,10 +732,10 @@ class _CotizacionCard extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                child: const Icon(
+                backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
+                child: Icon(
                   Icons.description_outlined,
-                  color: AppTheme.primary,
+                  color: theme.primaryColor,
                 ),
               ),
               const SizedBox(width: 14),
@@ -756,13 +747,13 @@ class _CotizacionCard extends StatelessWidget {
                       cliente,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.textDark,
+                        color: AppTheme.textDark, // Mantener color de texto solicitado
                       ),
                     ),
                     Text(
                       codigo.isEmpty ? 'Generando código...' : codigo,
                       style: textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textGrey,
+                        color: theme.textTheme.bodyMedium?.color,
                       ),
                     ),
                   ],
@@ -793,7 +784,7 @@ class _CotizacionCard extends StatelessWidget {
               Icon(
                 Icons.calendar_today_outlined,
                 size: 16,
-                color: Theme.of(context).hintColor,
+                color: theme.hintColor,
               ),
               const SizedBox(width: 6),
               Text(fecha, style: textTheme.bodyMedium),
@@ -805,7 +796,7 @@ class _CotizacionCard extends StatelessWidget {
                   textAlign: TextAlign.end,
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
+                    color: theme.primaryColor,
                   ),
                 ),
               ),
@@ -862,12 +853,12 @@ class _CotizacionCard extends StatelessWidget {
               ),
             ],
           ),
-          if (estado == 'Lista para Envío') ...[
+          if (esListaParaEnvio) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.05),
+                color: theme.primaryColor.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -879,8 +870,7 @@ class _CotizacionCard extends StatelessWidget {
                           final resultado = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  GenerarPdfPage(cotizacion: cotizacionRaw),
+                              builder: (_) => GenerarPdfPage(cotizacion: cotizacionRaw),
                             ),
                           );
                           if (resultado == true) {
@@ -899,21 +889,13 @@ class _CotizacionCard extends StatelessWidget {
                         }
                       },
                       icon: Icon(
-                        noTienePdf
-                            ? Icons.picture_as_pdf_outlined
-                            : Icons.picture_as_pdf,
+                        noTienePdf ? Icons.picture_as_pdf_outlined : Icons.picture_as_pdf,
                         size: 16,
                       ),
                       label: Text(noTienePdf ? 'Generar PDF' : 'Ver PDF'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: noTienePdf
-                            ? AppTheme.primary
-                            : AppTheme.danger,
-                        side: BorderSide(
-                          color: noTienePdf
-                              ? AppTheme.primary
-                              : AppTheme.danger,
-                        ),
+                        foregroundColor: tienePdf ? theme.colorScheme.error : theme.primaryColor,
+                        side: BorderSide(color: tienePdf ? theme.colorScheme.error : theme.primaryColor),
                       ),
                     ),
                   ),
@@ -924,8 +906,8 @@ class _CotizacionCard extends StatelessWidget {
                       icon: const Icon(Icons.mail, size: 16),
                       label: const Text('Enviar'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: theme.primaryColor,
+                        foregroundColor: theme.colorScheme.onPrimary,
                       ),
                     ),
                   ),
@@ -933,14 +915,72 @@ class _CotizacionCard extends StatelessWidget {
               ),
             ),
           ],
-          if (_esEditable) ...[
+          if (esRechazada) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.primaryColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  if (tienePdf)
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => VerPdfPage(
+                                url: cotizacionRaw.pdfUrl,
+                                codigoCotizacion: cotizacionRaw.codigo,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.picture_as_pdf, size: 16),
+                        label: const Text('Ver PDF'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: theme.colorScheme.error,
+                          side: BorderSide(color: theme.colorScheme.error),
+                        ),
+                      ),
+                    ),
+                  if (tienePdf) const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CrearCotizacionPage(
+                              cotizacionAEditar: cotizacionRaw,
+                            ),
+                          ),
+                        );
+                        await onRecargar();
+                      },
+                      icon: const Icon(Icons.edit_note, size: 18),
+                      label: const Text('Editar', style: TextStyle(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.primaryColor,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (esEnProceso) ...[
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.orange.shade800,
-                  foregroundColor: Colors.white,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.primaryColor,
+                  foregroundColor: theme.colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -959,6 +999,33 @@ class _CotizacionCard extends StatelessWidget {
                 label: const Text(
                   'Editar Cotización',
                   style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
+          if (esEnviadaOAprobada && tienePdf) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => VerPdfPage(
+                        url: cotizacionRaw.pdfUrl,
+                        codigoCotizacion: cotizacionRaw.codigo,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.picture_as_pdf, size: 18),
+                label: const Text('Ver PDF'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                  side: BorderSide(color: theme.colorScheme.error),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
             ),

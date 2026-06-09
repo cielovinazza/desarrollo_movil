@@ -226,7 +226,7 @@ class _CotizacionItem extends StatelessWidget {
       case 'Aprobada por el Cliente': return Colors.green;
       case 'Rechazada por el Cliente': return Colors.red;
       case 'En Proceso': return Colors.orange;
-      case 'Enviada': return Colors.purple;
+      case 'Enviada': return Colors.blueGrey;
       case 'Lista para Envío': return Colors.blue;
       default: return Colors.grey;
     }

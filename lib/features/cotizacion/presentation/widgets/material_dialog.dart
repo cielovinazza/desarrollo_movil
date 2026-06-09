@@ -217,7 +217,7 @@ class _MaterialDialogState extends State<MaterialDialog> {
             Navigator.pop(context, material);
           },
           texto: 'Guardar',
-          icon: Icons.save_outlined,
+         
           colorActivo: widget.verdeApp,
         ),
       ],
