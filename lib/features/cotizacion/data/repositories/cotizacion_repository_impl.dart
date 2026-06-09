@@ -1,21 +1,19 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/repositories/cotizacion_repository.dart';
 import '../datasources/cotizacion_firebase_datasource.dart';
 import '../dtos/cotizacion_dtos.dart';
 
-// Mapeo local de la Máquina de Estados para no modificar drásticamente el flujo actual
+
 class FlujoEstados {
   static const String enProceso = 'En Proceso';
   static const String listaParaEnvio = 'Lista para Envío';
   static const String enviada = 'Enviada';
   static const String aprobada = 'Aprobada por el Cliente';
   static const String rechazada = 'Rechazada por el Cliente';
-
-
-
   static bool validarTransicion(String actual, String nueva) {
     if (actual == 'Pendiente') return true;
-    
+
     switch (actual) {
       case enProceso:
         return nueva == listaParaEnvio;
@@ -62,26 +60,37 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
   }
 
   @override
-  Future<void> actualizarEstado(String id, String estadoActual, String estadoNuevo) async {
+  Future<void> actualizarEstado(
+    String id,
+    String estadoActual,
+    String estadoNuevo,
+  ) async {
     if (!FlujoEstados.validarTransicion(estadoActual, estadoNuevo)) {
-      throw Exception('Transición inválida: No se puede cambiar de "$estadoActual" a "$estadoNuevo"');
+      throw Exception(
+        'Transición inválida: No se puede cambiar de "$estadoActual" a "$estadoNuevo"',
+      );
     }
+
     await datasource.actualizarEstado(id, estadoNuevo);
   }
 
- @override
+  @override
   Future<String> gestionarYSubirPdf({
     required String id,
-    required String codigo, 
+    required String codigo,
     required File archivo,
   }) async {
-    //evita que el archivo quede suelto en la raíz de storage y se sobrescriba.
     final carpetaDestino = codigo.trim().isEmpty ? id : codigo;
-    final urlDescarga = await datasource.subirPdfCotizacion(carpetaDestino, archivo);
+    final urlDescarga = await datasource.subirPdfCotizacion(
+      carpetaDestino,
+      archivo,
+    );
+
     await datasource.vincularPdfACotizacion(id, urlDescarga);
 
     return urlDescarga;
   }
+
   
   Future<void> crearNuevaVersion(String cotizacionId) async {
     await datasource.crearNuevaVersion(cotizacionId);
@@ -90,21 +99,45 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
   @override
   Future<void> enviarCotizacionPorCorreo(CotizacionDto cotizacion) async {
     if (cotizacion.pdfUrl == null || cotizacion.pdfUrl!.isEmpty) {
-      throw Exception('No se puede enviar la cotización sin un documento PDF vinculado.');
+      throw Exception(
+        'No se puede enviar la cotización sin un documento PDF vinculado.',
+      );
     }
 
-    if (cotizacion.clienteEmail.isEmpty) {
+    String emailActualizado = cotizacion.clienteEmail;
+    String nombreActualizado = cotizacion.clienteNombre;
+
+    if (cotizacion.clienteId.isNotEmpty) {
+      final clienteDoc = await FirebaseFirestore.instance
+          .collection('clientes')
+          .doc(cotizacion.clienteId)
+          .get();
+
+      if (clienteDoc.exists) {
+        final data = clienteDoc.data();
+
+        emailActualizado = data?['correo'] ?? cotizacion.clienteEmail;
+        nombreActualizado = data?['nombre'] ?? cotizacion.clienteNombre;
+      }
+    }
+
+    if (emailActualizado.isEmpty) {
       throw Exception('El cliente no tiene un correo electrónico asignado.');
     }
-    await datasource.enviarCorreoDirecto(
-      clienteEmail: cotizacion.clienteEmail,
-      clienteNombre: cotizacion.clienteNombre,
-      direccion: cotizacion.direccion,
-      asunto: 'Cotizacion N°${cotizacion.codigo}',
-      pdfUrl: cotizacion.pdfUrl!,
-      codigo: cotizacion.codigo);
-    await actualizarEstado(cotizacion.id, cotizacion.estado, FlujoEstados.enviada);
-  }
 
-  
+    await datasource.enviarCorreoDirecto(
+      clienteEmail: emailActualizado,
+      clienteNombre: nombreActualizado,
+      direccion: cotizacion.direccion,
+      asunto: 'Cotización N°${cotizacion.codigo}',
+      pdfUrl: cotizacion.pdfUrl!,
+      codigo: cotizacion.codigo,
+    );
+
+    await actualizarEstado(
+      cotizacion.id,
+      cotizacion.estado,
+      FlujoEstados.enviada,
+    );
+  }
 }

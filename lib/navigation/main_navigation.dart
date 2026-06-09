@@ -4,7 +4,14 @@ import 'package:project/features/home/presentation/pages/home_page.dart';
 import 'package:project/features/cotizacion/presentation/pages/cotizaciones_page.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({super.key});
+  final bool isDarkMode;
+  final ValueChanged<bool> onThemeChanged;
+
+  const MainNavigation({
+    super.key,
+    required this.isDarkMode,
+    required this.onThemeChanged,
+  });
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();
@@ -12,18 +19,34 @@ class MainNavigation extends StatefulWidget {
 
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+  bool _filtrarMesActual = false;
 
   void changeTab(int index) {
     setState(() {
       _currentIndex = index;
+
+      if (index != 2) {
+        _filtrarMesActual = false;
+      }
     });
   }
 
-  late final List<Widget> _pages = [
-    HomePage(onGoToCotizaciones: () => changeTab(2)),
-    const ListadoClientesPage(),
-    const CotizacionesPage(),
-  ];
+  void abrirCotizacionesMesActual() {
+    setState(() {
+      _filtrarMesActual = true;
+      _currentIndex = 2;
+    });
+  }
+
+  List<Widget> get _pages => [
+        HomePage(
+          onGoToCotizaciones: abrirCotizacionesMesActual,
+          isDarkMode: widget.isDarkMode,
+          onThemeChanged: widget.onThemeChanged,
+        ),
+        const ListadoClientesPage(),
+        CotizacionesPage(filtrarMesActual: _filtrarMesActual),
+      ];
 
   @override
   Widget build(BuildContext context) {
