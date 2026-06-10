@@ -135,12 +135,6 @@ class _MaterialesPageState extends State<MaterialesPage> {
     setState(() => indexEditando = null);
   }
 
-  void mostrarMensaje(String mensaje) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(mensaje)));
-  }
-
   void filtrarCosto(String value) {
     final textoFiltrado = value.replaceAll(RegExp(r'[^0-9.]'), '');
     if (textoFiltrado != value) {

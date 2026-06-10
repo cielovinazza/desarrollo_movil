@@ -206,7 +206,7 @@ Future<void> enviarCorreoDirecto({
     final cuerpoHtml = '''
       <h3>Estimado/a $clienteNombre,</h3>
       <p>Junto con saludar, adjuntamos un documento con la propuesta correspondiente a la cotizacion para el proyecto ubicado en <strong>$direccion</strong>.</p>
-      <p>Saludos cordiales,</p>
+      <p>Saludos cordiales.</p>
     ''';
     final message = Message()
       ..from = Address('derick9103@gmail.com', 'Cotizaciones')

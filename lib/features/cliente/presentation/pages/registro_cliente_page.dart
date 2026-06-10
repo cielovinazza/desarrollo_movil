@@ -37,7 +37,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
 
   late final RegistrarCliente registrarClienteUseCase;
 
-  // Tu paleta de colores corporativos
+  
   final Color greenPrimary = const Color(0xFF0F5A3C);
 
   @override
@@ -210,19 +210,20 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
+      
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: greenPrimary),
+          icon: Icon(Icons.arrow_back,),
           onPressed: () => Navigator.maybePop(context),
         ),
         title: Text(
           'Nuevo Cliente',
           style: TextStyle(
-            color: theme.primaryColor,
+            
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -240,7 +241,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.cardColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: Colors.grey.withValues(alpha: 0.15),
@@ -254,7 +255,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
+                            color:  esOscuro ? const Color.fromARGB(255, 40, 43, 40): const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -267,12 +268,12 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Datos de Registro',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: Colors.black87,
+                                color: esOscuro ? Colors.white : Colors.black87 ,
                               ),
                             ),
                             Text(
@@ -388,15 +389,15 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
                         ),
                       ),
                       onPressed: _clearForm,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.clear_rounded,
                         size: 18,
-                        color: Colors.black87,
+                        color: esOscuro ? Colors.white : Colors.black87,
                       ),
-                      label: const Text(
+                      label: Text(
                         'Limpiar',
                         style: TextStyle(
-                          color: Colors.black87,
+                          color: esOscuro ? Colors.white: Colors.black87,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

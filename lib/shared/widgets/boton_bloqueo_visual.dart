@@ -29,8 +29,8 @@ class BotonBloqueoVisual extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: colorActivo,
         foregroundColor: Colors.white,
-        disabledBackgroundColor: Colors.grey.shade300,
-        disabledForegroundColor: Colors.grey.shade600,
+        disabledBackgroundColor: Theme.of(context).disabledColor.withValues(alpha: 0.2),
+        disabledForegroundColor: Theme.of(context).disabledColor,
         padding: padding,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),

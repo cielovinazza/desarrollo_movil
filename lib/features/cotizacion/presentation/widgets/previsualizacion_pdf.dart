@@ -3,14 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/entities/cotizacion_model.dart';
 import '../../domain/entities/mano_de_obra.dart';
 import 'package:project/features/materiales/domain/entities/material.dart';
-import '../../data/datasources/cotizacion_firebase_datasource.dart';
 import '../../data/repositories/cotizacion_repository_impl.dart';
 import '../../../../core/utils/currency_formatter.dart';
-import '../../../../shared/widgets/app_dialogs.dart';
 
 class PrevisualizacionPdfWidget extends StatefulWidget {
   final CotizacionModel cotizacion;
@@ -475,8 +472,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   bool _subiendo = false;
   
 
-  late final CotizacionRepositoryImpl _repository;
-
   static const Color _verde = Color(0xFF2E7D32);
   static const Color _verdeSuave = Color(0xFFE8F5E9);
   static const Color _gris = Color(0xFF6B7280);
@@ -515,9 +510,8 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   @override
   void initState() {
     super.initState();
-    _repository = CotizacionRepositoryImpl(
-      CotizacionFirestoreDataSource(FirebaseFirestore.instance),
-    );
+ 
+   
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
@@ -525,33 +519,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
         });
       }
     });
-  }
-
-  Future<void> _procesarYSubirCotizacion(String docIdInyectado) async {
-    setState(() => _subiendo = true);
-
-try {
-      
-      await PrevisualizacionPdfWidget.generarYsubirPdfEstatico(
-        cotizacion: widget.cotizacion,
-        materiales: widget.materiales,
-        codigoCotizacion: widget.codigoCotizacion,
-        manoObra: widget.manoObra,
-        idCotizacion: widget.idCotizacion,
-        repository: _repository,
-      );
-
-      setState(() => _subiendo = false);
-      await widget.onListo();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _subiendo = false);
-      AppDialogs.mostrarError(
-        context,
-        'Error de Almacenamiento',
-        e.toString().replaceAll('Exception: ', ''),
-      );
-    }
   }
 
   @override
@@ -650,28 +617,6 @@ try {
                   ),
                 ),
               ),
-
-              /*Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _verde,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  icon: const Icon(Icons.cloud_upload_outlined),
-                  label: const Text(
-                    'CONFIRMAR Y SUBIR COTIZACIÓN',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: widget.habilitado ? () {
-                    _procesarYSubirCotizacion(widget.idCotizacion);
-                  }: null,
-                ),
-              ),*/
             ],
           ),
         );

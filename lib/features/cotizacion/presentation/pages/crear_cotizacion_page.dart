@@ -10,6 +10,7 @@ import '../../data/mappers/cotizacion_mapper.dart';
 import '../../data/repositories/cotizacion_repository_impl.dart';
 import '../../domain/usecases/guardar_cotizacion.dart';
 import '../widgets/previsualizacion_pdf.dart';
+import '../widgets/dialogo_trabajo_form.dart';
 import '../../data/dtos/cotizacion_dtos.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/utils/currency_formatter.dart';
@@ -21,6 +22,7 @@ import '../../data/mappers/borrador_cotizacion_mapper.dart';
 import '../../../../shared/widgets/boton_bloqueo_visual.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+
 
 class CrearCotizacionPage extends StatefulWidget {
   final Cliente? clienteInyectado;
@@ -87,12 +89,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     _utilidadController.addListener(_autoguardar);
     _ivaController.addListener(_autoguardar);
 
-    if (widget.clienteInyectado != null) {
-      _clienteSeleccionado = widget.clienteInyectado;
-      _clienteController.text = widget.clienteInyectado!.nombre;
-    }
-    _recuperarBorrador();
-
     if (widget.cotizacionAEditar != null) {
       final edicion = widget.cotizacionAEditar!;
       _idCotizacionCreada = edicion.id;
@@ -112,55 +108,15 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       _utilidadController.text = edicion.porcentajeUtilidad.toString();
       _ivaController.text = edicion.porcentajeIva.toString();
 
-      // 1. Mapeo Seguro de Trabajos
-      if (edicion.trabajos.isNotEmpty) {
-        _trabajosAgregados.addAll(
-          edicion.trabajos.map((item) {
-            if (item is ItemTrabajo) return item;
-            final map = item as Map<String, dynamic>;
-            return ItemTrabajo(
-              tipo: map['tipo'] ?? '',
-              metrosCuadrados: (map['metrosCuadrados'] ?? 0).toDouble(),
-              precioPorMetro: (map['precioPorMetro'] ?? 0).toDouble(),
-              descripcionBreve: map['descripcionBreve'],
-            );
-          }),
-        );
-      }
-
-      // 2. Mapeo Seguro de Mano de Obra (Campos reales: cargo, dias, valorJornada)
-      if (edicion.manoObra.isNotEmpty) {
-        _manoObraAgregada.addAll(
-          edicion.manoObra.map((item) {
-            if (item is ManoDeObra) return item;
-            final map = item as Map<String, dynamic>;
-            return ManoDeObra(
-              cargo: map['cargo'] ?? map['detalle'] ?? '',
-              dias: (map['dias'] ?? 0).toInt(),
-              valorJornada: (map['valorJornada'] ?? map['costo'] ?? 0)
-                  .toDouble(),
-            );
-          }),
-        );
-      }
-
-      // 3. Mapeo Seguro de Materiales (Campos reales: nombre, cantidad, costoUnitario, unidadMedida)
-      if (edicion.materiales.isNotEmpty) {
-        _materialesAgregados.addAll(
-          edicion.materiales.map((item) {
-            if (item is MaterialEntity) return item;
-            final map = item as Map<String, dynamic>;
-            return MaterialEntity(
-              nombre: map['nombre'] ?? '',
-              cantidad: (map['cantidad'] ?? 0).toDouble(),
-              costoUnitario:
-                  (map['costoUnitario'] ?? map['precioUnitario'] ?? 0)
-                      .toDouble(),
-              unidadMedida: map['unidadMedida'] ?? '',
-            );
-          }),
-        );
-      }
+      _trabajosAgregados.addAll(
+        CotizacionMapper.trabajosDesdeDto(edicion.trabajos),
+      );
+      _manoObraAgregada.addAll(
+        CotizacionMapper.manoObraDesdeDto(edicion.manoObra),
+      );
+      _materialesAgregados.addAll(
+        CotizacionMapper.materialesDesdeDto(edicion.materiales),
+      );
     }
   }
 
@@ -317,10 +273,6 @@ Future<void> _ejecutarGuardadoFinal() async {
       ),
     );
 
-  /*setState(() {
-    _guardandoEnFirestore = true;
-  });*/
-
   try {
     final realId = await _guardarCotizacion();
 
@@ -344,8 +296,7 @@ Future<void> _ejecutarGuardadoFinal() async {
       idCotizacion: realId, 
       repository: repositoryPdf
     );
-
-    if (!context.mounted) return;
+    if (!mounted) return;
     Navigator.pop(context);
 
     AppDialogs.mostrarSnackBar(
@@ -598,10 +549,10 @@ Future<void> _ejecutarGuardadoFinal() async {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(
+                child:  Text(
                   'Modificar Margen',
                   style: TextStyle(
-                    color: Colors.grey,
+                    color: Theme.of(ctx).hintColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -635,7 +586,6 @@ Future<void> _ejecutarGuardadoFinal() async {
   }
 
   Future<void> _autoguardar() async {
-    //print('AUTOGUARDANDO');
     if(widget.cotizacionAEditar != null) return;
 
     final dto = BorradorCotizacionMapper.toDto(
@@ -654,8 +604,8 @@ Future<void> _ejecutarGuardadoFinal() async {
   }
 
   Future<void> _recuperarBorrador() async {
-  
-// 1. ESCENARIO A: Modo Edición (Prioridad Máxima)
+
+  // Escenario A: Modo edición — prioridad máxima, sin diálogo
   if (widget.cotizacionAEditar != null) {
     final edicion = widget.cotizacionAEditar!;
     setState(() {
@@ -669,23 +619,20 @@ Future<void> _ejecutarGuardadoFinal() async {
       );
       _clienteController.text = edicion.clienteNombre;
       _direccionController.text = edicion.direccion;
-      _viaticoController.text = edicion.viatico?.toString() ?? '';
+      _viaticoController.text = edicion.viatico.toString();
       _utilidadController.text = edicion.porcentajeUtilidad.toString();
       _ivaController.text = edicion.porcentajeIva.toString();
-      
       _trabajosAgregados.addAll(edicion.trabajos.map((item) => ItemTrabajo(
         tipo: item.tipo,
         metrosCuadrados: item.metrosCuadrados,
         precioPorMetro: item.precioPorMetro,
         descripcionBreve: item.descripcionBreve,
       )));
-      
       _manoObraAgregada.addAll(edicion.manoObra.map((item) => ManoDeObra(
         cargo: item.cargo,
         dias: item.dias,
         valorJornada: item.valorJornada,
       )));
-      
       _materialesAgregados.addAll(edicion.materiales.map((item) => MaterialEntity(
         nombre: item.nombre,
         cantidad: item.cantidad,
@@ -693,14 +640,51 @@ Future<void> _ejecutarGuardadoFinal() async {
         unidadMedida: item.unidadMedida,
       )));
     });
-    return; 
+    return;
   }
 
- 
   final raw = await _localStorage.obtenerBorradorCotizacion();
-  
+
+  // Sin borrador — solo inyectar cliente si viene
   if (raw == null) {
     if (widget.clienteInyectado != null) {
+      setState(() {
+        _clienteSeleccionado = widget.clienteInyectado;
+        _clienteController.text = widget.clienteInyectado!.nombre;
+      });
+    }
+    return;
+  }
+
+  if (!mounted) return;
+
+  // Hay borrador — preguntar al usuario
+  final continuar = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text(
+        'Borrador encontrado',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      content: const Text(
+        'Tienes un formulario sin terminar. ¿Deseas continuar donde lo dejaste?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Descartar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Continuar'),
+        ),
+      ],
+    ),
+  );
+
+  if (continuar != true) {
+    await _localStorage.limpiarBorradorCotizacion();
+    if (widget.clienteInyectado != null && mounted) {
       setState(() {
         _clienteSeleccionado = widget.clienteInyectado;
         _clienteController.text = widget.clienteInyectado!.nombre;
@@ -714,7 +698,6 @@ Future<void> _ejecutarGuardadoFinal() async {
   setState(() {
     if (widget.clienteInyectado == null) {
       _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
-      
       if (dto.clienteTexto.trim().isEmpty) {
         _clienteSeleccionado = null;
       }
@@ -723,13 +706,11 @@ Future<void> _ejecutarGuardadoFinal() async {
       _clienteSeleccionado = widget.clienteInyectado;
       _clienteController.text = widget.clienteInyectado!.nombre;
     }
-    
     _direccionController.text = dto.direccion;
     _viaticoController.text = dto.viatico;
     _utilidadController.text = dto.utilidad;
     _ivaController.text = dto.iva;
     _currentStep = dto.currentStep;
-    
     _trabajosAgregados
       ..clear()
       ..addAll(BorradorCotizacionMapper.trabajosFromDto(dto));
@@ -740,11 +721,16 @@ Future<void> _ejecutarGuardadoFinal() async {
       ..clear()
       ..addAll(BorradorCotizacionMapper.manoObraFromDto(dto));
   });
+
+  await _autoguardar();
 }
 
   @override
   Widget build(BuildContext context) {
     final datosEnVivo = _obtenerEstadoActual();
+    final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
+    
 
     return Scaffold(
       appBar: AppBar(
@@ -762,7 +748,9 @@ Future<void> _ejecutarGuardadoFinal() async {
         onChanged: () => setState(() {}),
         child: Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: _verdeApp),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: _verdeApp, secondary: _verdeApp),
           ),
           child: Stepper(
             type: StepperType.vertical,
@@ -803,14 +791,14 @@ Future<void> _ejecutarGuardadoFinal() async {
                         Icon(
                           Icons.info_outline,
                           size: 16,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).hintColor,
                         ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             _mensajeBloqueoPaso(),
                             style: TextStyle(
-                              color: Colors.grey.shade700,
+                              color: Theme.of(context).hintColor,
                               fontSize: 12,
                             ),
                           ),
@@ -966,9 +954,10 @@ Future<void> _ejecutarGuardadoFinal() async {
                   children: [
                     TextFormField(
                       controller: _direccionController,
-                      decoration: const InputDecoration(
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
                         labelText: 'Dirección general del proyecto',
-                        prefixIcon: Icon(Icons.location_on_outlined),
+                        prefixIcon: Icon(Icons.location_on_outlined,),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -999,12 +988,12 @@ Future<void> _ejecutarGuardadoFinal() async {
                     ),
                     const Divider(height: 20),
                     if (_trabajosAgregados.isEmpty)
-                      const Center(
+                      Center(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
+                          padding: const EdgeInsets.symmetric(vertical: 24),
                           child: Text(
                             'No has añadido ningún trabajo todavía.',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: Theme.of(context).hintColor),
                           ),
                         ),
                       ),
@@ -1012,14 +1001,31 @@ Future<void> _ejecutarGuardadoFinal() async {
                       final index = entry.key;
                       final item = entry.value;
                       return Card(
+                        color: esOscuro ? const Color(0xFF1E1E1E) : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(
+                            color: esOscuro
+                                ? Colors.white24
+                                : Colors.grey.shade200,
+                          ),
+                        ),
                         child: ListTile(
                           leading: Icon(
                             Icons.build_circle_outlined,
                             color: _verdeApp,
                           ),
-                          title: Text(item.tipo),
+                          title: Text(
+                            item.tipo,
+                            style: TextStyle(
+                              color: esOscuro ? Colors.white : Colors.black87,
+                            ),
+                          ),
                           subtitle: Text(
                             '${item.metrosCuadrados} m² × ${CurrencyFormatter.format(item.precioPorMetro)} / m²',
+                            style: TextStyle(
+                              color: esOscuro ? Colors.white70 : Colors.grey,
+                            ),
                           ),
                           trailing: IconButton(
                             icon: const Icon(
@@ -1230,261 +1236,4 @@ Future<void> _ejecutarGuardadoFinal() async {
        )
      ); 
   } 
-}
- 
-class DialogoTrabajoForm extends StatefulWidget {
-  final List<String> tiposDisponibles;
-  final Color verdeApp;
-  final void Function(String tipo, double m2, double precio, String descripcion)
-  onGuardar;
-  final void Function(String nuevoTipo) onNuevoTipoCreado;
-
-  const DialogoTrabajoForm({
-    super.key,
-    required this.tiposDisponibles,
-    required this.verdeApp,
-    required this.onGuardar,
-    required this.onNuevoTipoCreado,
-  });
-
-  @override
-  State<DialogoTrabajoForm> createState() => _DialogoTrabajoFormState();
-}
-
-class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
-  late String tipoSeleccionado;
-  final m2ItemController = TextEditingController();
-  final precioItemController = TextEditingController();
-  final descripcionItemController = TextEditingController();
-  String? errorM2;
-  String? errorPrecio;
-
-  @override
-  void initState() {
-    super.initState();
-    tipoSeleccionado = widget.tiposDisponibles.first;
-  }
-
-  @override
-  void dispose() {
-    m2ItemController.dispose();
-    precioItemController.dispose();
-    descripcionItemController.dispose();
-    super.dispose();
-  }
-
-  void _mostrarDialogoCrearTipoTrabajo() {
-    final nuevoTipoController = TextEditingController();
-    final formKeyTipo = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (subContext) => AlertDialog(
-        title: const Text('Nuevo tipo de trabajo'),
-        content: Form(
-          key: formKeyTipo,
-          child: TextFormField(
-            controller: nuevoTipoController,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Por favor, ingrese un nombre';
-              }
-              if (value.trim().length < 3) {
-                return 'El nombre debe tener al menos 3 caracteres';
-              }
-              if (value.trim().length > 100) {
-                return 'El nombre no puede exceder los 100 caracteres';
-              }
-              return null;
-            },
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(
-                RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]'),
-              ),
-            ],
-            decoration: const InputDecoration(
-              labelText: 'Nombre del tipo de trabajo',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(subContext).pop();
-              nuevoTipoController.dispose();
-            },
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: widget.verdeApp,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () {
-              if (formKeyTipo.currentState!.validate()) {
-                final nuevoTipo = nuevoTipoController.text.trim();
-                widget.onNuevoTipoCreado(nuevoTipo);
-                setState(() {
-                  tipoSeleccionado = nuevoTipo;
-                });
-                Navigator.of(subContext).pop();
-                nuevoTipoController.dispose();
-              }
-            },
-            child: const Text('Crear'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children: [
-          Icon(Icons.add_task, color: widget.verdeApp),
-          const SizedBox(width: 10),
-          const Text(
-            'Añadir Trabajo',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: widget.tiposDisponibles.contains(tipoSeleccionado)
-                  ? tipoSeleccionado
-                  : widget.tiposDisponibles.first,
-              decoration: const InputDecoration(
-                labelText: 'Tipo de Rubro',
-                border: OutlineInputBorder(),
-              ),
-              items: widget.tiposDisponibles
-                  .map(
-                    (tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => tipoSeleccionado = value);
-              },
-            ),
-            const SizedBox(height: 10),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: _mostrarDialogoCrearTipoTrabajo,
-                icon: const Icon(Icons.add),
-                label: const Text('Crear nuevo tipo'),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: m2ItemController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(3),
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-              decoration: InputDecoration(
-                labelText: 'Cantidad Metros Cuadrados (m²)',
-                prefixIcon: const Icon(Icons.square_foot),
-                border: const OutlineInputBorder(),
-                errorText: errorM2,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: precioItemController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: false,
-              ),
-              inputFormatters: [ClpInputFormatter(maxDigits: 9)],
-              decoration: InputDecoration(
-                labelText: 'Precio por m² (CLP)',
-                prefixIcon: const Icon(Icons.sell_outlined),
-                border: const OutlineInputBorder(),
-                errorText: errorPrecio,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: descripcionItemController,
-              maxLength: 200,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Descripción breve (Opcional)',
-                hintText: 'Ej: Aplicación de dos manos de pintura látex...',
-                prefixIcon: Icon(Icons.description_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            final m2Texto = m2ItemController.text.trim();
-            final precioTexto = precioItemController.text.trim();
-            final descripcionTexto = descripcionItemController.text.trim();
-
-            final m2 = double.tryParse(m2Texto);
-            final precio = ClpInputFormatter.toDouble(precioTexto);
-
-            setState(() {
-              errorM2 = null;
-              errorPrecio = null;
-
-              if (m2Texto.isEmpty) {
-                errorM2 = 'Debe ingresar la cantidad de metros cuadrados';
-              } else if (m2 == null || m2 <= 0) {
-                errorM2 = 'Ingrese un número positivo válido';
-              }
-
-              if (precioTexto.isEmpty) {
-                errorPrecio = 'Debe ingresar el precio por m²';
-              } else if (precio <= 0) {
-                errorPrecio = 'Ingrese un precio positivo válido';
-              }
-            });
-
-            if (errorM2 != null || errorPrecio != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Formulario incompleto, debe rellenar los campos para continuar',
-                  ),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-
-            widget.onGuardar(tipoSeleccionado, m2!, precio, descripcionTexto);
-            Navigator.of(context).pop();
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: widget.verdeApp,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Guardar Ítem'),
-        ),
-      ],
-    );
-  }
 }

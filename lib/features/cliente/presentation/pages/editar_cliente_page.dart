@@ -124,19 +124,18 @@ class _EditarClientePageState extends State<EditarClientePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6F8),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: greenPrimary),
+          icon: Icon(Icons.arrow_back,),
           onPressed: () => Navigator.maybePop(context),
         ),
         title: Text(
           'Editar cliente',
           style: TextStyle(
-            color: theme.primaryColor,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -150,12 +149,12 @@ class _EditarClientePageState extends State<EditarClientePage> {
           onChanged: _validarFormulario,
           child: Column(
             children: [
-              // 📦 Contenedor "Card" Estilizado
+           
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: theme.cardColor,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                     color: Colors.grey.withValues(alpha: 0.15),
@@ -169,7 +168,7 @@ class _EditarClientePageState extends State<EditarClientePage> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
+                            color: esOscuro ? const Color.fromARGB(255, 40, 43, 40): const Color(0xFFE8F5E9),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -182,18 +181,18 @@ class _EditarClientePageState extends State<EditarClientePage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'Modificar Información',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
-                                color: Colors.black87,
+                                color: esOscuro ? Colors.white :Colors.black87,
                               ),
                             ),
                             Text(
                               'Actualice los campos que correspondan',
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: theme.textTheme.bodyMedium?.color,
                                 fontSize: 12,
                               ),
                             ),

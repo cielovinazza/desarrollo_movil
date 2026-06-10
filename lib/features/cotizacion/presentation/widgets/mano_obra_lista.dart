@@ -25,6 +25,8 @@ class ManoObraLista extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
 
@@ -33,7 +35,7 @@ class ManoObraLista extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
           children: [
-            const Text(
+            Text(
               'Personal Asignado',
 
               style: TextStyle(
@@ -41,7 +43,6 @@ class ManoObraLista extends StatelessWidget {
 
                 fontSize: 16,
 
-                color: Colors.black87,
               ),
             ),
 
@@ -113,16 +114,16 @@ class ManoObraLista extends StatelessWidget {
             margin: const EdgeInsets.symmetric(vertical: 4),
 
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.cardColor,
 
               borderRadius: BorderRadius.circular(10),
 
-              border: Border.all(color: Colors.grey.shade200),
-
+              border: Border.all(
+                color: esOscuro ? Colors.grey.shade700 : Colors.grey.shade200,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.02),
                   blurRadius: 4,
 
                   offset: const Offset(0, 2),
@@ -157,8 +158,11 @@ class ManoObraLista extends StatelessWidget {
               title: Text(
                 item.cargo,
 
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black87,
 
                   fontSize: 15,
                 ),
@@ -181,12 +185,12 @@ class ManoObraLista extends StatelessWidget {
                   Text(
                     CurrencyFormatter.format(item.subtotal),
 
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
 
                       fontSize: 15,
 
-                      color: Colors.black87,
+                      color: esOscuro ? Colors.white : Colors.black87,
                     ),
                   ),
 

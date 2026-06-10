@@ -148,11 +148,15 @@ class _SelectorClienteState extends State<SelectorCliente> {
       });
       widget.onClienteSeleccionado(null);
       if (!mounted) return;
-
+      final theme = Theme.of(context);
       final registrar = await showDialog<bool>(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Cliente no encontrado'),
+          backgroundColor: theme.cardColor,
+          title: const Text('Cliente no encontrado',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,),
+            ),
           content: Text('No existe un cliente con el RUT "$rutBuscado". ¿Desea registrarlo ahora?'),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           actions: [
@@ -208,15 +212,16 @@ class _SelectorClienteState extends State<SelectorCliente> {
         );
       }),
     ];
-
-    return Container(
+    final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
+    return Container(  
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: verdeApp.withValues(alpha: 0.15)),
+        border: Border.all(color: esOscuro ? Colors.white.withValues(alpha: 0.08) : verdeApp.withValues(alpha: 0.15)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2)),
+          BoxShadow(color: esOscuro ? Colors.white.withValues(alpha: 0.015): Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -293,7 +298,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
             itemHeight: 48,
             key: Key('${valorDropdown?.id ?? 'ninguno'}_${clientesFiltrados.length}'),
             isExpanded: true,
-            value: valorDropdown, 
+            initialValue: valorDropdown, 
             decoration: InputDecoration(
               labelText: _rutController.text.isEmpty ? 'Seleccione un cliente' : 'Resultados de coincidencia',
               prefixIcon: Icon(Icons.person_outline, color: verdeApp),

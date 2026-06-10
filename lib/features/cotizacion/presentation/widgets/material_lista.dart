@@ -96,55 +96,74 @@ class MaterialLista extends StatelessWidget {
     if (parseado.filasRechazadas.isNotEmpty) {
       showDialog(
         context: context,
-        builder: (_) => AlertDialog(
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 24,
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.warning_amber_outlined, color: Colors.orange),
-              SizedBox(width: 8),
-              Expanded(child: Text('Importación parcial')),
-            ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+        builder: (ctx) {
+          final esOscuroDialog = Theme.of(ctx).brightness == Brightness.dark;
+          return AlertDialog(
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 24,
+            ),
+            title: const Row(
               children: [
-                Text('Importados: ${parseado.materialesValidos.length}'),
-                Text(
-                  'Rechazados: ${parseado.filasRechazadas.length}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-                const SizedBox(height: 12),
-                const Text('Filas con error:'),
-                const SizedBox(height: 6),
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: parseado.filasRechazadas.length,
-                    itemBuilder: (_, i) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Text(
-                        '• ${parseado.filasRechazadas[i]}',
-                        style: const TextStyle(fontSize: 13, height: 1.4),
+                Icon(Icons.warning_amber_outlined, color: Colors.orange),
+                SizedBox(width: 8),
+                Expanded(child: Text('Importación parcial')),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Importados: ${parseado.materialesValidos.length}',
+                    style: TextStyle(
+                      color: esOscuroDialog ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    'Rechazados: ${parseado.filasRechazadas.length}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Filas con error:',
+                    style: TextStyle(
+                      color: esOscuroDialog ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: parseado.filasRechazadas.length,
+                      itemBuilder: (_, i) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(
+                          '• ${parseado.filasRechazadas[i]}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.4,
+                            color: esOscuroDialog
+                                ? Colors.white
+                                : Colors.black87,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Entendido'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Entendido'),
+              ),
+            ],
+          );
+        },
       );
       return;
     }
@@ -184,19 +203,17 @@ class MaterialLista extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
+            Text(
               'Materiales',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.black87,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             Row(
               children: [
@@ -278,12 +295,14 @@ class MaterialLista extends StatelessWidget {
           return Container(
             margin: const EdgeInsets.symmetric(vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.cardColor,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(
+                color: esOscuro ? Colors.grey.shade700 : Colors.grey.shade200,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.02),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -308,16 +327,20 @@ class MaterialLista extends StatelessWidget {
               ),
               title: Text(
                 material.nombre,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
+                  color: esOscuro ? Colors.white : Colors.black87,
                 ),
               ),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   '${material.cantidad.toStringAsFixed(0)} ${material.unidadMedida} × ${CurrencyFormatter.format(material.costoUnitario)}',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  style: TextStyle(
+                    color: esOscuro ? Colors.white70 : Colors.grey.shade600,
+                    fontSize: 13,
+                  ),
                 ),
               ),
               trailing: Row(
@@ -325,9 +348,10 @@ class MaterialLista extends StatelessWidget {
                 children: [
                   Text(
                     CurrencyFormatter.format(material.subtotal),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
+                      color: esOscuro ? Colors.white : Colors.black87,
                     ),
                   ),
                   const SizedBox(width: 4),
