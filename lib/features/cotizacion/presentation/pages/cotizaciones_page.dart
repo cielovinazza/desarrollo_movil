@@ -11,14 +11,13 @@ import '../../domain/usecases/actualizar_estado_cotizacion.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import 'generar_pdf_page.dart';
 import '../../../../shared/widgets/app_dialogs.dart';
+import '../widgets/panel_filtros.dart';
+
 
 class CotizacionesPage extends StatefulWidget {
   final bool filtrarMesActual;
 
-  const CotizacionesPage({
-    super.key,
-    this.filtrarMesActual = false,
-  });
+  const CotizacionesPage({super.key, this.filtrarMesActual = false});
 
   @override
   State<CotizacionesPage> createState() => _CotizacionesPageState();
@@ -47,20 +46,12 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     super.initState();
 
     if (widget.filtrarMesActual) {
-    final ahora = DateTime.now();
+      final ahora = DateTime.now();
 
-    fechaInicioFiltro = DateTime(
-      ahora.year,
-      ahora.month,
-      1,
-    );
+      fechaInicioFiltro = DateTime(ahora.year, ahora.month, 1);
 
-    fechaFinFiltro = DateTime(
-      ahora.year,
-      ahora.month + 1,
-      0,
-    );
-  }
+      fechaFinFiltro = DateTime(ahora.year, ahora.month + 1, 0);
+    }
 
     final datasource = CotizacionFirestoreDataSource(
       FirebaseFirestore.instance,
@@ -69,6 +60,21 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     actualizarEstadoUseCase = ActualizarEstadoCotizacion(repository);
     obtenerCotizacionesUseCase = ObtenerCotizacion(repository);
     cargarCotizacion();
+  }
+
+  @override
+  void didUpdateWidget(CotizacionesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.filtrarMesActual && !oldWidget.filtrarMesActual) {
+      final ahora = DateTime.now();
+      fechaInicioFiltro = DateTime(ahora.year, ahora.month, 1);
+      fechaFinFiltro = DateTime(ahora.year, ahora.month + 1, 0);
+      cargarCotizacion();
+    } else if (!widget.filtrarMesActual && oldWidget.filtrarMesActual) {
+      fechaInicioFiltro = null;
+      fechaFinFiltro = null;
+      cargarCotizacion();
+    }
   }
 
   Future<void> cargarCotizacion() async {
@@ -107,8 +113,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     String nuevoEstado,
   ) async {
     try {
-
-      if (nuevoEstado == 'Enviada'){
+      if (nuevoEstado == 'Enviada') {
         await procesarEnvioCorreo(cotizacion);
         return;
       }
@@ -179,6 +184,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   int contarPorEstado(String estado) {
     return cotizaciones.where((c) => c.estado == estado).length;
   }
+
   bool _estacargando = false;
 
   @override
@@ -198,7 +204,9 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                 : () async {
                     await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const CrearCotizacionPage()),
+                      MaterialPageRoute(
+                        builder: (_) => const CrearCotizacionPage(),
+                      ),
                     );
                     if (!mounted) return;
 
@@ -216,7 +224,10 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.add, size: 28),
           ),
@@ -254,12 +265,18 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                         const SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.warning),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppTheme.warning,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Text(
                           'Sincronizando cambios locales...',
-                          style: textTheme.bodySmall?.copyWith(color: AppTheme.warning, fontWeight: FontWeight.bold),
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppTheme.warning,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -280,9 +297,14 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       const SizedBox(height: 20),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 20,
+                          horizontal: 12,
+                        ),
                         decoration: BoxDecoration(
-                          color: theme.brightness == Brightness.dark ? theme.cardColor : Colors.grey.shade50,
+                          color: theme.brightness == Brightness.dark
+                              ? theme.cardColor
+                              : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
                             color: theme.dividerColor.withValues(alpha: 0.15),
@@ -329,237 +351,34 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      Card(
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.5)),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(4.0),
-                          child: ExpansionTile(
-                            title: Text(
-                              'Filtros Avanzados',
-                              style: textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            childrenPadding: const EdgeInsets.all(12),
-                            expandedCrossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            shape: const Border(),
-                            children: [
-                              TextField(
-                                controller: idSearchController,
-                                textCapitalization:
-                                    TextCapitalization.characters,
-                                enableSuggestions: false,
-                                autocorrect: false,
-                                onChanged: (value) {
-                                  filterId = value.trim().toUpperCase();
-                                  cargarCotizacion();
-                                },
-                                decoration: const InputDecoration(
-                                  labelText: 'Buscar por código único',
-                                  prefixIcon: Icon(Icons.key),
-                                  hintText: 'Ej: CT-001',
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: searchController,
-                                onChanged: (value) {
-                                  filterCliente = value;
-                                  cargarCotizacion();
-                                },
-                                decoration: const InputDecoration(
-                                  labelText: 'Buscar por nombre del cliente',
-                                  prefixIcon: Icon(Icons.person),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              DropdownButtonFormField<String>(
-                                initialValue: estadoFiltro,
-                                decoration: const InputDecoration(
-                                  labelText: 'Filtrar por Estado',
-                                ),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: null,
-                                    child: Text('Todos los estados'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'En Proceso',
-                                    child: Text('En Proceso'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Lista para Envío',
-                                    child: Text('Lista para Envío'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Enviada',
-                                    child: Text('Enviada'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Aprobada por el Cliente',
-                                    child: Text('Aprobada por el Cliente'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'Rechazada por el Cliente',
-                                    child: Text('Rechazada por el Cliente'),
-                                  ),
-                                ],
-                                onChanged: (val) {
-                                  setState(() => estadoFiltro = val);
-                                  cargarCotizacion();
-                                },
-                              ),
-                              const SizedBox(height: 14),
-                              Row(
-                                children: [
-                                  //fecha desde
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                      ),
-                                      onPressed: () async {
-                                        final fecha = await showDatePicker(
-                                          context: context,
-                                          initialDate:
-                                              fechaInicioFiltro ??
-                                              DateTime.now(),
-                                          firstDate: DateTime(2020),
-                                          lastDate: DateTime(2100),
-                                        );
-                                        if (fecha != null) {
-                                          setState(
-                                            () => fechaInicioFiltro = fecha,
-                                          );
-                                          cargarCotizacion();
-                                        }
-                                      },
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(
-                                                Icons.date_range,
-                                                size: 18,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                fechaInicioFiltro == null
-                                                    ? 'Desde'
-                                                    : '${fechaInicioFiltro!.day}/${fechaInicioFiltro!.month}/${fechaInicioFiltro!.year}',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          // si hay fecha seleccionada, muestra una X para borrarla
-                                          if (fechaInicioFiltro != null)
-                                            GestureDetector(
-                                              onTap: () {
-                                                setState(
-                                                  () =>
-                                                      fechaInicioFiltro = null,
-                                                );
-                                                cargarCotizacion();
-                                              },
-                                              child: const Padding(
-                                                padding: EdgeInsets.all(4.0),
-                                                child: Icon(
-                                                  Icons.close,
-                                                  size: 16,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-
-                                  // fecha hasta
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                        ),
-                                      ),
-                                      onPressed: () async {
-                                        final fecha = await showDatePicker(
-                                          context: context,
-                                          initialDate:
-                                              fechaFinFiltro ?? DateTime.now(),
-                                          firstDate: DateTime(2020),
-                                          lastDate: DateTime(2100),
-                                        );
-                                        if (fecha != null) {
-                                          setState(
-                                            () => fechaFinFiltro = fecha,
-                                          );
-                                          cargarCotizacion();
-                                        }
-                                      },
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(
-                                                Icons.date_range,
-                                                size: 18,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                fechaFinFiltro == null
-                                                    ? 'Hasta'
-                                                    : '${fechaFinFiltro!.day}/${fechaFinFiltro!.month}/${fechaFinFiltro!.year}',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          if (fechaFinFiltro != null)
-                                            GestureDetector(
-                                              onTap: () {
-                                                setState(
-                                                  () => fechaFinFiltro = null,
-                                                );
-                                                cargarCotizacion();
-                                              },
-                                              child: const Padding(
-                                                padding: EdgeInsets.all(4.0),
-                                                child: Icon(
-                                                  Icons.close,
-                                                  size: 16,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                      PanelFiltros(
+                        idSearchController: idSearchController,
+                        searchController: searchController,
+                        estadoFiltro: estadoFiltro,
+                        fechaInicioFiltro: fechaInicioFiltro,
+                        fechaFinFiltro: fechaFinFiltro,
+                        onFiltroIdChanged: (val) {
+                          filterId = val.trim().toUpperCase();
+                          cargarCotizacion();
+                        },
+                        onFiltroClienteChanged: (val) {
+                          filterCliente = val;
+                          cargarCotizacion();
+                        },
+                        onEstadoChanged: (val) {
+                          setState(() => estadoFiltro = val);
+                          cargarCotizacion();
+                        },
+                        onFechaInicioChanged: (val) {
+                          setState(() => fechaInicioFiltro = val);
+                          cargarCotizacion();
+                        },
+                        onFechaFinChanged: (val) {
+                          setState(() => fechaFinFiltro = val);
+                          cargarCotizacion();
+                        },
                       ),
+                      
                       const SizedBox(height: 20),
                       if (cargando)
                         const Center(
@@ -585,7 +404,8 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: cotizaciones.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 14),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 14),
                           itemBuilder: (context, index) {
                             final cotizacion = cotizaciones[index];
                             return _CotizacionCard(
@@ -595,14 +415,17 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                               direccion: cotizacion.direccion,
                               fecha: cotizacion.fechaCreacion != null
                                   ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
-                                    '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
-                                    '${cotizacion.fechaCreacion!.toDate().year}'
+                                        '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
+                                        '${cotizacion.fechaCreacion!.toDate().year}'
                                   : 'Sin Fecha',
-                              monto: '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
+                              monto:
+                                  '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
                               estado: cotizacion.estado,
                               estadoColor: estadoColor(cotizacion.estado),
-                              onEstadoCambiado: (nuevoEstado) => cambiarEstado(cotizacion, nuevoEstado),
-                              onEnviarCorreoSolicitado: () => procesarEnvioCorreo(cotizacion),
+                              onEstadoCambiado: (nuevoEstado) =>
+                                  cambiarEstado(cotizacion, nuevoEstado),
+                              onEnviarCorreoSolicitado: () =>
+                                  procesarEnvioCorreo(cotizacion),
                               onRecargar: cargarCotizacion,
                             );
                           },
@@ -718,7 +541,7 @@ class _CotizacionCard extends StatelessWidget {
     required this.onEnviarCorreoSolicitado,
     required this.onRecargar,
   });
-  
+
   @override
   Widget build(BuildContext context) {
     String estadoNormalizado = estado;
@@ -728,22 +551,25 @@ class _CotizacionCard extends StatelessWidget {
 
     final textTheme = Theme.of(context).textTheme;
     final theme = Theme.of(context);
-    final bool tienePdf = cotizacionRaw.pdfUrl != null && cotizacionRaw.pdfUrl!.isNotEmpty;
+    final bool tienePdf =
+        cotizacionRaw.pdfUrl != null && cotizacionRaw.pdfUrl!.isNotEmpty;
     final bool noTienePdf = !tienePdf;
 
     final bool esListaParaEnvio = estado == 'Lista para Envío';
-    final bool esRechazada = estado == 'Rechazada por el Cliente' || estado == 'Rechazada';
+    final bool esRechazada =
+        estado == 'Rechazada por el Cliente' || estado == 'Rechazada';
     final bool esEnProceso = estado == 'En Proceso';
-    final bool esEnviadaOAprobada = estado == 'Enviada' || estado == 'Aprobada por el Cliente' || estado == 'Aceptada';
+    final bool esEnviadaOAprobada =
+        estado == 'Enviada' ||
+        estado == 'Aprobada por el Cliente' ||
+        estado == 'Aceptada';
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: 0.1),
-        ),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -896,7 +722,8 @@ class _CotizacionCard extends StatelessWidget {
                           final resultado = await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => GenerarPdfPage(cotizacion: cotizacionRaw),
+                              builder: (_) =>
+                                  GenerarPdfPage(cotizacion: cotizacionRaw),
                             ),
                           );
                           if (resultado == true) {
@@ -915,13 +742,21 @@ class _CotizacionCard extends StatelessWidget {
                         }
                       },
                       icon: Icon(
-                        noTienePdf ? Icons.picture_as_pdf_outlined : Icons.picture_as_pdf,
+                        noTienePdf
+                            ? Icons.picture_as_pdf_outlined
+                            : Icons.picture_as_pdf,
                         size: 16,
                       ),
                       label: Text(noTienePdf ? 'Generar PDF' : 'Ver PDF'),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: tienePdf ? theme.colorScheme.error : theme.primaryColor,
-                        side: BorderSide(color: tienePdf ? theme.colorScheme.error : theme.primaryColor),
+                        foregroundColor: tienePdf
+                            ? theme.colorScheme.error
+                            : theme.primaryColor,
+                        side: BorderSide(
+                          color: tienePdf
+                              ? theme.colorScheme.error
+                              : theme.primaryColor,
+                        ),
                       ),
                     ),
                   ),
@@ -988,7 +823,10 @@ class _CotizacionCard extends StatelessWidget {
                         await onRecargar();
                       },
                       icon: const Icon(Icons.edit_note, size: 18),
-                      label: const Text('Editar', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Editar',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.primaryColor,
                         foregroundColor: theme.colorScheme.onPrimary,
@@ -1007,16 +845,17 @@ class _CotizacionCard extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.primaryColor,
                   foregroundColor: theme.colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 onPressed: () async {
                   await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CrearCotizacionPage(
-                        cotizacionAEditar: cotizacionRaw,
-                      ),
+                      builder: (context) =>
+                          CrearCotizacionPage(cotizacionAEditar: cotizacionRaw),
                     ),
                   );
                   await onRecargar();
@@ -1051,7 +890,9 @@ class _CotizacionCard extends StatelessWidget {
                   foregroundColor: theme.colorScheme.error,
                   side: BorderSide(color: theme.colorScheme.error),
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ),

@@ -298,7 +298,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
             itemHeight: 48,
             key: Key('${valorDropdown?.id ?? 'ninguno'}_${clientesFiltrados.length}'),
             isExpanded: true,
-            value: valorDropdown, 
+            initialValue: valorDropdown, 
             decoration: InputDecoration(
               labelText: _rutController.text.isEmpty ? 'Seleccione un cliente' : 'Resultados de coincidencia',
               prefixIcon: Icon(Icons.person_outline, color: verdeApp),
