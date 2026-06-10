@@ -549,10 +549,10 @@ Future<void> _ejecutarGuardadoFinal() async {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text(
+                child:  Text(
                   'Modificar Margen',
                   style: TextStyle(
-                    color: Colors.grey,
+                    color: Theme.of(ctx).hintColor,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -728,6 +728,8 @@ Future<void> _ejecutarGuardadoFinal() async {
   @override
   Widget build(BuildContext context) {
     final datosEnVivo = _obtenerEstadoActual();
+    final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
     
 
     return Scaffold(
@@ -746,7 +748,9 @@ Future<void> _ejecutarGuardadoFinal() async {
         onChanged: () => setState(() {}),
         child: Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: _verdeApp),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: _verdeApp, secondary: _verdeApp),
           ),
           child: Stepper(
             type: StepperType.vertical,
@@ -787,14 +791,14 @@ Future<void> _ejecutarGuardadoFinal() async {
                         Icon(
                           Icons.info_outline,
                           size: 16,
-                          color: Colors.grey.shade600,
+                          color: Theme.of(context).hintColor,
                         ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             _mensajeBloqueoPaso(),
                             style: TextStyle(
-                              color: Colors.grey.shade700,
+                              color: Theme.of(context).hintColor,
                               fontSize: 12,
                             ),
                           ),
@@ -984,12 +988,12 @@ Future<void> _ejecutarGuardadoFinal() async {
                     ),
                     const Divider(height: 20),
                     if (_trabajosAgregados.isEmpty)
-                      const Center(
+                      Center(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
+                          padding: const EdgeInsets.symmetric(vertical: 24),
                           child: Text(
                             'No has añadido ningún trabajo todavía.',
-                            style: TextStyle(color: Colors.grey),
+                            style: TextStyle(color: Theme.of(context).hintColor),
                           ),
                         ),
                       ),
@@ -997,14 +1001,31 @@ Future<void> _ejecutarGuardadoFinal() async {
                       final index = entry.key;
                       final item = entry.value;
                       return Card(
+                        color: esOscuro ? const Color(0xFF1E1E1E) : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(
+                            color: esOscuro
+                                ? Colors.white24
+                                : Colors.grey.shade200,
+                          ),
+                        ),
                         child: ListTile(
                           leading: Icon(
                             Icons.build_circle_outlined,
                             color: _verdeApp,
                           ),
-                          title: Text(item.tipo),
+                          title: Text(
+                            item.tipo,
+                            style: TextStyle(
+                              color: esOscuro ? Colors.white : Colors.black87,
+                            ),
+                          ),
                           subtitle: Text(
                             '${item.metrosCuadrados} m² × ${CurrencyFormatter.format(item.precioPorMetro)} / m²',
+                            style: TextStyle(
+                              color: esOscuro ? Colors.white70 : Colors.grey,
+                            ),
                           ),
                           trailing: IconButton(
                             icon: const Icon(
