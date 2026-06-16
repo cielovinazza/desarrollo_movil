@@ -107,20 +107,105 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     super.dispose();
   }
 
+  Future<String?> mostrarModalObservacionEstado(String nuevoEstado) async {
+    final observacionController = TextEditingController();
+
+    final resultado = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Cambiar estado'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Nuevo estado: $nuevoEstado'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: observacionController,
+                minLines: 4,
+                maxLines: 4,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                maxLength: 250,
+                decoration: InputDecoration(
+                  labelText: nuevoEstado == 'Rechazada por el Cliente'
+                      ? 'Motivo de rechazo'
+                      : 'Observaciones',
+                  hintText: nuevoEstado == 'Rechazada por el Cliente'
+                      ? 'Ingrese el motivo del rechazo'
+                      : 'Ingrese una observación opcional',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final texto = observacionController.text.trim();
+
+              final cantidadPalabras = texto
+                  .split(RegExp(r'\s+'))
+                  .where((p) => p.isNotEmpty)
+                  .length;
+
+              final requiereObservacion =
+                  nuevoEstado == 'Rechazada por el Cliente';
+
+              if (requiereObservacion && cantidadPalabras < 3) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Debe ingresar un motivo de rechazo de al menos 3 palabras.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(context, texto);
+            },
+            child: const Text('Guardar cambio'),
+          ),
+        ],
+      ),
+    );
+
+    observacionController.dispose();
+    return resultado;
+  }
+
   Future<void> cambiarEstado(
     CotizacionDto cotizacion,
     String nuevoEstado,
   ) async {
     try {
+      final observacion = await mostrarModalObservacionEstado(nuevoEstado);
+
+      if (observacion == null) {
+        return;
+      }
+
       if (nuevoEstado == 'Enviada') {
         await mostrarModalResumenEnvio(cotizacion);
         return;
       }
+
       await actualizarEstadoUseCase(
         cotizacion.id,
         cotizacion.estado,
         nuevoEstado,
+        observacion: observacion,
       );
+
       await cargarCotizacion();
 
       if (!mounted) return;
