@@ -4,6 +4,9 @@ import 'package:project/features/cliente/presentation/pages/listado_cliente_page
 import 'package:project/features/cotizacion/presentation/pages/crear_cotizacion_page.dart';
 import 'package:project/shared/design_system/app_theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:project/core/utils/currency_formatter.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onGoToCotizaciones;
@@ -62,8 +65,8 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme=Theme.of(context);
-    final esOscuro = theme.brightness==Brightness.dark;
+    final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sistema de Cotizaciones'),
@@ -124,7 +127,7 @@ class HomePage extends StatelessWidget {
                   'Gestione sus proyectos y clientes con precisión y rapidez profesional.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 15, 
+                    fontSize: 15,
                     color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
@@ -183,19 +186,20 @@ class HomePage extends StatelessWidget {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).cardColor,
-                            foregroundColor: esOscuro ? Colors.white : theme.primaryColor,
+                            foregroundColor: esOscuro
+                                ? Colors.white
+                                : theme.primaryColor,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 2,
                           ),
-                          icon: Icon(Icons.add_circle_outline,),
+                          icon: Icon(Icons.add_circle_outline),
                           label: Text(
                             'Crear Ahora',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              
                             ),
                           ),
                         ),
@@ -242,95 +246,230 @@ class HomePage extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                GestureDetector(
-                  onTap: onGoToCotizaciones,
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: esOscuro ?  Colors.white.withValues(alpha: 0.08) : AppTheme.primary.withValues(alpha: 0.1),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: esOscuro ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor:
-                              AppTheme.primary.withValues(alpha: 0.1),
-                          child: const Icon(
-                            Icons.analytics_outlined,
-                            color: AppTheme.primary,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Estado del Mes',
-                                style: TextStyle(
-                                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              StreamBuilder<QuerySnapshot>(
-                                stream: FirebaseFirestore.instance
-                                    .collection('cotizaciones')
-                                    .where(
-                                      'fechaCreacion',
-                                      isGreaterThanOrEqualTo:
-                                          Timestamp.fromDate(
-                                        DateTime(
-                                          DateTime.now().year,
-                                          DateTime.now().month,
-                                          1,
-                                        ),
-                                      ),
-                                    )
-                                    .snapshots(),
-                                builder: (context, snapshot) {
-                                  if (!snapshot.hasData) {
-                                    return const Text('...');
-                                  }
-
-                                  final total = snapshot.data!.docs.length;
-
-                                  return Text(
-                                    '$total Cotizaciones',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).textTheme.bodyLarge?.color,
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _DashboardMetricas(onTap: onGoToCotizaciones),
 
                 const SizedBox(height: 20),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DashboardMetricas extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _DashboardMetricas({required this.onTap});
+
+  @override
+  State<_DashboardMetricas> createState() => _DashboardMetricasState();
+}
+
+class _DashboardMetricasState extends State<_DashboardMetricas> {
+  bool cargando = true;
+  bool usandoCache = false;
+
+  double totalMes = 0;
+  Map<String, int> estados = {};
+
+  static const String _cacheKey = 'dashboard_metricas_mes';
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarMetricas();
+  }
+
+  Future<void> _cargarMetricas() async {
+    try {
+      final ahora = DateTime.now();
+      final inicioMes = DateTime(ahora.year, ahora.month, 1);
+      final inicioMesSiguiente = DateTime(ahora.year, ahora.month + 1, 1);
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('cotizaciones')
+          .where(
+            'fechaCreacion',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(inicioMes),
+          )
+          .where(
+            'fechaCreacion',
+            isLessThan: Timestamp.fromDate(inicioMesSiguiente),
+          )
+          .get()
+          .timeout(const Duration(seconds: 4));
+
+      double total = 0;
+      final Map<String, int> conteoEstados = {};
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+
+        final monto = data['totalFinal'];
+        if (monto is num) {
+          total += monto.toDouble();
+        }
+
+        final estado = (data['estado'] ?? 'Sin estado').toString();
+        conteoEstados[estado] = (conteoEstados[estado] ?? 0) + 1;
+      }
+
+      await _guardarCache(total, conteoEstados);
+
+      if (!mounted) return;
+      setState(() {
+        totalMes = total;
+        estados = conteoEstados;
+        cargando = false;
+        usandoCache = false;
+      });
+    } catch (_) {
+      await _cargarDesdeCache();
+    }
+  }
+
+  Future<void> _guardarCache(double total, Map<String, int> estados) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(
+      _cacheKey,
+      jsonEncode({'totalMes': total, 'estados': estados}),
+    );
+  }
+
+  Future<void> _cargarDesdeCache() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_cacheKey);
+
+    if (raw == null) {
+      if (!mounted) return;
+      setState(() {
+        cargando = false;
+        usandoCache = true;
+      });
+      return;
+    }
+
+    final data = jsonDecode(raw) as Map<String, dynamic>;
+
+    if (!mounted) return;
+    setState(() {
+      totalMes = (data['totalMes'] as num?)?.toDouble() ?? 0;
+      estados = Map<String, int>.from(data['estados'] ?? {});
+      cargando = false;
+      usandoCache = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final totalCotizaciones = estados.values.fold<int>(0, (a, b) => a + b);
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.primaryColor.withValues(alpha: 0.12)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: cargando
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: theme.primaryColor.withValues(
+                          alpha: 0.1,
+                        ),
+                        child: Icon(Icons.bar_chart, color: theme.primaryColor),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Dashboard del Mes',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      if (usandoCache) const Icon(Icons.cloud_off, size: 18),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Total cotizado este mes',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${CurrencyFormatter.format(totalMes)} CLP',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+
+                  const Divider(height: 28),
+
+                  Text(
+                    'Estados de cotizaciones',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  if (estados.isEmpty)
+                    const Text('No hay cotizaciones registradas este mes.')
+                  else
+                    ...estados.entries.map((entry) {
+                      final porcentaje = totalCotizaciones == 0
+                          ? 0.0
+                          : entry.value / totalCotizaciones;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${entry.key}: ${entry.value}'),
+                            const SizedBox(height: 4),
+                            LinearProgressIndicator(
+                              value: porcentaje,
+                              minHeight: 8,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+
+                  if (usandoCache) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Mostrando últimos datos guardados sin conexión.',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ],
+              ),
       ),
     );
   }
@@ -349,8 +488,8 @@ class _ActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme=Theme.of(context);
-    final esOscuro = theme.brightness==Brightness.dark;
+    final theme = Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
     return Material(
       color: Theme.of(context).cardColor,
       borderRadius: BorderRadius.circular(16),
@@ -363,11 +502,15 @@ class _ActionCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: esOscuro ? Colors.white.withValues(alpha: 0.08):AppTheme.primary.withValues(alpha: 0.1),
+              color: esOscuro
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppTheme.primary.withValues(alpha: 0.1),
             ),
             boxShadow: [
               BoxShadow(
-                color: esOscuro ? Colors.white.withValues(alpha: 0.015) :Colors.black.withValues(alpha: 0.01),
+                color: esOscuro
+                    ? Colors.white.withValues(alpha: 0.015)
+                    : Colors.black.withValues(alpha: 0.01),
                 blurRadius: 6,
                 offset: const Offset(0, 3),
               ),
