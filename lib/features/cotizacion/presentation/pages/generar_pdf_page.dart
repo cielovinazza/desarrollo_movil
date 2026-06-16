@@ -3,24 +3,20 @@ import 'package:flutter/material.dart';
 import '../../data/dtos/cotizacion_dtos.dart';
 import '../../data/mappers/cotizacion_mapper.dart';
 import '../../data/datasources/cotizacion_firebase_datasource.dart'; // Asegúrate de que esta ruta sea correcta
-import '../../data/repositories/cotizacion_repository_impl.dart';   // Asegúrate de que esta ruta sea correcta
-import '../../../../shared/widgets/app_dialogs.dart';               // Asegúrate de que esta ruta sea correcta
+import '../../data/repositories/cotizacion_repository_impl.dart'; // Asegúrate de que esta ruta sea correcta
+import '../../../../shared/widgets/app_dialogs.dart'; // Asegúrate de que esta ruta sea correcta
 import '../widgets/previsualizacion_pdf.dart';
 
 class GenerarPdfPage extends StatefulWidget {
   final CotizacionDto cotizacion;
 
-  const GenerarPdfPage({
-    super.key,
-    required this.cotizacion,
-  });
+  const GenerarPdfPage({super.key, required this.cotizacion});
 
   @override
   State<GenerarPdfPage> createState() => _GenerarPdfPageState();
 }
 
 class _GenerarPdfPageState extends State<GenerarPdfPage> {
-  // Inicializamos el datasource y repositorio necesarios para la subida
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late final CotizacionFirestoreDataSource datasource;
   late final CotizacionRepositoryImpl repositoryParaPdf;
@@ -39,7 +35,9 @@ class _GenerarPdfPageState extends State<GenerarPdfPage> {
       builder: (context) => PopScope(
         canPop: false,
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           content: const Row(
             children: [
               CircularProgressIndicator(color: Colors.green),
@@ -68,21 +66,14 @@ class _GenerarPdfPageState extends State<GenerarPdfPage> {
       if (!mounted) return;
       Navigator.pop(context);
 
-      AppDialogs.mostrarSnackBar(
-        context, 
-        '¡PDF generado exitosamente!',
-      );
+      AppDialogs.mostrarSnackBar(context, '¡PDF generado exitosamente!');
 
       Navigator.pop(context, true);
-
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
 
-      AppDialogs.mostrarSnackBar(
-        context, 
-        'Error al regenerar el PDF: $e',
-      );
+      AppDialogs.mostrarSnackBar(context, 'Error al regenerar el PDF: $e');
     }
   }
 
@@ -92,11 +83,7 @@ class _GenerarPdfPageState extends State<GenerarPdfPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Generar PDF ${widget.cotizacion.codigo}',
-        ),
-      ),
+      appBar: AppBar(title: Text('Generar PDF ${widget.cotizacion.codigo}')),
       body: Column(
         children: [
           Expanded(
@@ -115,7 +102,7 @@ class _GenerarPdfPageState extends State<GenerarPdfPage> {
               ),
             ),
           ),
-          
+
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -125,7 +112,7 @@ class _GenerarPdfPageState extends State<GenerarPdfPage> {
                   color: Colors.black.withValues(alpha: 0.05),
                   offset: const Offset(0, -4),
                   blurRadius: 10,
-                )
+                ),
               ],
             ),
             child: SafeArea(
@@ -144,10 +131,7 @@ class _GenerarPdfPageState extends State<GenerarPdfPage> {
                   icon: const Icon(Icons.picture_as_pdf),
                   label: const Text(
                     'Generar y subir Pdf',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
