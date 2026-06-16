@@ -13,7 +13,6 @@ import 'generar_pdf_page.dart';
 import '../../../../shared/widgets/app_dialogs.dart';
 import '../widgets/panel_filtros.dart';
 
-
 class CotizacionesPage extends StatefulWidget {
   final bool filtrarMesActual;
 
@@ -114,7 +113,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   ) async {
     try {
       if (nuevoEstado == 'Enviada') {
-        await procesarEnvioCorreo(cotizacion);
+        await mostrarModalResumenEnvio(cotizacion);
         return;
       }
       await actualizarEstadoUseCase(
@@ -186,6 +185,98 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   }
 
   bool _estacargando = false;
+
+  Future<void> mostrarModalResumenEnvio(CotizacionDto cotizacion) async {
+    final subtotalCostosDirectos =
+        cotizacion.subtotalObra +
+        cotizacion.subtotalMateriales +
+        cotizacion.subtotalManoObra +
+        cotizacion.viatico;
+
+    final montoUtilidad =
+        subtotalCostosDirectos * (cotizacion.porcentajeUtilidad / 100);
+
+    final baseConUtilidad = subtotalCostosDirectos + montoUtilidad;
+
+    final montoIva = baseConUtilidad * (cotizacion.porcentajeIva / 100);
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Resumen de cotización'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Código: ${cotizacion.codigo}'),
+              Text('Cliente: ${cotizacion.clienteNombre}'),
+              Text('RUT: ${cotizacion.clienteRut}'),
+              Text('Correo: ${cotizacion.clienteEmail}'),
+
+              const Divider(height: 24),
+
+              Text(
+                'Trabajos/Obra: ${CurrencyFormatter.format(cotizacion.subtotalObra)} CLP',
+              ),
+              Text(
+                'Materiales: ${CurrencyFormatter.format(cotizacion.subtotalMateriales)} CLP',
+              ),
+              Text(
+                'Mano de obra: ${CurrencyFormatter.format(cotizacion.subtotalManoObra)} CLP',
+              ),
+              Text(
+                'Viáticos: ${CurrencyFormatter.format(cotizacion.viatico)} CLP',
+              ),
+
+              const Divider(height: 24),
+
+              Text(
+                'Subtotal costos directos: ${CurrencyFormatter.format(subtotalCostosDirectos)} CLP',
+              ),
+              Text(
+                'Utilidad (${cotizacion.porcentajeUtilidad}%): ${CurrencyFormatter.format(montoUtilidad)} CLP',
+              ),
+              Text(
+                'IVA (${cotizacion.porcentajeIva}%): ${CurrencyFormatter.format(montoIva)} CLP',
+              ),
+
+              const Divider(height: 24),
+
+              Text(
+                'TOTAL FINAL: ${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              const Text(
+                '¿Desea confirmar el envío de esta cotización al cliente?',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirmar envío'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      await procesarEnvioCorreo(cotizacion);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,7 +383,11 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       const SizedBox(height: 16),
                       Text(
                         'Cotizaciones por Estado',
-                        style: textTheme.titleLarge?.copyWith(color: esOscuro ? AppTheme.lightGreen : AppTheme.darkPrimary),
+                        style: textTheme.titleLarge?.copyWith(
+                          color: esOscuro
+                              ? AppTheme.lightGreen
+                              : AppTheme.darkPrimary,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       Container(
@@ -378,7 +473,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                           cargarCotizacion();
                         },
                       ),
-                      
+
                       const SizedBox(height: 20),
                       if (cargando)
                         const Center(
@@ -425,7 +520,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                               onEstadoCambiado: (nuevoEstado) =>
                                   cambiarEstado(cotizacion, nuevoEstado),
                               onEnviarCorreoSolicitado: () =>
-                                  procesarEnvioCorreo(cotizacion),
+                                  mostrarModalResumenEnvio(cotizacion),
                               onRecargar: cargarCotizacion,
                             );
                           },
@@ -599,7 +694,7 @@ class _CotizacionCard extends StatelessWidget {
                       cliente,
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                       // Mantener color de texto solicitado
+                        // Mantener color de texto solicitado
                       ),
                     ),
                     Text(
