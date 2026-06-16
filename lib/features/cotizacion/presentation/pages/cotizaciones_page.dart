@@ -13,7 +13,6 @@ import 'generar_pdf_page.dart';
 import '../../../../shared/widgets/app_dialogs.dart';
 import '../widgets/panel_filtros.dart';
 
-
 class CotizacionesPage extends StatefulWidget {
   final bool filtrarMesActual;
 
@@ -108,20 +107,105 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     super.dispose();
   }
 
+  Future<String?> mostrarModalObservacionEstado(String nuevoEstado) async {
+    final observacionController = TextEditingController();
+
+    final resultado = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Cambiar estado'),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Nuevo estado: $nuevoEstado'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: observacionController,
+                minLines: 4,
+                maxLines: 4,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                maxLength: 250,
+                decoration: InputDecoration(
+                  labelText: nuevoEstado == 'Rechazada por el Cliente'
+                      ? 'Motivo de rechazo'
+                      : 'Observaciones',
+                  hintText: nuevoEstado == 'Rechazada por el Cliente'
+                      ? 'Ingrese el motivo del rechazo'
+                      : 'Ingrese una observación opcional',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final texto = observacionController.text.trim();
+
+              final cantidadPalabras = texto
+                  .split(RegExp(r'\s+'))
+                  .where((p) => p.isNotEmpty)
+                  .length;
+
+              final requiereObservacion =
+                  nuevoEstado == 'Rechazada por el Cliente';
+
+              if (requiereObservacion && cantidadPalabras < 3) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Debe ingresar un motivo de rechazo de al menos 3 palabras.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(context, texto);
+            },
+            child: const Text('Guardar cambio'),
+          ),
+        ],
+      ),
+    );
+
+    observacionController.dispose();
+    return resultado;
+  }
+
   Future<void> cambiarEstado(
     CotizacionDto cotizacion,
     String nuevoEstado,
   ) async {
     try {
-      if (nuevoEstado == 'Enviada') {
-        await procesarEnvioCorreo(cotizacion);
+      final observacion = await mostrarModalObservacionEstado(nuevoEstado);
+
+      if (observacion == null) {
         return;
       }
+
+      if (nuevoEstado == 'Enviada') {
+        await mostrarModalResumenEnvio(cotizacion);
+        return;
+      }
+
       await actualizarEstadoUseCase(
         cotizacion.id,
         cotizacion.estado,
         nuevoEstado,
+        observacion: observacion,
       );
+
       await cargarCotizacion();
 
       if (!mounted) return;
@@ -186,6 +270,98 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   }
 
   bool _estacargando = false;
+
+  Future<void> mostrarModalResumenEnvio(CotizacionDto cotizacion) async {
+    final subtotalCostosDirectos =
+        cotizacion.subtotalObra +
+        cotizacion.subtotalMateriales +
+        cotizacion.subtotalManoObra +
+        cotizacion.viatico;
+
+    final montoUtilidad =
+        subtotalCostosDirectos * (cotizacion.porcentajeUtilidad / 100);
+
+    final baseConUtilidad = subtotalCostosDirectos + montoUtilidad;
+
+    final montoIva = baseConUtilidad * (cotizacion.porcentajeIva / 100);
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Resumen de cotización'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Código: ${cotizacion.codigo}'),
+              Text('Cliente: ${cotizacion.clienteNombre}'),
+              Text('RUT: ${cotizacion.clienteRut}'),
+              Text('Correo: ${cotizacion.clienteEmail}'),
+
+              const Divider(height: 24),
+
+              Text(
+                'Trabajos/Obra: ${CurrencyFormatter.format(cotizacion.subtotalObra)} CLP',
+              ),
+              Text(
+                'Materiales: ${CurrencyFormatter.format(cotizacion.subtotalMateriales)} CLP',
+              ),
+              Text(
+                'Mano de obra: ${CurrencyFormatter.format(cotizacion.subtotalManoObra)} CLP',
+              ),
+              Text(
+                'Viáticos: ${CurrencyFormatter.format(cotizacion.viatico)} CLP',
+              ),
+
+              const Divider(height: 24),
+
+              Text(
+                'Subtotal costos directos: ${CurrencyFormatter.format(subtotalCostosDirectos)} CLP',
+              ),
+              Text(
+                'Utilidad (${cotizacion.porcentajeUtilidad}%): ${CurrencyFormatter.format(montoUtilidad)} CLP',
+              ),
+              Text(
+                'IVA (${cotizacion.porcentajeIva}%): ${CurrencyFormatter.format(montoIva)} CLP',
+              ),
+
+              const Divider(height: 24),
+
+              Text(
+                'TOTAL FINAL: ${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              const Text(
+                '¿Desea confirmar el envío de esta cotización al cliente?',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirmar envío'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      await procesarEnvioCorreo(cotizacion);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -292,7 +468,11 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       const SizedBox(height: 16),
                       Text(
                         'Cotizaciones por Estado',
-                        style: textTheme.titleLarge?.copyWith(color: esOscuro ? AppTheme.lightGreen : AppTheme.darkPrimary),
+                        style: textTheme.titleLarge?.copyWith(
+                          color: esOscuro
+                              ? AppTheme.lightGreen
+                              : AppTheme.darkPrimary,
+                        ),
                       ),
                       const SizedBox(height: 20),
                       Container(
@@ -378,7 +558,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                           cargarCotizacion();
                         },
                       ),
-                      
+
                       const SizedBox(height: 20),
                       if (cargando)
                         const Center(
@@ -425,7 +605,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                               onEstadoCambiado: (nuevoEstado) =>
                                   cambiarEstado(cotizacion, nuevoEstado),
                               onEnviarCorreoSolicitado: () =>
-                                  procesarEnvioCorreo(cotizacion),
+                                  mostrarModalResumenEnvio(cotizacion),
                               onRecargar: cargarCotizacion,
                             );
                           },
@@ -564,340 +744,360 @@ class _CotizacionCard extends StatelessWidget {
         estado == 'Aprobada por el Cliente' ||
         estado == 'Aceptada';
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
-                child: Icon(
-                  Icons.description_outlined,
-                  color: theme.primaryColor,
-                ),
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () {
+        if (tienePdf) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VerPdfPage(
+                url: cotizacionRaw.pdfUrl,
+                codigoCotizacion: cotizacionRaw.codigo,
               ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      cliente,
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                       // Mantener color de texto solicitado
-                      ),
-                    ),
-                    Text(
-                      codigo.isEmpty ? 'Generando código...' : codigo,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: theme.textTheme.bodyMedium?.color,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Chip(
-                label: Text(
-                  estado,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                padding: EdgeInsets.zero,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                backgroundColor: estadoColor,
-                side: BorderSide.none,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 24),
-          Row(
-            children: [
-              Icon(
-                Icons.calendar_today_outlined,
-                size: 16,
-                color: theme.hintColor,
-              ),
-              const SizedBox(width: 6),
-              Text(fecha, style: textTheme.bodyMedium),
-              Expanded(
-                child: Text(
-                  monto,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.end,
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+            ),
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
+                  child: Icon(
+                    Icons.description_outlined,
                     color: theme.primaryColor,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Text(
-                'Estado:',
-                style: textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: estadoNormalizado,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  style: textTheme.bodyMedium,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'En Proceso',
-                      child: Text('En Proceso'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Lista para Envío',
-                      child: Text('Lista para Envío'),
-                    ),
-                    DropdownMenuItem(value: 'Enviada', child: Text('Enviada')),
-                    DropdownMenuItem(
-                      value: 'Aprobada por el Cliente',
-                      child: Text('Aprobada por el Cliente'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'Rechazada por el Cliente',
-                      child: Text('Rechazada por el Cliente'),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null && val != estado) {
-                      onEstadoCambiado(val);
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-          if (esListaParaEnvio) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.primaryColor.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        if (noTienePdf) {
-                          final resultado = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  GenerarPdfPage(cotizacion: cotizacionRaw),
-                            ),
-                          );
-                          if (resultado == true) {
-                            await onRecargar();
-                          }
-                        } else {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => VerPdfPage(
-                                url: cotizacionRaw.pdfUrl,
-                                codigoCotizacion: cotizacionRaw.codigo,
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      icon: Icon(
-                        noTienePdf
-                            ? Icons.picture_as_pdf_outlined
-                            : Icons.picture_as_pdf,
-                        size: 16,
-                      ),
-                      label: Text(noTienePdf ? 'Generar PDF' : 'Ver PDF'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: tienePdf
-                            ? theme.colorScheme.error
-                            : theme.primaryColor,
-                        side: BorderSide(
-                          color: tienePdf
-                              ? theme.colorScheme.error
-                              : theme.primaryColor,
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cliente,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          // Mantener color de texto solicitado
                         ),
                       ),
+                      Text(
+                        codigo.isEmpty ? 'Generando código...' : codigo,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: theme.textTheme.bodyMedium?.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Chip(
+                  label: Text(
+                    estado,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: onEnviarCorreoSolicitado,
-                      icon: const Icon(Icons.mail, size: 16),
-                      label: const Text('Enviar'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.primaryColor,
-                        foregroundColor: theme.colorScheme.onPrimary,
+                  padding: EdgeInsets.zero,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  backgroundColor: estadoColor,
+                  side: BorderSide.none,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 16,
+                  color: theme.hintColor,
+                ),
+                const SizedBox(width: 6),
+                Text(fecha, style: textTheme.bodyMedium),
+                Expanded(
+                  child: Text(
+                    monto,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Text(
+                  'Estado:',
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: estadoNormalizado,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
+                    style: textTheme.bodyMedium,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'En Proceso',
+                        child: Text('En Proceso'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Lista para Envío',
+                        child: Text('Lista para Envío'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Enviada',
+                        child: Text('Enviada'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Aprobada por el Cliente',
+                        child: Text('Aprobada por el Cliente'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Rechazada por el Cliente',
+                        child: Text('Rechazada por el Cliente'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null && val != estado) {
+                        onEstadoCambiado(val);
+                      }
+                    },
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-          if (esRechazada) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.primaryColor.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  if (tienePdf)
+            if (esListaParaEnvio) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => VerPdfPage(
-                                url: cotizacionRaw.pdfUrl,
-                                codigoCotizacion: cotizacionRaw.codigo,
+                        onPressed: () async {
+                          if (noTienePdf) {
+                            final resultado = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    GenerarPdfPage(cotizacion: cotizacionRaw),
                               ),
-                            ),
-                          );
+                            );
+                            if (resultado == true) {
+                              await onRecargar();
+                            }
+                          } else {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => VerPdfPage(
+                                  url: cotizacionRaw.pdfUrl,
+                                  codigoCotizacion: cotizacionRaw.codigo,
+                                ),
+                              ),
+                            );
+                          }
                         },
-                        icon: const Icon(Icons.picture_as_pdf, size: 16),
-                        label: const Text('Ver PDF'),
+                        icon: Icon(
+                          noTienePdf
+                              ? Icons.picture_as_pdf_outlined
+                              : Icons.picture_as_pdf,
+                          size: 16,
+                        ),
+                        label: Text(noTienePdf ? 'Generar PDF' : 'Ver PDF'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: theme.colorScheme.error,
-                          side: BorderSide(color: theme.colorScheme.error),
+                          foregroundColor: tienePdf
+                              ? theme.colorScheme.error
+                              : theme.primaryColor,
+                          side: BorderSide(
+                            color: tienePdf
+                                ? theme.colorScheme.error
+                                : theme.primaryColor,
+                          ),
                         ),
                       ),
                     ),
-                  if (tienePdf) const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CrearCotizacionPage(
-                              cotizacionAEditar: cotizacionRaw,
-                            ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: onEnviarCorreoSolicitado,
+                        icon: const Icon(Icons.mail, size: 16),
+                        label: const Text('Enviar'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.primaryColor,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            if (esRechazada) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    if (tienePdf)
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => VerPdfPage(
+                                  url: cotizacionRaw.pdfUrl,
+                                  codigoCotizacion: cotizacionRaw.codigo,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.picture_as_pdf, size: 16),
+                          label: const Text('Ver PDF'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: theme.colorScheme.error,
+                            side: BorderSide(color: theme.colorScheme.error),
                           ),
-                        );
-                        await onRecargar();
-                      },
-                      icon: const Icon(Icons.edit_note, size: 18),
-                      label: const Text(
-                        'Editar',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.primaryColor,
-                        foregroundColor: theme.colorScheme.onPrimary,
+                    if (tienePdf) const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CrearCotizacionPage(
+                                cotizacionAEditar: cotizacionRaw,
+                              ),
+                            ),
+                          );
+                          await onRecargar();
+                        },
+                        icon: const Icon(Icons.edit_note, size: 18),
+                        label: const Text(
+                          'Editar',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.primaryColor,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          if (esEnProceso) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.primaryColor,
-                  foregroundColor: theme.colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          CrearCotizacionPage(cotizacionAEditar: cotizacionRaw),
-                    ),
-                  );
-                  await onRecargar();
-                },
-                icon: const Icon(Icons.edit_note, size: 20),
-                label: const Text(
-                  'Editar Cotización',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  ],
                 ),
               ),
-            ),
-          ],
-          if (esEnviadaOAprobada && tienePdf) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => VerPdfPage(
-                        url: cotizacionRaw.pdfUrl,
-                        codigoCotizacion: cotizacionRaw.codigo,
-                      ),
+            ],
+            if (esEnProceso) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primaryColor,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.picture_as_pdf, size: 18),
-                label: const Text('Ver PDF'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: theme.colorScheme.error,
-                  side: BorderSide(color: theme.colorScheme.error),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CrearCotizacionPage(
+                          cotizacionAEditar: cotizacionRaw,
+                        ),
+                      ),
+                    );
+                    await onRecargar();
+                  },
+                  icon: const Icon(Icons.edit_note, size: 20),
+                  label: const Text(
+                    'Editar Cotización',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
-            ),
+            ],
+            if (esEnviadaOAprobada && tienePdf) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => VerPdfPage(
+                          url: cotizacionRaw.pdfUrl,
+                          codigoCotizacion: cotizacionRaw.codigo,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.picture_as_pdf, size: 18),
+                  label: const Text('Ver PDF'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                    side: BorderSide(color: theme.colorScheme.error),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

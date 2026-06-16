@@ -4,7 +4,6 @@ import '../../domain/repositories/cotizacion_repository.dart';
 import '../datasources/cotizacion_firebase_datasource.dart';
 import '../dtos/cotizacion_dtos.dart';
 
-
 class FlujoEstados {
   static const String enProceso = 'En Proceso';
   static const String listaParaEnvio = 'Lista para Envío';
@@ -37,7 +36,9 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
 
   @override
   Future<String> guardarCotizacion(CotizacionDto dto) async {
-    final estadoFinal= dto.estado.trim().isEmpty ? FlujoEstados.enProceso : dto.estado;
+    final estadoFinal = dto.estado.trim().isEmpty
+        ? FlujoEstados.enProceso
+        : dto.estado;
     final dtoInicial = dto.copyWith(estado: estadoFinal);
     return await datasource.guardarCotizacion(dtoInicial);
   }
@@ -63,15 +64,20 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
   Future<void> actualizarEstado(
     String id,
     String estadoActual,
-    String estadoNuevo,
-  ) async {
+    String estadoNuevo, {
+    String? observacion,
+  }) async {
     if (!FlujoEstados.validarTransicion(estadoActual, estadoNuevo)) {
       throw Exception(
         'Transición inválida: No se puede cambiar de "$estadoActual" a "$estadoNuevo"',
       );
     }
 
-    await datasource.actualizarEstado(id, estadoNuevo);
+    await datasource.actualizarEstado(
+      id,
+      estadoNuevo,
+      observacion: observacion,
+    );
   }
 
   @override
@@ -91,7 +97,6 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
     return urlDescarga;
   }
 
-  
   Future<void> crearNuevaVersion(String cotizacionId) async {
     await datasource.crearNuevaVersion(cotizacionId);
   }

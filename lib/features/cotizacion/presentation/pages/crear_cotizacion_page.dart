@@ -23,7 +23,6 @@ import '../../../../shared/widgets/boton_bloqueo_visual.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
-
 class CrearCotizacionPage extends StatefulWidget {
   final Cliente? clienteInyectado;
   final CotizacionDto? cotizacionAEditar;
@@ -164,99 +163,109 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   Future<String> _guardarCotizacion() async {
-  final cotizacion = _obtenerEstadoActual();
-  final String idReal = widget.cotizacionAEditar?.id ?? 
-      FirebaseFirestore.instance.collection('cotizaciones').doc().id;
+    final cotizacion = _obtenerEstadoActual();
+    final String idReal =
+        widget.cotizacionAEditar?.id ??
+        FirebaseFirestore.instance.collection('cotizaciones').doc().id;
 
-  final int versionNueva = widget.cotizacionAEditar != null 
-      ? (widget.cotizacionAEditar!.version + 1) 
-      : 1;
+    final int versionNueva = widget.cotizacionAEditar != null
+        ? (widget.cotizacionAEditar!.version + 1)
+        : 1;
 
-  final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
-  final String stringEstado = 'Lista para Envío';
+    final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
+    final String stringEstado = 'Lista para Envío';
 
-  final dto = CotizacionMapper.toDto(
-    cotizacion: cotizacion,
-    materiales: _materialesAgregados,
-    usuarioId: _auth.currentUser?.uid ?? '',
-    estado: stringEstado,
-  );
+    final dto = CotizacionMapper.toDto(
+      cotizacion: cotizacion,
+      materiales: _materialesAgregados,
+      usuarioId: _auth.currentUser?.uid ?? '',
+      estado: stringEstado,
+    );
 
-  final dtoConId = dto.copyWith(
-    id: idReal,
-    version: versionNueva,
-    codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
-    estado: stringEstado,
-  );
-  await guardarCotizacionUseCase(dtoConId);
-  final docSnapshot = await FirebaseFirestore.instance
-      .collection('cotizaciones')
-      .doc(idReal)
-      .get();
-  if (docSnapshot.exists) {
-    final datosGuardados = docSnapshot.data();
-    final codigoAsignado = datosGuardados?['codigo'] as String?;
-    setState(() {
-      _codigoCotizacionCreada = codigoAsignado;
-    });
+    final dtoConId = dto.copyWith(
+      id: idReal,
+      version: versionNueva,
+      codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
+      estado: stringEstado,
+    );
+    await guardarCotizacionUseCase(dtoConId);
+    final docSnapshot = await FirebaseFirestore.instance
+        .collection('cotizaciones')
+        .doc(idReal)
+        .get();
+    if (docSnapshot.exists) {
+      final datosGuardados = docSnapshot.data();
+      final codigoAsignado = datosGuardados?['codigo'] as String?;
+      setState(() {
+        _codigoCotizacionCreada = codigoAsignado;
+      });
+    }
+
+    return idReal;
   }
 
-  return idReal;
-}
-
-Future<void> _ejecutarGuardadoFinal() async {
-  final theme = Theme.of(context);
-  final bool? confirmar = await showDialog<bool>(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.help_outline, color: theme.primaryColor),
-            const SizedBox(width: 10),
-            const Text('Confirmación'),
-          ],
-        ),
-        content: Text(
-          widget.cotizacionAEditar != null 
-              ? '¿Está seguro de que desea realizar los cambios en la cotización?'
-              : '¿Está seguro de guardar esta cotización?, los datos no podrán ser editados nuevamente a menos que la cotización sea rechazada por el cliente.',
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar', style: TextStyle(color: theme.textTheme.bodyMedium?.color)),
+  Future<void> _ejecutarGuardadoFinal() async {
+    final theme = Theme.of(context);
+    final bool? confirmar = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.help_outline, color: theme.primaryColor),
+              const SizedBox(width: 10),
+              const Text('Confirmación'),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _verdeApp,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          content: Text(
+            widget.cotizacionAEditar != null
+                ? '¿Está seguro de que desea realizar los cambios en la cotización?'
+                : '¿Está seguro de guardar esta cotización?, los datos no podrán ser editados nuevamente a menos que la cotización sea rechazada por el cliente.',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                'Cancelar',
+                style: TextStyle(color: theme.textTheme.bodyMedium?.color),
+              ),
             ),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      );
-    },
-  );
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _verdeApp,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
+    );
 
-  if (confirmar != true) return;
-  if (!mounted) return;
+    if (confirmar != true) return;
+    if (!mounted) return;
 
-  setState(() {
-    _guardandoEnFirestore = true;
-  });
+    setState(() {
+      _guardandoEnFirestore = true;
+    });
 
-  showDialog(
+    showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => PopScope(
-        canPop: false, // 
+        canPop: false, //
         child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           content: const Row(
             children: [
               CircularProgressIndicator(color: Colors.green),
@@ -273,50 +282,53 @@ Future<void> _ejecutarGuardadoFinal() async {
       ),
     );
 
-  try {
-    final realId = await _guardarCotizacion();
+    try {
+      final realId = await _guardarCotizacion();
 
-    setState(() {
-      _idCotizacionCreada = realId;
-      _cotizacionGuardada = true;
-    });
+      setState(() {
+        _idCotizacionCreada = realId;
+        _cotizacionGuardada = true;
+      });
 
-    await _localStorage.limpiarBorradorCotizacion();
+      await _localStorage.limpiarBorradorCotizacion();
 
-    if (!context.mounted) return;
+      if (!context.mounted) return;
 
-    final repositoryPdf= CotizacionRepositoryImpl(datasource);
-    final modeloActualizado = _obtenerEstadoActual();
+      final repositoryPdf = CotizacionRepositoryImpl(datasource);
+      final modeloActualizado = _obtenerEstadoActual();
 
-    await PrevisualizacionPdfWidget.generarYsubirPdfEstatico(
-      cotizacion: modeloActualizado,
-      materiales: _materialesAgregados, 
-      codigoCotizacion: _codigoCotizacionCreada ?? widget.cotizacionAEditar?.codigo ?? 'CT-000', 
-      manoObra: _manoObraAgregada, 
-      idCotizacion: realId, 
-      repository: repositoryPdf
-    );
-    if (!mounted) return;
-    Navigator.pop(context);
+      await PrevisualizacionPdfWidget.generarYsubirPdfEstatico(
+        cotizacion: modeloActualizado,
+        materiales: _materialesAgregados,
+        codigoCotizacion:
+            _codigoCotizacionCreada ??
+            widget.cotizacionAEditar?.codigo ??
+            'CT-000',
+        manoObra: _manoObraAgregada,
+        idCotizacion: realId,
+        repository: repositoryPdf,
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
 
-    AppDialogs.mostrarSnackBar(
-      context, 
-      widget.cotizacionAEditar != null 
-          ? '¡Cotización y Pdf actualizados con éxito!' 
-          : '¡Cotización creada con éxito!'
-    );
+      AppDialogs.mostrarSnackBar(
+        context,
+        widget.cotizacionAEditar != null
+            ? '¡Cotización y Pdf actualizados con éxito!'
+            : '¡Cotización creada con éxito!',
+      );
 
-    Navigator.pop(context, true);
-    
-  } catch (e) {
-    setState(() {
-      _guardandoEnFirestore = false;
-    });
+      Navigator.pop(context, true);
+    } catch (e) {
+      setState(() {
+        _guardandoEnFirestore = false;
+      });
 
-    if (!context.mounted) return;
-    AppDialogs.mostrarSnackBar(context, 'Error al guardar la cotización: $e');
+      if (!context.mounted) return;
+      AppDialogs.mostrarSnackBar(context, 'Error al guardar la cotización: $e');
+    }
   }
-}
+
   Future<void> _guardarCotizacionOffline() async {
     final cotizacion = _obtenerEstadoActual();
 
@@ -464,10 +476,9 @@ Future<void> _ejecutarGuardadoFinal() async {
 
       case 2:
         return _manoObraAgregada.isNotEmpty;
-      
+
       case 3:
         return true;
-
 
       case 4:
         return _validarCampoNumerico(_viaticoController.text, 'Viático') ==
@@ -475,9 +486,9 @@ Future<void> _ejecutarGuardadoFinal() async {
             _validarCampoNumerico(_utilidadController.text, '% de utilidad') ==
                 null &&
             _validarCampoNumerico(_ivaController.text, '% IVA Legal') == null;
-      
+
       case 5:
-      return !_cotizacionGuardada;
+        return !_cotizacionGuardada;
 
       default:
         return false;
@@ -549,7 +560,7 @@ Future<void> _ejecutarGuardadoFinal() async {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child:  Text(
+                child: Text(
                   'Modificar Margen',
                   style: TextStyle(
                     color: Theme.of(ctx).hintColor,
@@ -586,7 +597,7 @@ Future<void> _ejecutarGuardadoFinal() async {
   }
 
   Future<void> _autoguardar() async {
-    if(widget.cotizacionAEditar != null) return;
+    if (widget.cotizacionAEditar != null) return;
 
     final dto = BorradorCotizacionMapper.toDto(
       cliente: _clienteSeleccionado,
@@ -604,133 +615,143 @@ Future<void> _ejecutarGuardadoFinal() async {
   }
 
   Future<void> _recuperarBorrador() async {
-
-  // Escenario A: Modo edición — prioridad máxima, sin diálogo
-  if (widget.cotizacionAEditar != null) {
-    final edicion = widget.cotizacionAEditar!;
-    setState(() {
-      _clienteSeleccionado = Cliente(
-        id: edicion.clienteId,
-        nombre: edicion.clienteNombre,
-        correo: edicion.clienteEmail,
-        rut: edicion.clienteRut,
-        telefono: edicion.clienteTelefono,
-        direccion: edicion.clienteDireccion,
-      );
-      _clienteController.text = edicion.clienteNombre;
-      _direccionController.text = edicion.direccion;
-      _viaticoController.text = edicion.viatico.toString();
-      _utilidadController.text = edicion.porcentajeUtilidad.toString();
-      _ivaController.text = edicion.porcentajeIva.toString();
-      _trabajosAgregados.addAll(edicion.trabajos.map((item) => ItemTrabajo(
-        tipo: item.tipo,
-        metrosCuadrados: item.metrosCuadrados,
-        precioPorMetro: item.precioPorMetro,
-        descripcionBreve: item.descripcionBreve,
-      )));
-      _manoObraAgregada.addAll(edicion.manoObra.map((item) => ManoDeObra(
-        cargo: item.cargo,
-        dias: item.dias,
-        valorJornada: item.valorJornada,
-      )));
-      _materialesAgregados.addAll(edicion.materiales.map((item) => MaterialEntity(
-        nombre: item.nombre,
-        cantidad: item.cantidad,
-        costoUnitario: item.costoUnitario,
-        unidadMedida: item.unidadMedida,
-      )));
-    });
-    return;
-  }
-
-  final raw = await _localStorage.obtenerBorradorCotizacion();
-
-  // Sin borrador — solo inyectar cliente si viene
-  if (raw == null) {
-    if (widget.clienteInyectado != null) {
+    // Escenario A: Modo edición — prioridad máxima, sin diálogo
+    if (widget.cotizacionAEditar != null) {
+      final edicion = widget.cotizacionAEditar!;
       setState(() {
-        _clienteSeleccionado = widget.clienteInyectado;
-        _clienteController.text = widget.clienteInyectado!.nombre;
+        _clienteSeleccionado = Cliente(
+          id: edicion.clienteId,
+          nombre: edicion.clienteNombre,
+          correo: edicion.clienteEmail,
+          rut: edicion.clienteRut,
+          telefono: edicion.clienteTelefono,
+          direccion: edicion.clienteDireccion,
+        );
+        _clienteController.text = edicion.clienteNombre;
+        _direccionController.text = edicion.direccion;
+        _viaticoController.text = edicion.viatico.toString();
+        _utilidadController.text = edicion.porcentajeUtilidad.toString();
+        _ivaController.text = edicion.porcentajeIva.toString();
+        _trabajosAgregados.addAll(
+          edicion.trabajos.map(
+            (item) => ItemTrabajo(
+              tipo: item.tipo,
+              metrosCuadrados: item.metrosCuadrados,
+              precioPorMetro: item.precioPorMetro,
+              descripcionBreve: item.descripcionBreve,
+            ),
+          ),
+        );
+        _manoObraAgregada.addAll(
+          edicion.manoObra.map(
+            (item) => ManoDeObra(
+              cargo: item.cargo,
+              dias: item.dias,
+              valorJornada: item.valorJornada,
+            ),
+          ),
+        );
+        _materialesAgregados.addAll(
+          edicion.materiales.map(
+            (item) => MaterialEntity(
+              nombre: item.nombre,
+              cantidad: item.cantidad,
+              costoUnitario: item.costoUnitario,
+              unidadMedida: item.unidadMedida,
+            ),
+          ),
+        );
       });
+      return;
     }
-    return;
-  }
 
-  if (!mounted) return;
+    final raw = await _localStorage.obtenerBorradorCotizacion();
 
-  // Hay borrador — preguntar al usuario
-  final continuar = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text(
-        'Borrador encontrado',
-        style: TextStyle(fontWeight: FontWeight.bold),
-      ),
-      content: const Text(
-        'Tienes un formulario sin terminar. ¿Deseas continuar donde lo dejaste?',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Descartar'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Continuar'),
-        ),
-      ],
-    ),
-  );
-
-  if (continuar != true) {
-    await _localStorage.limpiarBorradorCotizacion();
-    if (widget.clienteInyectado != null && mounted) {
-      setState(() {
-        _clienteSeleccionado = widget.clienteInyectado;
-        _clienteController.text = widget.clienteInyectado!.nombre;
-      });
-    }
-    return;
-  }
-
-  final dto = BorradorCotizacionDto.fromJson(raw);
-
-  setState(() {
-    if (widget.clienteInyectado == null) {
-      _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
-      if (dto.clienteTexto.trim().isEmpty) {
-        _clienteSeleccionado = null;
+    // Sin borrador — solo inyectar cliente si viene
+    if (raw == null) {
+      if (widget.clienteInyectado != null) {
+        setState(() {
+          _clienteSeleccionado = widget.clienteInyectado;
+          _clienteController.text = widget.clienteInyectado!.nombre;
+        });
       }
-      _clienteController.text = dto.clienteTexto;
-    } else {
-      _clienteSeleccionado = widget.clienteInyectado;
-      _clienteController.text = widget.clienteInyectado!.nombre;
+      return;
     }
-    _direccionController.text = dto.direccion;
-    _viaticoController.text = dto.viatico;
-    _utilidadController.text = dto.utilidad;
-    _ivaController.text = dto.iva;
-    _currentStep = dto.currentStep;
-    _trabajosAgregados
-      ..clear()
-      ..addAll(BorradorCotizacionMapper.trabajosFromDto(dto));
-    _materialesAgregados
-      ..clear()
-      ..addAll(BorradorCotizacionMapper.materialesFromDto(dto));
-    _manoObraAgregada
-      ..clear()
-      ..addAll(BorradorCotizacionMapper.manoObraFromDto(dto));
-  });
 
-  await _autoguardar();
-}
+    if (!mounted) return;
+
+    // Hay borrador — preguntar al usuario
+    final continuar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          'Borrador encontrado',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Tienes un formulario sin terminar. ¿Deseas continuar donde lo dejaste?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Descartar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+
+    if (continuar != true) {
+      await _localStorage.limpiarBorradorCotizacion();
+      if (widget.clienteInyectado != null && mounted) {
+        setState(() {
+          _clienteSeleccionado = widget.clienteInyectado;
+          _clienteController.text = widget.clienteInyectado!.nombre;
+        });
+      }
+      return;
+    }
+
+    final dto = BorradorCotizacionDto.fromJson(raw);
+
+    setState(() {
+      if (widget.clienteInyectado == null) {
+        _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
+        if (dto.clienteTexto.trim().isEmpty) {
+          _clienteSeleccionado = null;
+        }
+        _clienteController.text = dto.clienteTexto;
+      } else {
+        _clienteSeleccionado = widget.clienteInyectado;
+        _clienteController.text = widget.clienteInyectado!.nombre;
+      }
+      _direccionController.text = dto.direccion;
+      _viaticoController.text = dto.viatico;
+      _utilidadController.text = dto.utilidad;
+      _ivaController.text = dto.iva;
+      _currentStep = dto.currentStep;
+      _trabajosAgregados
+        ..clear()
+        ..addAll(BorradorCotizacionMapper.trabajosFromDto(dto));
+      _materialesAgregados
+        ..clear()
+        ..addAll(BorradorCotizacionMapper.materialesFromDto(dto));
+      _manoObraAgregada
+        ..clear()
+        ..addAll(BorradorCotizacionMapper.manoObraFromDto(dto));
+    });
+
+    await _autoguardar();
+  }
 
   @override
   Widget build(BuildContext context) {
     final datosEnVivo = _obtenerEstadoActual();
     final theme = Theme.of(context);
     final esOscuro = theme.brightness == Brightness.dark;
-    
 
     return Scaffold(
       appBar: AppBar(
@@ -761,7 +782,6 @@ Future<void> _ejecutarGuardadoFinal() async {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  
                   Row(
                     children: [
                       BotonBloqueoVisual(
@@ -770,8 +790,10 @@ Future<void> _ejecutarGuardadoFinal() async {
                         onPressed: details.onStepContinue,
                         texto: _currentStep == 5
                             ? (_cotizacionGuardada
-                                ? 'Cotización guardada'
-                                : (widget.cotizacionAEditar != null ? 'Guardar Cambios' : 'Guardar Cotización'))
+                                  ? 'Cotización guardada'
+                                  : (widget.cotizacionAEditar != null
+                                        ? 'Guardar Cambios'
+                                        : 'Guardar Cotización'))
                             : 'Continuar',
                         colorActivo: _verdeApp,
                       ),
@@ -819,7 +841,7 @@ Future<void> _ejecutarGuardadoFinal() async {
                   return;
                 }
               }
-              
+
               if (_currentStep == 1) {
                 if (_direccionController.text.trim().isEmpty) {
                   AppDialogs.mostrarSnackBar(
@@ -845,17 +867,17 @@ Future<void> _ejecutarGuardadoFinal() async {
                   );
                   return;
                 }
-              }             
+              }
 
               await _autoguardar();
 
-              if (_currentStep == 4){
-                final margenUtilidad = double.tryParse(_utilidadController.text) ?? 0.0;
+              if (_currentStep == 4) {
+                final margenUtilidad =
+                    double.tryParse(_utilidadController.text) ?? 0.0;
                 if (margenUtilidad < 10.0) {
                   final deseaContinuar = await _mostrarAlertaRentabilidadBaja();
                   if (!deseaContinuar) return;
                 }
-
               }
 
               if (_currentStep < 5) {
@@ -864,10 +886,9 @@ Future<void> _ejecutarGuardadoFinal() async {
                   _currentStep += 1;
                 });
                 await _autoguardar();
-              } 
-              else{
+              } else {
                 if (_cotizacionGuardada) return;
-              
+
                 if (!_formKey.currentState!.validate()) {
                   if (!context.mounted) return;
                   AppDialogs.mostrarSnackBar(
@@ -877,10 +898,8 @@ Future<void> _ejecutarGuardadoFinal() async {
                   return;
                 }
 
-                
                 if (_guardandoEnFirestore) return;
 
-                
                 try {
                   final hayConexion = await _hayConexionInternet();
 
@@ -892,13 +911,11 @@ Future<void> _ejecutarGuardadoFinal() async {
                     return;
                   }
                   await _ejecutarGuardadoFinal();
-                  
                 } on TimeoutException {
                   await _guardarCotizacionOffline();
                   if (!context.mounted) return;
                   setState(() => _guardandoEnFirestore = false);
                   await _cerrarFlujoOffline();
-
                 } catch (e) {
                   if (!context.mounted) return;
                   setState(() => _guardandoEnFirestore = false);
@@ -907,8 +924,8 @@ Future<void> _ejecutarGuardadoFinal() async {
                     'Error de persistencia: $e',
                   );
                 }
-              } 
-            },            
+              }
+            },
             onStepCancel: () {
               if (_currentStep > 0) {
                 setState(() => _currentStep -= 1);
@@ -925,9 +942,15 @@ Future<void> _ejecutarGuardadoFinal() async {
                 ),
                 isActive: _currentStep >= 0,
                 content: IgnorePointer(
-                  ignoring: widget.clienteInyectado != null || widget.cotizacionAEditar != null,
+                  ignoring:
+                      widget.clienteInyectado != null ||
+                      widget.cotizacionAEditar != null,
                   child: Opacity(
-                    opacity: widget.clienteInyectado != null || widget.cotizacionAEditar != null ? 0.6 : 1.0,
+                    opacity:
+                        widget.clienteInyectado != null ||
+                            widget.cotizacionAEditar != null
+                        ? 0.6
+                        : 1.0,
                     child: SelectorCliente(
                       controller: _clienteController,
                       onClienteSeleccionado: (Cliente? cliente) {
@@ -957,7 +980,7 @@ Future<void> _ejecutarGuardadoFinal() async {
                       textCapitalization: TextCapitalization.words,
                       decoration: InputDecoration(
                         labelText: 'Dirección general del proyecto',
-                        prefixIcon: Icon(Icons.location_on_outlined,),
+                        prefixIcon: Icon(Icons.location_on_outlined),
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -993,7 +1016,9 @@ Future<void> _ejecutarGuardadoFinal() async {
                           padding: const EdgeInsets.symmetric(vertical: 24),
                           child: Text(
                             'No has añadido ningún trabajo todavía.',
-                            style: TextStyle(color: Theme.of(context).hintColor),
+                            style: TextStyle(
+                              color: Theme.of(context).hintColor,
+                            ),
                           ),
                         ),
                       ),
@@ -1001,7 +1026,9 @@ Future<void> _ejecutarGuardadoFinal() async {
                       final index = entry.key;
                       final item = entry.value;
                       return Card(
-                        color: esOscuro ? const Color(0xFF1E1E1E) : Colors.white,
+                        color: esOscuro
+                            ? const Color(0xFF1E1E1E)
+                            : Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                           side: BorderSide(
@@ -1139,9 +1166,12 @@ Future<void> _ejecutarGuardadoFinal() async {
                     TextFormField(
                       controller: _utilidadController,
                       keyboardType: TextInputType.number,
-                      validator: (val) => _validarCampoNumerico(val, '% de utilidad'),
+                      validator: (val) =>
+                          _validarCampoNumerico(val, '% de utilidad'),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d{0,3}\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d{0,3}\.?\d{0,2}'),
+                        ),
                       ],
                       decoration: const InputDecoration(
                         labelText: '% Porcentaje de Utilidad',
@@ -1153,7 +1183,8 @@ Future<void> _ejecutarGuardadoFinal() async {
                     TextFormField(
                       controller: _ivaController,
                       keyboardType: TextInputType.number,
-                      validator: (val) => _validarCampoNumerico(val, '% IVA Legal'),
+                      validator: (val) =>
+                          _validarCampoNumerico(val, '% IVA Legal'),
                       inputFormatters: [
                         LengthLimitingTextInputFormatter(3),
                         FilteringTextInputFormatter.digitsOnly,
@@ -1192,11 +1223,10 @@ Future<void> _ejecutarGuardadoFinal() async {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          
                         ],
                       ),
                     ),
-                    const SizedBox(height: 6,)
+                    const SizedBox(height: 6),
                   ],
                 ),
               ),
@@ -1210,30 +1240,35 @@ Future<void> _ejecutarGuardadoFinal() async {
                 content: PrevisualizacionPdfWidget(
                   cotizacion: datosEnVivo,
                   materiales: _materialesAgregados,
-                  idCotizacion: _idCotizacionCreada ?? '', 
+                  idCotizacion: _idCotizacionCreada ?? '',
                   manoObra: _manoObraAgregada,
                   codigoCotizacion: _codigoCotizacionCreada ?? 'CT-000',
                   habilitado: true,
                   onListo: () async {
                     if (_cotizacionGuardada) return;
 
-                    if (!_formKey.currentState!.validate()){
+                    if (!_formKey.currentState!.validate()) {
                       if (!context.mounted) return;
-                      AppDialogs.mostrarSnackBar(context, 'Formulario inválido, corrija los campos en rojo.');
+                      AppDialogs.mostrarSnackBar(
+                        context,
+                        'Formulario inválido, corrija los campos en rojo.',
+                      );
                       return;
                     }
 
-                    AppDialogs.mostrarSnackBar(context, 'Cotización subida con éxito.');
-                    if (!context.mounted)return;
+                    AppDialogs.mostrarSnackBar(
+                      context,
+                      'Cotización subida con éxito.',
+                    );
+                    if (!context.mounted) return;
                     Navigator.pop(context);
-                    
                   },
                 ),
-             ),
-           ], 
-          )
-         )
-       )
-     ); 
-  } 
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
