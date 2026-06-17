@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../data/dtos/cotizacion_dtos.dart';
 import '../../data/mappers/cotizacion_mapper.dart';
-import '../../data/datasources/cotizacion_firebase_datasource.dart'; // Asegúrate de que esta ruta sea correcta
-import '../../data/repositories/cotizacion_repository_impl.dart'; // Asegúrate de que esta ruta sea correcta
-import '../../../../shared/widgets/app_dialogs.dart'; // Asegúrate de que esta ruta sea correcta
+import '../../data/datasources/cotizacion_firebase_datasource.dart';
+import '../../data/repositories/cotizacion_repository_impl.dart';   
+import '../../../../shared/widgets/app_dialogs.dart';               
 import '../widgets/previsualizacion_pdf.dart';
 
 class GenerarPdfPage extends StatefulWidget {

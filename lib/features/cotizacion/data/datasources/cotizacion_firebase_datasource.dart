@@ -1,10 +1,6 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:mailer/mailer.dart';
-import 'package:mailer/smtp_server.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import '../dtos/cotizacion_dtos.dart';
 import '../../../../core/utils/strings_extensions.dart';
 
@@ -188,74 +184,39 @@ class CotizacionFirestoreDataSource {
     });
   }
 
-  Future<void> enviarCorreoDirecto({
-    required String clienteEmail,
-    required String clienteNombre,
-    required String direccion,
-    required String asunto,
-    required String pdfUrl,
-    required String codigo,
-  }) async {
-    final smtpServer = gmail('derick9103@gmail.com', 'rvcdvcocyqbrkqss');
-    File? archivoTemporal;
-
-    try {
-      if (clienteEmail.isEmpty || !clienteEmail.contains('@')) {
-        throw Exception('El correo del cliente no tiene un formato válido.');
-      }
-
-      final response = await http.get(Uri.parse(pdfUrl));
-      if (response.statusCode != 200) {
-        throw Exception(
-          'No se pudo descargar el PDF de la cotización desde el servidor.',
-        );
-      }
-
-      final directorioTemp = await getTemporaryDirectory();
-      archivoTemporal = File('${directorioTemp.path}/Cotizacion_$codigo.pdf');
-      await archivoTemporal.writeAsBytes(response.bodyBytes);
-      final cuerpoHtml =
-          '''
+Future<String> enviarCorreoTriggerEmail({
+  required String clienteEmail,
+  required String clienteNombre,
+  required String direccion,
+  required String asunto,
+  required String pdfUrl,
+  required String codigo,
+}) async {
+  try {
+    final cuerpoHtml = '''
       <h3>Estimado/a $clienteNombre,</h3>
       <p>Junto con saludar, adjuntamos un documento con la propuesta correspondiente a la cotizacion para el proyecto ubicado en <strong>$direccion</strong>.</p>
       <p>Saludos cordiales.</p>
     ''';
-      final message = Message()
-        ..from = Address('derick9103@gmail.com', 'Cotizaciones')
-        ..recipients.add(clienteEmail.trim())
-        ..subject = asunto
-        ..html = cuerpoHtml
-        ..attachments.add(FileAttachment(archivoTemporal));
-      final sendReport = await send(message, smtpServer);
-      print('¡Correo enviado con éxito!: $sendReport');
-    } on MailerException catch (e) {
-      print('Error al enviar el correo: $e');
-      String mensajeError = 'El servidor de correo rechazó la solicitud.';
+    final docRef =await FirebaseFirestore.instance.collection('historial_correos').add({
+      'to': clienteEmail.trim(),
+      'message': {
+        'subject': asunto,
+        'html': cuerpoHtml,
+        'attachments': [
+          {
+            'filename': 'Cotizacion_$codigo.pdf',
+            'path': pdfUrl, 
+          }
+        ],
+      },
+    });
+    return docRef.id;
 
-      for (var p in e.problems) {
-        print('Problema detectado: ${p.code}: ${p.msg}');
-        final msgLower = p.msg.toLowerCase();
-
-        if (msgLower.contains('recipient') ||
-            msgLower.contains('not found') ||
-            msgLower.contains('does not exist') ||
-            p.code == '550') {
-          mensajeError =
-              'La direccion de correo "$clienteEmail" no existe o fue rechazada por el servidor.';
-          break;
-        }
-      }
-
-      throw Exception(mensajeError);
-    } catch (e) {
-      print('Error general en el envío: $e');
-      throw Exception(
-        'Error inesperado al procesar el envío: ${e.toString().replaceAll('Exception: ', '')}',
-      );
-    } finally {
-      if (archivoTemporal != null && await archivoTemporal.exists()) {
-        await archivoTemporal.delete();
-      }
-    }
+    print('Correo enviado con éxito.');
+  } catch (e) {
+    print('Error al registrar el correo en Firestore: $e');
+    throw Exception('No se pudo programar el envío del correo de la cotización.');
   }
+}
 }

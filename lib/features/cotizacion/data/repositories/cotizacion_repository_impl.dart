@@ -101,48 +101,68 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
     await datasource.crearNuevaVersion(cotizacionId);
   }
 
-  @override
-  Future<void> enviarCotizacionPorCorreo(CotizacionDto cotizacion) async {
-    if (cotizacion.pdfUrl == null || cotizacion.pdfUrl!.isEmpty) {
-      throw Exception(
-        'No se puede enviar la cotización sin un documento PDF vinculado.',
-      );
-    }
-
-    String emailActualizado = cotizacion.clienteEmail;
-    String nombreActualizado = cotizacion.clienteNombre;
-
-    if (cotizacion.clienteId.isNotEmpty) {
-      final clienteDoc = await FirebaseFirestore.instance
-          .collection('clientes')
-          .doc(cotizacion.clienteId)
-          .get();
-
-      if (clienteDoc.exists) {
-        final data = clienteDoc.data();
-
-        emailActualizado = data?['correo'] ?? cotizacion.clienteEmail;
-        nombreActualizado = data?['nombre'] ?? cotizacion.clienteNombre;
-      }
-    }
-
-    if (emailActualizado.isEmpty) {
-      throw Exception('El cliente no tiene un correo electrónico asignado.');
-    }
-
-    await datasource.enviarCorreoDirecto(
-      clienteEmail: emailActualizado,
-      clienteNombre: nombreActualizado,
-      direccion: cotizacion.direccion,
-      asunto: 'Cotización N°${cotizacion.codigo}',
-      pdfUrl: cotizacion.pdfUrl!,
-      codigo: cotizacion.codigo,
-    );
-
-    await actualizarEstado(
-      cotizacion.id,
-      cotizacion.estado,
-      FlujoEstados.enviada,
+@override
+Future<void> enviarCotizacionPorCorreo(CotizacionDto cotizacion) async {
+  if (cotizacion.pdfUrl == null || cotizacion.pdfUrl!.isEmpty) {
+    throw Exception(
+      'No se puede enviar la cotización sin un documento PDF vinculado.',
     );
   }
+
+  String emailActualizado = cotizacion.clienteEmail;
+  String nombreActualizado = cotizacion.clienteNombre;
+
+  if (cotizacion.clienteId.isNotEmpty) {
+    final clienteDoc = await FirebaseFirestore.instance
+        .collection('clientes')
+        .doc(cotizacion.clienteId)
+        .get();
+
+    if (clienteDoc.exists) {
+      final data = clienteDoc.data();
+      emailActualizado = data?['correo'] ?? cotizacion.clienteEmail;
+      nombreActualizado = data?['nombre'] ?? cotizacion.clienteNombre;
+    }
+  }
+
+  if (emailActualizado.isEmpty) {
+    throw Exception('El cliente no tiene un correo electrónico asignado.');
+  }
+  final String correoDocId = await datasource.enviarCorreoTriggerEmail(
+    clienteEmail: emailActualizado,
+    clienteNombre: nombreActualizado,
+    direccion: cotizacion.direccion,
+    asunto: 'Cotización N°${cotizacion.codigo}',
+    pdfUrl: cotizacion.pdfUrl!,
+    codigo: cotizacion.codigo,
+  );
+  await actualizarEstado(
+    cotizacion.id,
+    cotizacion.estado,
+    FlujoEstados.enviada,
+  );
+  FirebaseFirestore.instance
+      .collection('historial_correos')
+      .doc(correoDocId)
+      .snapshots()
+      .listen((snapshot) async {
+        if (snapshot.exists) {
+          final data = snapshot.data();
+          final delivery = data?['delivery'] as Map<String, dynamic>?;
+
+          if (delivery != null) {
+            final String estadoEnvio = delivery['state'] ?? '';
+            if (estadoEnvio == 'ERROR') {
+              print('¡El correo falló o rebotó! Revirtiendo estado de la cotización...');
+              
+              await actualizarEstado(
+                cotizacion.id,
+                FlujoEstados.enviada,
+                FlujoEstados.listaParaEnvio, 
+              );
+            }
+          }
+        }
+      });
+}
 }
