@@ -7,17 +7,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project/core/utils/currency_formatter.dart';
+import '../widgets/alertas_fallo_correo.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onGoToCotizaciones;
   final bool isDarkMode;
   final ValueChanged<bool> onThemeChanged;
+  final void Function(String codigo) onReintentarEnvio;
 
   const HomePage({
     super.key,
     required this.onGoToCotizaciones,
     required this.isDarkMode,
     required this.onThemeChanged,
+    required this.onReintentarEnvio,
   });
 
   void _mostrarConfiguracion(BuildContext context) {
@@ -85,6 +88,7 @@ class HomePage extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 10),
+                AlertasFalloCorreo(onReintentar: onReintentarEnvio),
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
