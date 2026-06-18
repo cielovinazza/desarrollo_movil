@@ -12,6 +12,7 @@ class CotizacionMapper {
     required String estado,
   }) {
     final cliente = cotizacion.cliente;
+    final isoNow = DateTime.now().toUtc().toIso8601String();
 
     return CotizacionDto(
       id: '',
@@ -31,7 +32,7 @@ class CotizacionMapper {
           'precioPorMetro': trabajo.precioPorMetro.toDouble(),
           'subtotal': trabajo.subtotal.toDouble(),
           'descripcionBreve':
-              trabajo.descripcionBreve, // <-- AGREGADO: Mapeo hacia Firestore
+              trabajo.descripcionBreve,
         };
       }).toList(),
       manoObra: cotizacion.listaManoObra.map((mano) {
@@ -60,6 +61,8 @@ class CotizacionMapper {
       porcentajeIva: cotizacion.porcentajeIva.toDouble(),
       totalFinal: cotizacion.calcularTotalFinal().toDouble(),
       estado: estado,
+      fechaCreacion: isoNow,
+      fechaEdicion: isoNow
     );
   }
 

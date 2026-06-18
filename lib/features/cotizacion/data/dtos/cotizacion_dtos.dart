@@ -11,7 +11,7 @@ class CotizacionDto {
   final String? pdfUrl;
   final String direccion;
   final String codigo;
-  final List<dynamic> trabajos; // Cada mapa dentro de esta lista incluirá 'descripcionBreve'
+  final List<dynamic> trabajos; 
   final List<dynamic> manoObra;
   final List<dynamic> materiales;
 
@@ -27,7 +27,8 @@ class CotizacionDto {
   final String estado;
   final String usuarioId;
 
-  final Timestamp? fechaCreacion;
+  final String? fechaCreacion;
+  final String? fechaEdicion;
   final int version;
 
   CotizacionDto({
@@ -54,6 +55,7 @@ class CotizacionDto {
     required this.estado,
     required this.usuarioId,
     this.fechaCreacion,
+    this.fechaEdicion,
     required this.version,
   });
 
@@ -68,7 +70,7 @@ class CotizacionDto {
       'clienteDireccion': clienteDireccion,
       'codigo': codigo,
       'direccion': direccion,
-      'trabajos': trabajos, // Firebase serializa automáticamente los mapas con el nuevo campo
+      'trabajos': trabajos,
       'manoObra': manoObra,
       'materiales': materiales,
       'subtotalObra': subtotalObra,
@@ -80,7 +82,8 @@ class CotizacionDto {
       'totalFinal': totalFinal,
       'estado': estado,
       'usuarioId': usuarioId,
-      'fechaCreacion': fechaCreacion ?? FieldValue.serverTimestamp(),
+      'fechaCreacion': fechaCreacion ?? DateTime.now().toUtc().toIso8601String(),
+      'fechaEdicion': fechaEdicion ?? DateTime.now().toUtc().toIso8601String(),
       'version': version,
     };
   }
@@ -112,7 +115,16 @@ class CotizacionDto {
       totalFinal: (map['totalFinal'] as num?)?.toDouble() ?? 0.0,
       estado: map['estado'] ?? '',
       usuarioId: map['usuarioId'] ?? '',
-      fechaCreacion: map['fechaCreacion'] as Timestamp?,
+      fechaCreacion: map['fechaCreacion'] == null
+          ? null
+          : map['fechaCreacion'] is Timestamp
+              ? (map['fechaCreacion'] as Timestamp).toDate().toUtc().toIso8601String()
+              : map['fechaCreacion'] as String,
+      fechaEdicion: map['fechaEdicion'] == null
+          ? null
+          : map['fechaEdicion'] is Timestamp
+              ? (map['fechaEdicion'] as Timestamp).toDate().toUtc().toIso8601String()
+              : map['fechaEdicion'] as String,
       version: (map['version'] as int?) ?? 1,
     );
   }
@@ -140,7 +152,8 @@ class CotizacionDto {
     double? totalFinal,
     String? estado,
     String? usuarioId,
-    Timestamp? fechaCreacion,
+    String? fechaCreacion,
+    String? fechaEdicion,
     int? version,
   }) {
     return CotizacionDto(
@@ -167,7 +180,9 @@ class CotizacionDto {
       estado: estado ?? this.estado,
       usuarioId: usuarioId ?? this.usuarioId,
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+      fechaEdicion: fechaEdicion ?? this.fechaEdicion,
       version: version ?? this.version,
     );
   }
+  Map<String, dynamic> toJson()=>toMap();
 }

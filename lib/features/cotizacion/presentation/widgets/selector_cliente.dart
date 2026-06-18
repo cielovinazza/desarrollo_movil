@@ -294,36 +294,40 @@ class _SelectorClienteState extends State<SelectorCliente> {
             ),
           ),
           
-          DropdownButtonFormField<Cliente?>(
-            itemHeight: 48,
-            key: Key('${valorDropdown?.id ?? 'ninguno'}_${clientesFiltrados.length}'),
-            isExpanded: true,
-            initialValue: valorDropdown, 
-            decoration: InputDecoration(
-              labelText: _rutController.text.isEmpty ? 'Seleccione un cliente' : 'Resultados de coincidencia',
-              prefixIcon: Icon(Icons.person_outline, color: verdeApp),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: verdeApp.withValues(alpha: 0.25)),
+          SizedBox(
+            height: 60, 
+            child: DropdownButtonFormField<Cliente?>(
+              menuMaxHeight: 250, 
+              itemHeight: 48,
+              key: Key('${valorDropdown?.id ?? 'ninguno'}_${clientesFiltrados.length}'),
+              isExpanded: true,
+              initialValue: valorDropdown, 
+              decoration: InputDecoration(
+                labelText: _rutController.text.isEmpty ? 'Seleccione un cliente' : 'Resultados de coincidencia',
+                prefixIcon: Icon(Icons.person_outline, color: verdeApp),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: verdeApp.withValues(alpha: 0.25)),
+                ),
               ),
+              items: itemsDropdown,
+              onChanged: (Cliente? nuevoSeleccionado) {
+                setState(() {
+                  clienteSeleccionado = nuevoSeleccionado;
+                  if (nuevoSeleccionado != null) {
+                    _rutController.text = nuevoSeleccionado.rut;
+                    widget.controller.text = nuevoSeleccionado.nombre;
+                    mensaje = 'Cliente seleccionado de la lista';
+                  } else {
+                    _rutController.clear();
+                    widget.controller.clear();
+                    mensaje = null;
+                  }
+                });
+                widget.onClienteSeleccionado(nuevoSeleccionado);
+              },
             ),
-            items: itemsDropdown,
-            onChanged: (Cliente? nuevoSeleccionado) {
-              setState(() {
-                clienteSeleccionado = nuevoSeleccionado;
-                if (nuevoSeleccionado != null) {
-                  _rutController.text = nuevoSeleccionado.rut;
-                  widget.controller.text = nuevoSeleccionado.nombre;
-                  mensaje = 'Cliente seleccionado de la lista';
-                } else {
-                  _rutController.clear();
-                  widget.controller.clear();
-                  mensaje = null;
-                }
-              });
-              widget.onClienteSeleccionado(nuevoSeleccionado);
-            },
           ),
           
           if (mensaje != null) ...[
