@@ -58,6 +58,11 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
   final _localStorage = LocalStorage();
+  
+  String _formatearNumero(num valor){
+    return valor % 1 == 0 ? valor.toInt().toString() 
+    : valor.toString();
+  }
 
   final List<String> _tiposDisponibles = [
     'Pintura',
@@ -103,9 +108,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       );
       _clienteController.text = edicion.clienteNombre;
       _direccionController.text = edicion.direccion;
-      _viaticoController.text = edicion.viatico.toString();
-      _utilidadController.text = edicion.porcentajeUtilidad.toString();
-      _ivaController.text = edicion.porcentajeIva.toString();
+      _viaticoController.text = _formatearNumero(edicion.viatico);
+      _utilidadController.text = _formatearNumero(edicion.porcentajeUtilidad);
+      _ivaController.text = _formatearNumero(edicion.porcentajeIva);
 
       _trabajosAgregados.addAll(
         CotizacionMapper.trabajosDesdeDto(edicion.trabajos),
@@ -173,7 +178,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         : 1;
 
     final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
-    final String stringEstado = 'Lista para Envío';
+    final String stringEstado = 'En Proceso';
 
     final dto = CotizacionMapper.toDto(
       cotizacion: cotizacion,
@@ -181,6 +186,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       usuarioId: _auth.currentUser?.uid ?? '',
       estado: stringEstado,
     );
+
+    final Map<String, dynamic> datosAEnviar = dto.copyWith(
+      id: idReal,
+      version: versionNueva,
+      codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
+      estado: stringEstado,
+    ).toMap();
 
     final dtoConId = dto.copyWith(
       id: idReal,
@@ -221,7 +233,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           content: Text(
             widget.cotizacionAEditar != null
                 ? '¿Está seguro de que desea realizar los cambios en la cotización?'
-                : '¿Está seguro de guardar esta cotización?, los datos no podrán ser editados nuevamente a menos que la cotización sea rechazada por el cliente.',
+                : '¿Está seguro de guardar esta cotización?',
           ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -615,7 +627,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   Future<void> _recuperarBorrador() async {
-    // Escenario A: Modo edición — prioridad máxima, sin diálogo
     if (widget.cotizacionAEditar != null) {
       final edicion = widget.cotizacionAEditar!;
       setState(() {
@@ -629,9 +640,9 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
         );
         _clienteController.text = edicion.clienteNombre;
         _direccionController.text = edicion.direccion;
-        _viaticoController.text = edicion.viatico.toString();
-        _utilidadController.text = edicion.porcentajeUtilidad.toString();
-        _ivaController.text = edicion.porcentajeIva.toString();
+        _viaticoController.text = _formatearNumero(edicion.viatico);
+        _utilidadController.text = _formatearNumero(edicion.porcentajeUtilidad);
+        _ivaController.text = _formatearNumero(edicion.porcentajeIva);
         _trabajosAgregados.addAll(
           edicion.trabajos.map(
             (item) => ItemTrabajo(
@@ -881,7 +892,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
               }
 
               if (_currentStep < 5) {
-                // Pasos regulares de carga (0 al 3)
                 setState(() {
                   _currentStep += 1;
                 });
@@ -905,19 +915,21 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
                   if (!hayConexion) {
                     await _guardarCotizacionOffline();
-                    if (!context.mounted) return;
+                    await _localStorage.limpiarBorradorCliente();
                     setState(() => _guardandoEnFirestore = false);
                     await _cerrarFlujoOffline();
                     return;
                   }
                   await _ejecutarGuardadoFinal();
+
                 } on TimeoutException {
                   await _guardarCotizacionOffline();
-                  if (!context.mounted) return;
+                  await _localStorage.limpiarBorradorCotizacion();
+                  if (!mounted) return;
                   setState(() => _guardandoEnFirestore = false);
                   await _cerrarFlujoOffline();
                 } catch (e) {
-                  if (!context.mounted) return;
+                  if (!mounted) return;
                   setState(() => _guardandoEnFirestore = false);
                   AppDialogs.mostrarSnackBar(
                     context,
@@ -1186,8 +1198,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                       validator: (val) =>
                           _validarCampoNumerico(val, '% IVA Legal'),
                       inputFormatters: [
-                        LengthLimitingTextInputFormatter(3),
-                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(5),
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}'),
+                        ),
                       ],
                       decoration: const InputDecoration(
                         labelText: '% IVA Legal',

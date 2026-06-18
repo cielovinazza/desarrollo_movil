@@ -9,9 +9,21 @@ class ClientesRemoteDataSource {
   static const String _collection = 'cliente';
 
   Future<void> agregarCliente(ClienteDto cliente) async {
-    final ref = await firestore.collection(_collection).add(cliente.toMap());
-    await ref.update({'id': ref.id});
-  }
+    final docRef =firestore.collection(_collection).doc(cliente.rut);
+    final docSnapshot = await docRef.get();
+    
+    if (docSnapshot.exists){
+      throw Exception('El Rut ${cliente.rut} ya se encuentra registrado en el sistema.');
+    }
+
+    final querySnapshot = await firestore.collection(_collection)
+                                          .where('rut', isEqualTo:  cliente.rut)
+                                          .limit(1).get();
+    if (querySnapshot.docs.isNotEmpty){
+      throw Exception('El rut ${cliente.rut} ya se encuentra registrado en el sistema.');
+    }
+    await docRef.set(cliente.toMap());
+}
 
   Future<List<ClienteDto>> getClientes() async {
     final snapshot = await firestore.collection(_collection).get();

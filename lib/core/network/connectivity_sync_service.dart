@@ -15,9 +15,7 @@ class ConnectivitySyncService {
        _firestore = firestore ?? FirebaseFirestore.instance;
 
   void iniciar() {
-    _subscription = Connectivity().onConnectivityChanged.listen(
-      _onConnectivityChanged,
-    );
+    _subscription = Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
   }
 
   void detener() {
@@ -41,30 +39,48 @@ class ConnectivitySyncService {
     final pendientes = await _localStorage.obtenerClientesPendientes();
     if (pendientes.isEmpty) return;
 
+    final List<Map<String, dynamic>> noSincronizados = [];
+
     for (final cliente in pendientes) {
-      final rut = cliente['rut'] as String?;
-      if (rut == null || rut.isEmpty) continue;
+      final rut = cliente['rut']?.toString() ?? '';
+      if (rut.isEmpty) continue;
 
-      final query = await _firestore
-          .collection('cliente')
-          .where('rut', isEqualTo: rut)
-          .limit(1)
-          .get();
+      try {
+        final querySnapshot = await _firestore
+            .collection('cliente')
+            .where('rut', isEqualTo: rut)
+            .limit(1)
+            .get(const GetOptions(source: Source.server));
 
-      if (query.docs.isNotEmpty) {
-        final clienteExistenteId = query.docs.first.id;
-        await _reasociarCotizaciones(
-          rutDuplicado: rut,
-          idClienteOriginal: clienteExistenteId,
-        );
-        continue;
+        if (querySnapshot.docs.isNotEmpty) {
+          await _reasociarCotizaciones(rutDuplicado: rut, idClienteOriginal: rut);
+          continue;
+        }
+        await _firestore.collection('cliente').doc(rut).set({
+          'id': rut,
+          'nombre': cliente['nombre']?.toString() ?? 'Sin Nombre',
+          'rut': rut,
+          'correo': cliente['correo']?.toString() ?? '',
+          'telefono': cliente['telefono']?.toString() ?? '',
+          'direccion': cliente['direccion']?.toString() ?? '',
+        });
+
+        await _reasociarCotizaciones(rutDuplicado: rut, idClienteOriginal: rut);
+
+      } catch (e) {
+        if (e is FirebaseException && (e.code == 'permission-denied' || e.code == 'already-exists')) {
+          await _reasociarCotizaciones(rutDuplicado: rut, idClienteOriginal: rut);
+        } else {
+          noSincronizados.add(cliente);
+        }
       }
-
-      final docRef = _firestore.collection('cliente').doc();
-      await docRef.set({...cliente, 'id': docRef.id});
     }
-
     await _localStorage.limpiarClientesPendientes();
+    if (noSincronizados.isNotEmpty) {
+      for (final cl in noSincronizados) {
+        await _localStorage.guardarClientePendiente(cl);
+      }
+    }
   }
 
   Future<void> _reasociarCotizaciones({
@@ -75,11 +91,9 @@ class ConnectivitySyncService {
     if (pendientes.isEmpty) return;
 
     final actualizadas = pendientes.map((cotizacion) {
-      final clienteData = cotizacion['cliente'] as Map<String, dynamic>?;
-      if (clienteData != null && clienteData['rut'] == rutDuplicado) {
+      if (cotizacion['clienteRut'] == rutDuplicado) {
         return {
           ...cotizacion,
-          'cliente': {...clienteData, 'id': idClienteOriginal},
           'clienteId': idClienteOriginal,
         };
       }

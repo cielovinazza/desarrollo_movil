@@ -19,6 +19,7 @@ class ClienteDto {
   Map<String, dynamic> toMap() {
 
     return {
+      'id': id,
       'nombre': nombre,
       'rut':rut,
       'correo': correo,

@@ -593,11 +593,14 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                               codigo: cotizacion.codigo,
                               cliente: cotizacion.clienteNombre,
                               direccion: cotizacion.direccion,
-                              fecha: cotizacion.fechaCreacion != null
-                                  ? '${cotizacion.fechaCreacion!.toDate().day.toString().padLeft(2, '0')}-'
-                                        '${cotizacion.fechaCreacion!.toDate().month.toString().padLeft(2, '0')}-'
-                                        '${cotizacion.fechaCreacion!.toDate().year}'
-                                  : 'Sin Fecha',
+                             fecha: cotizacion.fechaCreacion != null
+                                ? () {
+                                    final date = DateTime.parse(cotizacion.fechaCreacion!).toLocal();
+                                    final day = date.day.toString().padLeft(2, '0');
+                                    final month = date.month.toString().padLeft(2, '0');
+                                    return '$day-$month-${date.year}';
+                                  }()
+                                : 'Sin Fecha',
                               monto:
                                   '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
                               estado: cotizacion.estado,
