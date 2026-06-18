@@ -91,6 +91,9 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   }
 
   Future<void> _ejecutarReintento(String codigo) async {
+    await Future.delayed(Duration.zero);
+    if (!mounted) return;
+
     CotizacionDto? cotizacion;
     try {
       cotizacion = cotizaciones.firstWhere((c) => c.codigo == codigo);
@@ -108,8 +111,8 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
       }
     }
 
+    if (!mounted) return;
     if (cotizacion == null) {
-      if (!mounted) return;
       AppDialogs.mostrarError(
         context,
         'No encontrada',

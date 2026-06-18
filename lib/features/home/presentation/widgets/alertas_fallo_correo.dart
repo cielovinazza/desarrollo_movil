@@ -2,11 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:project/shared/design_system/app_theme.dart';
 
-
-class AlertasFalloCorreo extends StatelessWidget {
+class AlertasFalloCorreo extends StatefulWidget {
   final void Function(String codigo) onReintentar;
 
   const AlertasFalloCorreo({super.key, required this.onReintentar});
+
+  @override
+  State<AlertasFalloCorreo> createState() => _AlertasFalloCorreoState();
+}
+
+class _AlertasFalloCorreoState extends State<AlertasFalloCorreo> {
+  late final Stream<QuerySnapshot> _stream;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = FirebaseFirestore.instance
+        .collection('historial_correos')
+        .where('delivery.state', isEqualTo: 'ERROR')
+        .snapshots();
+  }
+
+  String _extraerCodigo(String asunto) {
+    final match = RegExp(r'N°(\S+)').firstMatch(asunto);
+    if (match != null) return match.group(1)!;
+    return asunto.isNotEmpty ? asunto : 'Sin código';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,10 +35,7 @@ class AlertasFalloCorreo extends StatelessWidget {
     final esOscuro = theme.brightness == Brightness.dark;
 
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('historial_correos')
-          .where('delivery.state', isEqualTo: 'ERROR')
-          .snapshots(),
+      stream: _stream,
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const SizedBox.shrink();
@@ -92,10 +110,9 @@ class AlertasFalloCorreo extends StatelessWidget {
                       (data['message']?['subject'] as String?) ?? '';
                   final codigo = _extraerCodigo(asunto);
 
-
                   return _AlertaItem(
                     codigo: codigo,
-                    onReintentar: () => onReintentar(codigo),
+                    onReintentar: () => widget.onReintentar(codigo),
                   );
                 },
               ),
@@ -105,13 +122,6 @@ class AlertasFalloCorreo extends StatelessWidget {
         );
       },
     );
-  }
-
-
-  String _extraerCodigo(String asunto) {
-    final match = RegExp(r'N°(\S+)').firstMatch(asunto);
-    if (match != null) return match.group(1)!;
-    return asunto.isNotEmpty ? asunto : 'Sin código';
   }
 }
 
