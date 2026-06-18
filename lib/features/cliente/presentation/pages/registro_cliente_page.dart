@@ -10,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/utils/strings_extensions.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../../../shared/widgets/boton_bloqueo_visual.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class RegistroClientePage extends StatefulWidget {
   final String? rutInicial;
@@ -111,59 +112,118 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     return dv == dvEsperado;
   }
 
-  void _submitForm() async {
-    bool isValid = _formKey.currentState!.validate();
+ void _submitForm() async {
+  bool isValid = _formKey.currentState!.validate();
 
-    if (!isValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hay errores en el formulario')),
-      );
-      return;
-    }
+  if (!isValid) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Hay errores en el formulario')),
+    );
+    return;
+  }
 
-    Cliente cliente = Cliente(
-      nombre: _nombreController.text.toTitleCase(),
-      rut: _rutController.text.trim(),
-      correo: _correoController.text.trim(),
-      telefono: _telefonoController.text.trim(),
-      direccion: _direccionController.text.trim().isEmpty
-          ? null
-          : _direccionController.text.trim(),
+  final String rutLimpio = _rutController.text.trim();
+  final String nombreFormateado = _nombreController.text.toTitleCase();
+  final String correoLimpio = _correoController.text.trim();
+  final String telefonoLimpio = _telefonoController.text.trim();
+  final String? direccionLimpia = _direccionController.text.trim().isEmpty
+      ? null
+      : _direccionController.text.trim();
+  final connectivityResult = await Connectivity().checkConnectivity();
+  final bool hayInternet = connectivityResult.any((r) => r != ConnectivityResult.none);
+
+  if (!hayInternet) {
+    final clienteMap = {
+      'id': rutLimpio, 
+      'nombre': nombreFormateado,
+      'rut': rutLimpio,
+      'correo': correoLimpio,
+      'telefono': telefonoLimpio,
+      'direccion': direccionLimpia ?? '',
+    };
+
+    await _localStorage.guardarClientePendiente(clienteMap);
+    await _localStorage.limpiarBorradorCliente();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Sin conexión. Cliente guardado localmente.'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.orange,
+      ),
+    );
+    final clienteTemporal = Cliente(
+      id: rutLimpio,
+      nombre: nombreFormateado,
+      rut: rutLimpio,
+      correo: correoLimpio,
+      telefono: telefonoLimpio,
+      direccion: direccionLimpia,
     );
 
-    try {
-      await registrarClienteUseCase(cliente);
-      await _localStorage.limpiarBorradorCliente();
-      if (!mounted) return;
+    Navigator.pop(context, clienteTemporal);
+    return;
+  }
+  Cliente cliente = Cliente(
+    id: rutLimpio,
+    nombre: nombreFormateado,
+    rut: rutLimpio,
+    correo: correoLimpio,
+    telefono: telefonoLimpio,
+    direccion: direccionLimpia,
+  );
 
+  try {
+    await registrarClienteUseCase(cliente);
+    await _localStorage.limpiarBorradorCliente();
+    
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cliente registrado correctamente'),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.green,
+      ),
+    );
+    Navigator.pop(context, cliente);
+
+  } catch (e, stack) {
+    debugPrint('ERROR: $e');
+    if (!mounted) return;
+
+    final errorStr = e.toString();
+    if (errorStr.contains('ya se encuentra registrado') || 
+        (e is FirebaseException && e.code == 'permission-denied')) {
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cliente registrado correctamente'),
+        SnackBar(
+          content: Text('Error: Ya existe un cliente registrado con el RUT $rutLimpio.'),
+          backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
         ),
       );
-      Navigator.pop(context);
-} catch (e, stack) {
-  debugPrint('ERROR: $e');
-  debugPrint('STACK: $stack');
-  await _localStorage.guardarClientePendiente({
-    'nombre': cliente.nombre,
-    'rut': cliente.rut,
-    'correo': cliente.correo,
-    'telefono': cliente.telefono,
-    'direccion': cliente.direccion ?? '',
-  });
-  await _localStorage.limpiarBorradorCliente();
-  if (!mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Sin conexión. Cliente guardado localmente y se sincronizará automáticamente.'),
-      behavior: SnackBarBehavior.floating,
-    ),
-  );
-  Navigator.pop(context);
-}
+      return; 
+    }
+    await _localStorage.guardarClientePendiente({
+      'id': rutLimpio,
+      'nombre': nombreFormateado,
+      'rut': rutLimpio,
+      'correo': correoLimpio,
+      'telefono': telefonoLimpio,
+      'direccion': direccionLimpia ?? '',
+    });
+    await _localStorage.limpiarBorradorCliente();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Error de comunicación. Guardado en pendientes locales.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+    Navigator.pop(context, cliente);
   }
+}
 
    Future<void> _clearForm() async {
     _formKey.currentState?.reset();

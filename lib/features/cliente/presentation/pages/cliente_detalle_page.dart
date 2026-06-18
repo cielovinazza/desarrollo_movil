@@ -5,6 +5,7 @@ import '../../../cliente/domain/entities/cliente.dart';
 import '../../../cotizacion/data/dtos/cotizacion_dtos.dart';
 import '../../../cotizacion/data/datasources/cotizacion_firebase_datasource.dart';
 import '../../../../core/utils/currency_formatter.dart';
+import '../../../cotizacion/presentation/pages/crear_cotizacion_page.dart';
 
 class DetalleClientePage extends StatefulWidget {
   final Cliente cliente;
@@ -238,6 +239,7 @@ class _CotizacionItem extends StatelessWidget {
     final theme = Theme.of(context);
     final totalFormateado = '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP';
     final colorEstado = _getEstadoColor(cotizacion.estado);
+    final puedeEditar = cotizacion.estado == 'En Proceso' || cotizacion.estado == 'Rechazada por el Cliente';
 
     return Card(
       elevation: 0,
@@ -329,9 +331,16 @@ class _CotizacionItem extends StatelessWidget {
             ],
           ),
         ),
-        trailing: cotizacion.pdfUrl != null
-            ? IconButton(
-                icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.redAccent),
+        trailing: Row(
+          
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (cotizacion.pdfUrl != null)
+              IconButton(
+                icon: const Icon(
+                  Icons.picture_as_pdf_rounded,
+                  color: Colors.redAccent,
+                ),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -343,8 +352,39 @@ class _CotizacionItem extends StatelessWidget {
                     ),
                   );
                 },
-              )
-            : null,
+              ),
+            if (puedeEditar)
+            IconButton(
+              icon: const Icon(
+                Icons.edit_outlined,
+                
+              ),
+              tooltip: 'Editar cotización',
+              onPressed: () async {
+                final actualizado = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CrearCotizacionPage(
+                      cotizacionAEditar: cotizacion,
+                    ),
+                  ),
+                );
+
+                if (actualizado == true && context.mounted) {
+                  final state =
+                      context.findAncestorStateOfType<_DetalleClientePageState>();
+
+                  state?.setState(() {
+                    state._historialCotizacionesFuture =
+                        state._cotizacionDataSource.obtenerCotizacion(
+                          clienteNombre: state.widget.cliente.nombre,
+                        );
+                  });
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

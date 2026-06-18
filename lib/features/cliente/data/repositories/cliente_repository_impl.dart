@@ -1,79 +1,71 @@
+import '../../../../core/storage/local_storage.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/repositories/cliente_repository.dart';
 import '../datasources/clientes_remote_datasource.dart';
 import '../mappers/cliente_mapper.dart';
 
 class ClienteRepositoryImpl implements ClienteRepository {
-
   final ClientesRemoteDataSource remoteDataSource;
+  final LocalStorage _localStorage = LocalStorage();
 
   ClienteRepositoryImpl(this.remoteDataSource);
 
   @override
   Future<void> registrarCliente(Cliente cliente) async {
-
-    final clientesDto = await remoteDataSource.getClientes();
-    final clientes = clientesDto
-        .map((dto) => ClienteMapper.toEntity(dto))
-        .toList();
-
-    final rutNuevo = cliente.rut.replaceAll('.', '').toUpperCase();
-
-    final rutExiste = clientes.any((c) =>
-        c.rut.replaceAll('.', '').toUpperCase() == rutNuevo
-    );
-
-    if (rutExiste) {
-      throw Exception('Ya existe un cliente con ese RUT');
-    }
-
     final dto = ClienteMapper.toDto(cliente);
-
     await remoteDataSource.agregarCliente(dto);
   }
 
   @override
   Future<List<Cliente>> listarClientes() async {
+    List<Cliente> clientesRemotos = [];
+    
+    try {
+      final dtos = await remoteDataSource.getClientes();
+      clientesRemotos = dtos.map((dto) => ClienteMapper.toEntity(dto)).toList();
+    } catch (_) {
+    }
 
-    final dtos = await remoteDataSource.getClientes();
+    final pendientesMap = await _localStorage.obtenerClientesPendientes();
+    final clientesPendientes = pendientesMap.map((map) {
+      return Cliente(
+        id: map['id']?.toString() ?? map['rut']?.toString() ?? '',
+        nombre: map['nombre']?.toString() ?? '',
+        rut: map['rut']?.toString() ?? '',
+        correo: map['correo']?.toString() ?? '',
+        telefono: map['telefono']?.toString() ?? '',
+        direccion: map['direccion']?.toString(),
+      );
+    }).toList();
 
-    return dtos
-        .map((dto) => ClienteMapper.toEntity(dto))
-        .toList();
+    final Map<String, Cliente> mapaCombinado = {};
+
+    for (var c in clientesRemotos) {
+      final rutLimpio = c.rut.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
+      mapaCombinado[rutLimpio] = c;
+    }
+    for (var c in clientesPendientes) {
+      final rutLimpio = c.rut.replaceAll('.', '').replaceAll('-', '').trim().toLowerCase();
+      if (!mapaCombinado.containsKey(rutLimpio)) {
+        mapaCombinado[rutLimpio] = c;
+      }
+    }
+
+    return mapaCombinado.values.toList();
   }
 
   @override
+  Future<List<Cliente>> getClientes() async => await listarClientes();
+
+  @override
   Future<void> editarCliente(Cliente cliente) async {
-
-    final clientesDto = await remoteDataSource.getClientes();
-    final clientes = clientesDto
-        .map((dto) => ClienteMapper.toEntity(dto))
-        .toList();
-
-    final rutNuevo = cliente.rut.replaceAll('.', '').toUpperCase();
-
-    final rutDuplicado = clientes.any((c) =>
-        c.id != cliente.id &&
-        c.rut.replaceAll('.', '').toUpperCase() == rutNuevo
-    );
-
-    if (rutDuplicado) {
-      throw Exception('Ya existe un cliente con ese RUT');
-    }
     final dto = ClienteMapper.toDto(cliente);
     await remoteDataSource.editarCliente(dto.id, dto);
-  }
-
-  Future<List<Cliente>> getClientes() async {
-    final dtos = await remoteDataSource.getClientes();
-    return dtos.map((dto) => ClienteMapper.toEntity(dto)).toList();
   }
   
   @override
   Future<void> eliminarCliente(String id) async {
-    if (id.isEmpty) {
-      throw Exception('No se puede eliminar un cliente sin ID');
-    }
+    if (id.isEmpty) throw Exception('No se puede eliminar sin ID');
     await remoteDataSource.eliminarCliente(id);
   }
 }

@@ -5,7 +5,7 @@ class ClienteMapper {
 
   static ClienteDto toDto(Cliente cliente,) {
     return ClienteDto(
-      id: cliente.id.toString(),
+      id: cliente.rut,
       nombre: cliente.nombre,
       rut:cliente.rut,
       correo: cliente.correo,

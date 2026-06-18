@@ -23,10 +23,23 @@ class _MaterialDialogState extends State<MaterialDialog> {
   final _formKey = GlobalKey<FormState>();
 
   final _nombreController = TextEditingController();
-  final _unidadController = TextEditingController();
   final _cantidadController = TextEditingController();
   final _costoController = TextEditingController();
 
+
+  final List<String> _unidadesDisponibles = [
+    'kg',
+    'm²',
+    'm³',
+    'unidad',
+    'saco',
+    'litro',
+    'global',
+    'tira',
+    'plancha'
+  ];
+
+  String? _unidadSeleccionada;
   double _subtotal = 0;
   bool _formValido = false;
 
@@ -37,9 +50,13 @@ class _MaterialDialogState extends State<MaterialDialog> {
     if (widget.materialEditando != null) {
       final m = widget.materialEditando!;
       _nombreController.text = m.nombre;
-      _unidadController.text = m.unidadMedida;
       _cantidadController.text = m.cantidad.toString();
       _costoController.text = ClpInputFormatter.formatNumber(m.costoUnitario);
+      
+      if (!_unidadesDisponibles.contains(m.unidadMedida)) {
+        _unidadesDisponibles.add(m.unidadMedida);
+      }
+      _unidadSeleccionada = m.unidadMedida;
       _calcularSubtotal();
     }
   }
@@ -47,7 +64,6 @@ class _MaterialDialogState extends State<MaterialDialog> {
   @override
   void dispose() {
     _nombreController.dispose();
-    _unidadController.dispose();
     _cantidadController.dispose();
     _costoController.dispose();
     super.dispose();
@@ -67,6 +83,50 @@ class _MaterialDialogState extends State<MaterialDialog> {
     setState(() {
       _subtotal = cantidad * costo;
     });
+  }
+
+  void _mostrarDialogoNuevaUnidad() {
+    final nuevaUnidadController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Nueva Unidad de Medida', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: TextField(
+            controller: nuevaUnidadController,
+            textCapitalization: TextCapitalization.none,
+            decoration: const InputDecoration(
+              labelText: 'Ej: caja, rollo, m, par',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final texto = nuevaUnidadController.text.trim();
+                if (texto.isNotEmpty) {
+                  setState(() {
+                    if (!_unidadesDisponibles.contains(texto)) {
+                      _unidadesDisponibles.add(texto);
+                    }
+                    _unidadSeleccionada = texto;
+                  });
+                  _validarFormulario();
+                }
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: widget.verdeApp, foregroundColor: Colors.white),
+              child: const Text('Añadir'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -107,17 +167,53 @@ class _MaterialDialogState extends State<MaterialDialog> {
                     : null,
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _unidadController,
-                decoration: const InputDecoration(
-                  labelText: 'Unidad de medida',
-                  hintText: 'Ej: kg, m², saco, unidad',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Ingresa la unidad'
-                    : null,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _unidadSeleccionada,
+                      decoration: const InputDecoration(
+                        labelText: 'Unidad de medida',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      ),
+                      hint: const Text('Selecciona u. de medida'),
+                      items: _unidadesDisponibles.map((String unidad) {
+                        return DropdownMenuItem<String>(
+                          value: unidad,
+                          child: Text(unidad),
+                        );
+                      }).toList(),
+                      onChanged: (String? nuevoValor) {
+                        setState(() {
+                          _unidadSeleccionada = nuevoValor;
+                        });
+                        _validarFormulario();
+                      },
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Ingresa la unidad'
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: widget.verdeApp.withAlpha((0.1 * 255).toInt()),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: IconButton(
+                        icon: Icon(Icons.add, color: widget.verdeApp),
+                        onPressed: _mostrarDialogoNuevaUnidad,
+                        tooltip: 'Añadir nueva unidad',
+                      ),
+                    ),
+                  ),
+                ],
               ),
+
               const SizedBox(height: 16),
               TextFormField(
                 controller: _cantidadController,
@@ -125,7 +221,6 @@ class _MaterialDialogState extends State<MaterialDialog> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-
                 onChanged: (v) => _calcularSubtotal(),
                 decoration: const InputDecoration(
                   labelText: 'Cantidad',
@@ -205,11 +300,13 @@ class _MaterialDialogState extends State<MaterialDialog> {
         BotonBloqueoVisual(
           habilitado: _formValido,
           onPressed: () {
-            if (!_formKey.currentState!.validate()) return;
+            if (!_formKey.currentState!.validate() || _unidadSeleccionada == null) {
+              return;
+            }
 
             final material = MaterialEntity(
               nombre: _nombreController.text.trim(),
-              unidadMedida: _unidadController.text.trim(),
+              unidadMedida: _unidadSeleccionada!,
               cantidad: double.parse(_cantidadController.text),
               costoUnitario: ClpInputFormatter.toDouble(_costoController.text),
             );
@@ -217,7 +314,6 @@ class _MaterialDialogState extends State<MaterialDialog> {
             Navigator.pop(context, material);
           },
           texto: 'Guardar',
-         
           colorActivo: widget.verdeApp,
         ),
       ],
