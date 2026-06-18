@@ -37,15 +37,34 @@ class _MainNavigationState extends State<MainNavigation> {
       _currentIndex = 2;
     });
   }
+  String? _codigoParaReintentar;
+
+  void _reintentarEnvio(String codigo) {
+    setState(() {
+      _codigoParaReintentar = codigo;
+      _filtrarMesActual = false;
+      _currentIndex = 2;
+    });
+  }
+
+  void _limpiarReintento() {
+    if (_codigoParaReintentar != null) {
+      setState(() => _codigoParaReintentar = null);
+    }
+  }
 
   List<Widget> get _pages => [
         HomePage(
           onGoToCotizaciones: abrirCotizacionesMesActual,
           isDarkMode: widget.isDarkMode,
           onThemeChanged: widget.onThemeChanged,
+           onReintentarEnvio: _reintentarEnvio,
         ),
         const ListadoClientesPage(),
-        CotizacionesPage(filtrarMesActual: _filtrarMesActual),
+        CotizacionesPage(filtrarMesActual: _filtrarMesActual,
+        codigoParaReintentar: _codigoParaReintentar,
+        onReintentoCompletado: _limpiarReintento,
+        ),
       ];
 
   @override

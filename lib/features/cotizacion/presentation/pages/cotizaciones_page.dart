@@ -15,8 +15,12 @@ import '../widgets/panel_filtros.dart';
 
 class CotizacionesPage extends StatefulWidget {
   final bool filtrarMesActual;
+  final String? codigoParaReintentar;
+  final VoidCallback? onReintentoCompletado;
 
-  const CotizacionesPage({super.key, this.filtrarMesActual = false});
+  const CotizacionesPage({super.key, this.filtrarMesActual = false,
+   this.codigoParaReintentar,
+  this.onReintentoCompletado,});
 
   @override
   State<CotizacionesPage> createState() => _CotizacionesPageState();
@@ -58,7 +62,11 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     repository = CotizacionRepositoryImpl(datasource);
     actualizarEstadoUseCase = ActualizarEstadoCotizacion(repository);
     obtenerCotizacionesUseCase = ObtenerCotizacion(repository);
-    cargarCotizacion();
+    cargarCotizacion().then((_) {
+      if (widget.codigoParaReintentar != null) {
+        _ejecutarReintento(widget.codigoParaReintentar!);
+      }
+    });
   }
 
   @override
@@ -74,6 +82,48 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
       fechaFinFiltro = null;
       cargarCotizacion();
     }
+
+    final codigoNuevo = widget.codigoParaReintentar;
+    final codigoAnterior = oldWidget.codigoParaReintentar;
+    if (codigoNuevo != null && codigoNuevo != codigoAnterior) {
+      _ejecutarReintento(codigoNuevo);
+    }
+  }
+
+  Future<void> _ejecutarReintento(String codigo) async {
+    await Future.delayed(Duration.zero);
+    if (!mounted) return;
+
+    CotizacionDto? cotizacion;
+    try {
+      cotizacion = cotizaciones.firstWhere((c) => c.codigo == codigo);
+    } catch (_) {
+      final snap = await FirebaseFirestore.instance
+          .collection('cotizaciones')
+          .where('codigo', isEqualTo: codigo)
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) {
+        cotizacion = CotizacionDto.fromMap(
+          snap.docs.first.id,
+          snap.docs.first.data(),
+        );
+      }
+    }
+
+    if (!mounted) return;
+    if (cotizacion == null) {
+      AppDialogs.mostrarError(
+        context,
+        'No encontrada',
+        'No se encontró la cotización $codigo para reintentar el envío.',
+      );
+      widget.onReintentoCompletado?.call();
+      return;
+    }
+
+    await mostrarModalResumenEnvio(cotizacion);
+    widget.onReintentoCompletado?.call();
   }
 
   Future<void> cargarCotizacion() async {
