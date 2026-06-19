@@ -11,7 +11,8 @@ class MaterialEntity {
     required this.cantidad,
   });
 
-  double get subtotal => cantidad * costoUnitario;
+  double get subtotal =>
+    double.parse((cantidad * costoUnitario).toStringAsFixed(2));
 
   MaterialEntity copyWith({
     String? nombre,

@@ -170,8 +170,9 @@ class _MaterialDialogState extends State<MaterialDialog> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
+                  Flexible(
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true,
                       initialValue: _unidadSeleccionada,
                       decoration: const InputDecoration(
                         labelText: 'Unidad de medida',
