@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/repositories/cotizacion_repository.dart';
 import '../datasources/cotizacion_firebase_datasource.dart';
 import '../dtos/cotizacion_dtos.dart';
+import '../../../../core/storage/local_storage.dart';
 
 class FlujoEstados {
   static const String enProceso = 'En Proceso';
@@ -11,7 +12,7 @@ class FlujoEstados {
   static const String aprobada = 'Aprobada por el Cliente';
   static const String rechazada = 'Rechazada por el Cliente';
   static bool validarTransicion(String actual, String nueva) {
-    if (actual == 'Pendiente') return true;
+  
 
     switch (actual) {
       case enProceso:
@@ -31,6 +32,7 @@ class FlujoEstados {
 
 class CotizacionRepositoryImpl implements CotizacionRepository {
   final CotizacionFirestoreDataSource datasource;
+   final LocalStorage _localStorage = LocalStorage();
 
   CotizacionRepositoryImpl(this.datasource);
 
@@ -51,13 +53,37 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
     DateTime? fechaInicio,
     DateTime? fechaFin,
   }) async {
-    return await datasource.obtenerCotizacion(
-      idBusqueda: idBusqueda,
-      clienteNombre: clienteNombre,
-      estado: estado,
-      fechaInicio: fechaInicio,
-      fechaFin: fechaFin,
-    );
+    List<CotizacionDto> remotas = [];
+    try {
+      remotas = await datasource.obtenerCotizacion(
+        idBusqueda: idBusqueda,
+        clienteNombre: clienteNombre,
+        estado: estado,
+        fechaInicio: fechaInicio,
+        fechaFin: fechaFin,
+      );
+    } catch (_) {}
+
+    final pendientesMap = await _localStorage.obtenerCotizacionesPendientes();
+    final pendientes = pendientesMap.map((map) {
+      final mapConFecha = Map<String, dynamic>.from(map);
+      if (mapConFecha['fechaCreacion'] == null && mapConFecha['fechaCreacionLocal'] != null) {
+        mapConFecha['fechaCreacion'] = mapConFecha['fechaCreacionLocal'];
+      }
+      return CotizacionDto.fromMap(mapConFecha['id']?.toString() ?? '', mapConFecha);
+    }).toList();
+
+    final Map<String, CotizacionDto> mapaFinal = {};
+    for (final c in remotas) {
+      mapaFinal[c.id] = c;
+    }
+    for (final c in pendientes) {
+      if (!mapaFinal.containsKey(c.id)) {
+        mapaFinal[c.id] = c;
+      }
+    }
+
+    return mapaFinal.values.toList();
   }
 
   @override

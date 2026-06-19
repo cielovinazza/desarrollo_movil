@@ -850,11 +850,21 @@ class _CotizacionCard extends StatelessWidget {
                           // Mantener color de texto solicitado
                         ),
                       ),
-                      Text(
-                        codigo.isEmpty ? 'Generando código...' : codigo,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color,
-                        ),
+                      Row(
+                        children: [
+                          if (cotizacionRaw.id.startsWith('local-')) ...[
+                            Icon(Icons.cloud_off, size: 12, color: Colors.orange),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(
+                            codigo.isEmpty ? 'Pendiente de subir' : codigo,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: cotizacionRaw.id.startsWith('local-')
+                                  ? Colors.orange
+                                  : theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

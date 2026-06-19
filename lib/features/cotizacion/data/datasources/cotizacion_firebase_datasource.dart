@@ -106,7 +106,12 @@ class CotizacionFirestoreDataSource {
     }
 
     query = query.orderBy('fechaCreacion', descending: true);
-    final snapshot = await query.get();
+    QuerySnapshot snapshot;
+    try {
+      snapshot = await query.get(const GetOptions(source: Source.server));
+    } catch (_) {
+      snapshot = await query.get(const GetOptions(source: Source.cache));
+    }
     var resultados = snapshot.docs
         .map(
           (doc) =>

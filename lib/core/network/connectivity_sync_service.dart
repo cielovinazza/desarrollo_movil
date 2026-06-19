@@ -134,13 +134,22 @@ class ConnectivitySyncService {
     final pendientes = await _localStorage.obtenerCotizacionesPendientes();
     if (pendientes.isEmpty) return;
 
+    const clavesLocales = {'guardadoOffline', 'pdfPendiente', 'fechaCreacionLocal'};
+
     final batch = _firestore.batch();
     for (final cotizacion in pendientes) {
       final docRef = _firestore.collection('cotizaciones').doc();
 
+      final datosLimpios = Map<String, dynamic>.from(cotizacion)
+        ..removeWhere((key, _) => clavesLocales.contains(key));
+
+      final codigoActual = datosLimpios['codigo']?.toString() ?? '';
+      final codigoFinal = codigoActual.startsWith('LOCAL-') ? '' : codigoActual;
+
       batch.set(docRef, {
-        ...cotizacion,
+        ...datosLimpios,
         'id': docRef.id,
+        'codigo': codigoFinal,
         'fechaCreacion': FieldValue.serverTimestamp(),
         'fechaEdicion': FieldValue.serverTimestamp(),
       });
