@@ -17,26 +17,23 @@ class CotizacionFirestoreDataSource {
     String codigo = dto.codigo;
 
     if (codigo.trim().isEmpty) {
-      final snapshot = await collection
-          .orderBy('fechaCreacion', descending: true)
-          .limit(1)
-          .get();
-
-      int numero = 1;
-
-      if (snapshot.docs.isNotEmpty) {
-        final ultimoCodigo = snapshot.docs.first.data()['codigo'] ?? 'CT-000';
-
-        final match = RegExp(r'CT-(\d+)').firstMatch(ultimoCodigo);
-
-        if (match != null) {
-          numero = int.parse(match.group(1)!) + 1;
+      final contadorRef = firestore.collection('contadores').doc('cotizaciones');
+      codigo = await firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(contadorRef);
+        int siguienteNumero = 1;
+        if (snapshot.exists) {
+          final datos = snapshot.data();
+          final ultimoNumero = datos?['ultimoNumero'] as int? ?? 0;
+          siguienteNumero = ultimoNumero + 1;
         }
-      }
-
-      codigo = 'CT-${numero.toString().padLeft(3, '0')}';
+        transaction.set(
+          contadorRef,
+          {'ultimoNumero': siguienteNumero},
+          SetOptions(merge: true),
+        );
+        return 'CT-${siguienteNumero.toString().padLeft(3, '0')}';
+      });
     }
-
     // ACTUALIZAR
     if (dto.id.isNotEmpty) {
       await collection.doc(dto.id).set({
@@ -47,7 +44,6 @@ class CotizacionFirestoreDataSource {
 
       return dto.id;
     }
-
     // CREAR
     final nuevoDocRef = collection.doc();
     final nuevoId = nuevoDocRef.id;

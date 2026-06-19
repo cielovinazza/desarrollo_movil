@@ -71,6 +71,43 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
         mapConFecha['fechaCreacion'] = mapConFecha['fechaCreacionLocal'];
       }
       return CotizacionDto.fromMap(mapConFecha['id']?.toString() ?? '', mapConFecha);
+        })
+        .where((c) {
+          final cumpleCodigo =
+              idBusqueda == null ||
+              idBusqueda.trim().isEmpty ||
+              c.codigo.toUpperCase().contains(idBusqueda.trim().toUpperCase());
+
+          final cumpleCliente =
+              clienteNombre == null ||
+              clienteNombre.trim().isEmpty ||
+              c.clienteNombre.toLowerCase().contains(
+                clienteNombre.trim().toLowerCase(),
+              );
+
+          final cumpleEstado =
+              estado == null || estado.isEmpty || c.estado == estado;
+
+          bool cumpleFecha = true;
+          if (fechaInicio != null || fechaFin != null) {
+            if (c.fechaCreacion == null) {
+              cumpleFecha = false;
+            } else {
+              final fecha = DateTime.tryParse(c.fechaCreacion!);
+              if (fecha == null) {
+                cumpleFecha = false;
+              } else {
+                if (fechaInicio != null && fecha.isBefore(fechaInicio)) {
+                  cumpleFecha = false;
+                }
+                if (fechaFin != null && fecha.isAfter(fechaFin)) {
+                  cumpleFecha = false;
+                }
+              }
+            }
+          }
+
+          return cumpleCodigo && cumpleCliente && cumpleEstado && cumpleFecha;
     }).toList();
 
     final Map<String, CotizacionDto> mapaFinal = {};

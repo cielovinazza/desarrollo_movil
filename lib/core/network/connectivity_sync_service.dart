@@ -45,9 +45,17 @@ class ConnectivitySyncService {
     return _normalizarRut(rut);
   }
 
+  bool _isSyncing = false;
   Future<void> sincronizarPendientes() async {
-    await _sincronizarClientes();
-    await _sincronizarCotizaciones();
+    if (_isSyncing) return;
+    _isSyncing = true;
+
+    try {
+      await _sincronizarClientes();
+      await _sincronizarCotizaciones();
+    } finally {
+      _isSyncing = false;
+    }
   }
 
   Future<void> _sincronizarClientes() async {
@@ -135,26 +143,55 @@ class ConnectivitySyncService {
     if (pendientes.isEmpty) return;
 
     const clavesLocales = {'guardadoOffline', 'pdfPendiente', 'fechaCreacionLocal'};
+    final List<Map<String, dynamic>> noSincronizadas = [];
 
-    final batch = _firestore.batch();
     for (final cotizacion in pendientes) {
-      final docRef = _firestore.collection('cotizaciones').doc();
+      try {
+        final docRef = _firestore.collection('cotizaciones').doc();
 
-      final datosLimpios = Map<String, dynamic>.from(cotizacion)
-        ..removeWhere((key, _) => clavesLocales.contains(key));
 
-      final codigoActual = datosLimpios['codigo']?.toString() ?? '';
-      final codigoFinal = codigoActual.startsWith('LOCAL-') ? '' : codigoActual;
+        final datosLimpios = Map<String, dynamic>.from(cotizacion)
+          ..removeWhere((key, _) => clavesLocales.contains(key));
 
-      batch.set(docRef, {
-        ...datosLimpios,
-        'id': docRef.id,
-        'codigo': codigoFinal,
-        'fechaCreacion': FieldValue.serverTimestamp(),
-        'fechaEdicion': FieldValue.serverTimestamp(),
-      });
+        final codigoActual = datosLimpios['codigo']?.toString() ?? '';
+        String codigoFinal = codigoActual;
+
+        if (codigoActual.isEmpty || codigoActual.startsWith('LOCAL-')) {
+          final contadorRef = _firestore
+              .collection('contadores')
+              .doc('cotizaciones');
+          codigoFinal = await _firestore.runTransaction((transaction) async {
+            final snapshot = await transaction.get(contadorRef);
+            int siguienteNumero = 1;
+            if (snapshot.exists) {
+              final datos = snapshot.data();
+              final ultimoNumero = datos?['ultimoNumero'] as int? ?? 0;
+              siguienteNumero = ultimoNumero + 1;
+            }
+            transaction.set(contadorRef, {
+              'ultimoNumero': siguienteNumero,
+            }, SetOptions(merge: true));
+            return 'CT-${siguienteNumero.toString().padLeft(3, '0')}';
+          });
+        }
+
+        await docRef.set({
+          ...datosLimpios,
+          'id': docRef.id,
+          'codigo': codigoFinal,
+          'fechaCreacion': FieldValue.serverTimestamp(),
+          'fechaEdicion': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        noSincronizadas.add(cotizacion);
+      }
     }
-    await batch.commit();
+
     await _localStorage.limpiarCotizacionesPendientes();
+    if (noSincronizadas.isNotEmpty) {
+      for (final cotizacion in noSincronizadas) {
+        await _localStorage.guardarCotizacionPendiente(cotizacion);
+      }
+    }
   }
 }
