@@ -10,7 +10,7 @@ class ClientesRemoteDataSource {
 
   Future<void> agregarCliente(ClienteDto cliente) async {
     final docRef =firestore.collection(_collection).doc(cliente.rut);
-    final docSnapshot = await docRef.get();
+    final docSnapshot = await docRef.get(const GetOptions(source: Source.server));
     
     if (docSnapshot.exists){
       throw Exception('El Rut ${cliente.rut} ya se encuentra registrado en el sistema.');
@@ -18,7 +18,7 @@ class ClientesRemoteDataSource {
 
     final querySnapshot = await firestore.collection(_collection)
                                           .where('rut', isEqualTo:  cliente.rut)
-                                          .limit(1).get();
+                                          .limit(1).get(const GetOptions(source: Source.server));
     if (querySnapshot.docs.isNotEmpty){
       throw Exception('El rut ${cliente.rut} ya se encuentra registrado en el sistema.');
     }

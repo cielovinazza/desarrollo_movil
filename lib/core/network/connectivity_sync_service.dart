@@ -1,18 +1,24 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../storage/local_storage.dart';
+import '../../features/cotizacion/data/dtos/cotizacion_dtos.dart';
+import '../../features/cotizacion/data/datasources/cotizacion_firebase_datasource.dart';
 
 class ConnectivitySyncService {
   final LocalStorage _localStorage;
   final FirebaseFirestore _firestore;
+  late final CotizacionFirestoreDataSource datasource;
   StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   ConnectivitySyncService({
     LocalStorage? localStorage,
     FirebaseFirestore? firestore,
-  }) : _localStorage = localStorage ?? LocalStorage(),
-       _firestore = firestore ?? FirebaseFirestore.instance;
+  })  : _localStorage = localStorage ?? LocalStorage(),
+        _firestore = firestore ?? FirebaseFirestore.instance {
+    datasource = CotizacionFirestoreDataSource(_firestore);
+  }
 
   Future<void> iniciar() async {
     _subscription = Connectivity().onConnectivityChanged.listen(_onConnectivityChanged,);
