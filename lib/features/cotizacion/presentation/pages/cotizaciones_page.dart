@@ -1063,14 +1063,19 @@ class _CotizacionCard extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CrearCotizacionPage(
-                                cotizacionAEditar: cotizacionRaw,
-                              ),
+                          await CotizacionRepositoryImpl(
+                            CotizacionFirestoreDataSource(FirebaseFirestore.instance),
+                        ).crearNuevaVersion(cotizacionRaw.id);
+
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CrearCotizacionPage(
+                              cotizacionAEditar: cotizacionRaw,
                             ),
-                          );
+                          ),
+                        );
+
                           await onRecargar();
                         },
                         icon: const Icon(Icons.edit_note, size: 18),
