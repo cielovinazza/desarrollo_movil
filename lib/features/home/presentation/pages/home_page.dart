@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:project/features/cliente/presentation/pages/registro_cliente_page.dart';
-import 'package:project/features/cliente/presentation/pages/listado_cliente_page.dart';
+
 import 'package:project/features/cotizacion/presentation/pages/crear_cotizacion_page.dart';
 import 'package:project/shared/design_system/app_theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project/core/utils/currency_formatter.dart';
+import '../widgets/alertas_fallo_correo.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onGoToCotizaciones;
   final bool isDarkMode;
   final ValueChanged<bool> onThemeChanged;
+  final void Function(String codigo) onReintentarEnvio;
 
   const HomePage({
     super.key,
     required this.onGoToCotizaciones,
     required this.isDarkMode,
     required this.onThemeChanged,
+    required this.onReintentarEnvio,
   });
 
   void _mostrarConfiguracion(BuildContext context) {
@@ -85,6 +87,7 @@ class HomePage extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 10),
+                AlertasFalloCorreo(onReintentar: onReintentarEnvio),
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
@@ -159,7 +162,7 @@ class HomePage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Nueva Cotización',
+                        'Iniciar Cotización Rápida',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -196,7 +199,7 @@ class HomePage extends StatelessWidget {
                           ),
                           icon: Icon(Icons.add_circle_outline),
                           label: Text(
-                            'Crear Ahora',
+                            'Iniciar',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -208,41 +211,7 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 20),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ActionCard(
-                        icon: Icons.person_add_alt_1,
-                        title: 'Registrar Cliente',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const RegistroClientePage(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _ActionCard(
-                        icon: Icons.people_alt,
-                        title: 'Ver Clientes',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ListadoClientesPage(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
 
                 const SizedBox(height: 20),
 
@@ -475,68 +444,4 @@ class _DashboardMetricasState extends State<_DashboardMetricas> {
   }
 }
 
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
 
-  const _ActionCard({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final esOscuro = theme.brightness == Brightness.dark;
-    return Material(
-      color: Theme.of(context).cardColor,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          height: 120,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: esOscuro
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : AppTheme.primary.withValues(alpha: 0.1),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: esOscuro
-                    ? Colors.white.withValues(alpha: 0.015)
-                    : Colors.black.withValues(alpha: 0.01),
-                blurRadius: 6,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                child: Icon(icon, color: AppTheme.primary),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

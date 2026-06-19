@@ -114,7 +114,7 @@ Future<void> enviarCotizacionPorCorreo(CotizacionDto cotizacion) async {
 
   if (cotizacion.clienteId.isNotEmpty) {
     final clienteDoc = await FirebaseFirestore.instance
-        .collection('clientes')
+        .collection('cliente')
         .doc(cotizacion.clienteId)
         .get();
 
