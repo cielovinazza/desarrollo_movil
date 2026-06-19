@@ -332,6 +332,8 @@ class MaterialLista extends StatelessWidget {
                   fontSize: 15,
                   color: esOscuro ? Colors.white : Colors.black87,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 4),
@@ -341,6 +343,8 @@ class MaterialLista extends StatelessWidget {
                     color: esOscuro ? Colors.white70 : Colors.grey.shade600,
                     fontSize: 13,
                   ),
+                  
+                  
                 ),
               ),
               trailing: Row(

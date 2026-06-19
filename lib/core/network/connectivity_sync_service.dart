@@ -1,21 +1,28 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../storage/local_storage.dart';
+import '../../features/cotizacion/data/dtos/cotizacion_dtos.dart';
+import '../../features/cotizacion/data/datasources/cotizacion_firebase_datasource.dart';
 
 class ConnectivitySyncService {
   final LocalStorage _localStorage;
   final FirebaseFirestore _firestore;
+  late final CotizacionFirestoreDataSource datasource;
   StreamSubscription<List<ConnectivityResult>>? _subscription;
 
   ConnectivitySyncService({
     LocalStorage? localStorage,
     FirebaseFirestore? firestore,
-  }) : _localStorage = localStorage ?? LocalStorage(),
-       _firestore = firestore ?? FirebaseFirestore.instance;
+  })  : _localStorage = localStorage ?? LocalStorage(),
+        _firestore = firestore ?? FirebaseFirestore.instance {
+    datasource = CotizacionFirestoreDataSource(_firestore);
+  }
 
   void iniciar() {
-    _subscription = Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
+    _subscription =
+        Connectivity().onConnectivityChanged.listen(_onConnectivityChanged);
   }
 
   void detener() {
@@ -47,16 +54,17 @@ class ConnectivitySyncService {
 
       try {
         final querySnapshot = await _firestore
-            .collection('cliente')
+            .collection('clientes') // corregido: plural
             .where('rut', isEqualTo: rut)
             .limit(1)
             .get(const GetOptions(source: Source.server));
 
         if (querySnapshot.docs.isNotEmpty) {
-          await _reasociarCotizaciones(rutDuplicado: rut, idClienteOriginal: rut);
+          await _reasociarCotizaciones(
+              rutDuplicado: rut, idClienteOriginal: rut);
           continue;
         }
-        await _firestore.collection('cliente').doc(rut).set({
+        await _firestore.collection('clientes').doc(rut).set({
           'id': rut,
           'nombre': cliente['nombre']?.toString() ?? 'Sin Nombre',
           'rut': rut,
@@ -65,11 +73,13 @@ class ConnectivitySyncService {
           'direccion': cliente['direccion']?.toString() ?? '',
         });
 
-        await _reasociarCotizaciones(rutDuplicado: rut, idClienteOriginal: rut);
-
+        await _reasociarCotizaciones(
+            rutDuplicado: rut, idClienteOriginal: rut);
       } catch (e) {
-        if (e is FirebaseException && (e.code == 'permission-denied' || e.code == 'already-exists')) {
-          await _reasociarCotizaciones(rutDuplicado: rut, idClienteOriginal: rut);
+        if (e is FirebaseException &&
+            (e.code == 'permission-denied' || e.code == 'already-exists')) {
+          await _reasociarCotizaciones(
+              rutDuplicado: rut, idClienteOriginal: rut);
         } else {
           noSincronizados.add(cliente);
         }
@@ -110,12 +120,28 @@ class ConnectivitySyncService {
     final pendientes = await _localStorage.obtenerCotizacionesPendientes();
     if (pendientes.isEmpty) return;
 
-    final batch = _firestore.batch();
-    for (final cotizacion in pendientes) {
-      final docRef = _firestore.collection('cotizaciones').doc();
-      batch.set(docRef, {...cotizacion, 'id': docRef.id});
+    for (final raw in pendientes) {
+      try {
+        final dto = CotizacionDto.fromMap(raw['id'] ?? '', raw);
+
+        // Forzar id vacío para que datasource genere uno nuevo
+        final dtoNuevo = dto.copyWith(id: '');
+
+        final resultado = await datasource.guardarCotizacion(dtoNuevo);
+
+        // Manejo de PDF pendiente
+        if (raw['pdfPendiente'] == true && raw['pdfLocalPath'] != null) {
+          final archivoPdf = File(raw['pdfLocalPath']);
+          final pdfUrl = await datasource.subirPdfCotizacion(
+              resultado['codigo']!, archivoPdf);
+          await datasource.vincularPdfACotizacion(resultado['id']!, pdfUrl);
+        }
+      } catch (e) {
+        // Si falla, volver a guardar en local
+        await _localStorage.guardarCotizacionPendiente(raw);
+      }
     }
-    await batch.commit();
+
     await _localStorage.limpiarCotizacionesPendientes();
   }
 }

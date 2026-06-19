@@ -1,3 +1,5 @@
+import 'package:project/features/cliente/data/dtos/cliente_dtos.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/repositories/cliente_repository.dart';
@@ -21,8 +23,10 @@ class ClienteRepositoryImpl implements ClienteRepository {
     List<Cliente> clientesRemotos = [];
     
     try {
-      final dtos = await remoteDataSource.getClientes();
-      clientesRemotos = dtos.map((dto) => ClienteMapper.toEntity(dto)).toList();
+      final snapShot = await remoteDataSource.firestore.collection('cliente')
+      .get(const GetOptions(source: Source.serverAndCache));
+
+      clientesRemotos = snapShot.docs.map((doc) => ClienteMapper.toEntity(ClienteDto.fromFirestore(doc.id, doc.data()))).toList();
     } catch (_) {
     }
 
