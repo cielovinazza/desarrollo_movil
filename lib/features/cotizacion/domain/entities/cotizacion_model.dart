@@ -16,7 +16,8 @@ class ItemTrabajo {
   });
 
   // Subtotal de este ítem específico
-  double get subtotal => metrosCuadrados * precioPorMetro;
+  double get subtotal =>
+    double.parse((metrosCuadrados * precioPorMetro).toStringAsFixed(2));
 }
 
 class CotizacionModel {
@@ -42,21 +43,27 @@ class CotizacionModel {
 
   // Suma total de todos los subtotales de la lista de trabajos
   double get subtotalObraTotal {
-    return listaTrabajos.fold(0.0, (suma, item) => suma + item.subtotal);
+    final total = listaTrabajos.fold(
+      0.0,
+      (suma, item) => suma + item.subtotal,
+    );
+    return double.parse(total.toStringAsFixed(2));
   }
 
   double get subtotalMateriales {
-    return materiales.fold(
+    final total = materiales.fold(
       0.0,
       (suma, item) => suma + item.subtotal,
     );
+    return double.parse(total.toStringAsFixed(2));
   }
   
   double get subtotalManoObraTotal {
-    return listaManoObra.fold(
+    final total = listaManoObra.fold(
       0.0,
       (suma, item) => suma + item.subtotal,
     );
+    return double.parse(total.toStringAsFixed(2));
   }
 
   // Fórmula: Total = (Suma Mat + Suma MO + Viático) * (1 + %Utilidad) * (1 + %IVA)
@@ -70,8 +77,10 @@ class CotizacionModel {
     double factorIva = 1 + (porcentajeIva / 100);
 
     double totalCalculado = costoBaseTotal * factorUtilidad * factorIva;
+    totalCalculado =
+      double.parse(totalCalculado.toStringAsFixed(2));
 
     // Redondeo tradicional a CLP sin decimales
-    return totalCalculado;
+    return totalCalculado.roundToDouble();
   } 
 }
