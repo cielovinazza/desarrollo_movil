@@ -187,12 +187,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       estado: stringEstado,
     );
 
-    final Map<String, dynamic> datosAEnviar = dto.copyWith(
-      id: idReal,
-      version: versionNueva,
-      codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
-      estado: stringEstado,
-    ).toMap();
 
     final dtoConId = dto.copyWith(
       id: idReal,
@@ -929,7 +923,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   setState(() => _guardandoEnFirestore = false);
                   await _cerrarFlujoOffline();
                 } catch (e) {
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   setState(() => _guardandoEnFirestore = false);
                   AppDialogs.mostrarSnackBar(
                     context,

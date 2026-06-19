@@ -32,7 +32,7 @@ Future<void> main() async {
   final useCase = LoginUseCase(repository);
 
   _syncService = ConnectivitySyncService();
-  _syncService.iniciar();
+  await _syncService.iniciar();
 
   runApp(MyApp(useCase: useCase));
 }

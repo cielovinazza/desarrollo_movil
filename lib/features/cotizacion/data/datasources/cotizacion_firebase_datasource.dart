@@ -211,9 +211,10 @@ Future<String> enviarCorreoTriggerEmail({
         ],
       },
     });
+    print('Correo enviado con éxito.');
     return docRef.id;
 
-    print('Correo enviado con éxito.');
+    
   } catch (e) {
     print('Error al registrar el correo en Firestore: $e');
     throw Exception('No se pudo programar el envío del correo de la cotización.');
