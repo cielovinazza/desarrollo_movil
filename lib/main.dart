@@ -26,7 +26,6 @@ Future<void> main() async {
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
-  await FirebaseFirestore.instance.enableNetwork();
 
   final dataSource = AuthFirebaseDataSource();
   final repository = AuthRepositoryImpl(dataSource);

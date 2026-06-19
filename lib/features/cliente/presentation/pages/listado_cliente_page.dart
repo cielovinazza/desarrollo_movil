@@ -212,7 +212,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                                       const SizedBox(width: 8),
                                       Text(
                                         'Eliminar Cliente', 
-                                        style: TextStyle(color: esOscuro ? const Color.fromARGB(255, 255, 255, 255): Colors.red[800], fontWeight: FontWeight.bold)
+                                        style: TextStyle(color: esOscuro ? const Color.fromARGB(255, 255, 7, 7): Colors.red[800], fontWeight: FontWeight.bold)
                                       ),
                                     ],
                                   ),

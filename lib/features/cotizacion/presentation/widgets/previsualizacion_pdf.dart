@@ -31,10 +31,7 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
     required this.habilitado,
   });
 
-  // FIX 5.17: Retorna la URL del PDF subido para que el llamador pueda
-  // fusionarla en la escritura del documento, eliminando vincularPdfACotizacion
-  // como operación separada.
-  static Future<String> generarYsubirPdfEstatico({
+  static Future<void> generarYsubirPdfEstatico({
     required CotizacionModel cotizacion,
     required List<MaterialEntity> materiales,
     required String codigoCotizacion,
@@ -469,18 +466,13 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
     final rutaArchivo = '${directorio.path}/$nombrePdf';
     final directorioArchivo = File(rutaArchivo);
     
-    await archivoFisico.writeAsBytes(await pdf.save());
-
-    // FIX 5.17: Capturamos la URL retornada por gestionarYSubirPdf.
-    // El llamador (crear_cotizacion_page) la usa para vincularla al documento
-    // en la MISMA escritura del guardado, evitando una operación extra de red.
-    final pdfUrl = await repository.gestionarYSubirPdf(
+    await directorioArchivo.writeAsBytes(await pdf.save());
+    
+    await repository.gestionarYSubirPdf(
       id: idCotizacion,
       codigo: codigoCotizacion,
       archivo: directorioArchivo,
     );
-
-    return pdfUrl;
   }
 
   @override
@@ -836,8 +828,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               Text(label, style: const TextStyle(fontSize: 10, color: _gris)),
               Text(
                 value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

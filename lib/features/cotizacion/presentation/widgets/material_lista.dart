@@ -297,95 +297,98 @@ class MaterialLista extends StatelessWidget {
               itemBuilder: (context, index) {
                 final material = items[index];
 
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: esOscuro ? Colors.grey.shade700 : Colors.grey.shade200,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: esOscuro
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade200,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.02,
+                        ),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: verdeApp.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.inventory_2_outlined,
+                        color: verdeApp,
+                        size: 22,
+                      ),
+                    ),
+                    title: Text(
+                      material.nombre,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: esOscuro ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${material.cantidad.toStringAsFixed(0)} ${material.unidadMedida} × ${CurrencyFormatter.format(material.costoUnitario)}',
+                        style: TextStyle(
+                          color: esOscuro
+                              ? Colors.white70
+                              : Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          CurrencyFormatter.format(material.subtotal),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: esOscuro ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.edit,
+                            color: Colors.orange,
+                            size: 20,
+                          ),
+                          onPressed: () => onEditar(index),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                            size: 22,
+                          ),
+                          onPressed: () => onEliminar(index),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 4,
-              ),
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: verdeApp.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.inventory_2_outlined,
-                  color: verdeApp,
-                  size: 22,
-                ),
-              ),
-              title: Text(
-                material.nombre,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  color: esOscuro ? Colors.white : Colors.black87,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '${material.cantidad.toStringAsFixed(0)} ${material.unidadMedida} × ${CurrencyFormatter.format(material.costoUnitario)}',
-                  style: TextStyle(
-                    color: esOscuro ? Colors.white70 : Colors.grey.shade600,
-                    fontSize: 13,
-                  ),
-                  
-                  
-                ),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    CurrencyFormatter.format(material.subtotal),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: esOscuro ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.edit,
-                      color: Colors.orange,
-                      size: 20,
-                    ),
-                    onPressed: () => onEditar(index),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: Colors.redAccent,
-                      size: 22,
-                    ),
-                    onPressed: () => onEliminar(index),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-
+          ),
         if (items.isNotEmpty) const SizedBox(height: 16),
 
         Container(
