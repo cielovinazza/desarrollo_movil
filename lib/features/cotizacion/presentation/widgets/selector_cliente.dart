@@ -58,11 +58,18 @@ class _SelectorClienteState extends State<SelectorCliente> {
     final resultado = await listarClientesUseCase();
     setState(() {
       clientes = resultado;
-      
+
       if (widget.controller.text.isNotEmpty) {
         final encontrado = clientes.firstWhere(
           (c) => c.nombre.trim() == widget.controller.text.trim(),
-          orElse: () => Cliente(id: '', nombre: '', correo: '', rut: '', telefono: '', direccion: ''),
+          orElse: () => Cliente(
+            id: '',
+            nombre: '',
+            correo: '',
+            rut: '',
+            telefono: '',
+            direccion: '',
+          ),
         );
 
         if (encontrado.id != null && encontrado.id!.isNotEmpty) {
@@ -88,7 +95,7 @@ class _SelectorClienteState extends State<SelectorCliente> {
 
   void _filtrarClientes() {
     final textoBusqueda = _normalizarRut(_rutController.text);
-    
+
     setState(() {
       if (textoBusqueda.isEmpty) {
         clientesFiltrados = List.from(clientes);
@@ -97,7 +104,8 @@ class _SelectorClienteState extends State<SelectorCliente> {
           return _normalizarRut(cliente.rut).contains(textoBusqueda);
         }).toList();
       }
-      if (clienteSeleccionado != null && !clientesFiltrados.any((c) => c.id == clienteSeleccionado!.id)) {
+      if (clienteSeleccionado != null &&
+          !clientesFiltrados.any((c) => c.id == clienteSeleccionado!.id)) {
         clienteSeleccionado = null;
       }
     });
@@ -153,19 +161,26 @@ class _SelectorClienteState extends State<SelectorCliente> {
         context: context,
         builder: (_) => AlertDialog(
           backgroundColor: theme.cardColor,
-          title: const Text('Cliente no encontrado',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,),
-            ),
-          content: Text('No existe un cliente con el RUT "$rutBuscado". ¿Desea registrarlo ahora?'),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Text(
+            'Cliente no encontrado',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'No existe un cliente con el RUT "$rutBuscado". ¿Desea registrarlo ahora?',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: verdeApp, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: verdeApp,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Registrar cliente'),
             ),
@@ -176,7 +191,9 @@ class _SelectorClienteState extends State<SelectorCliente> {
       if (registrar == true && mounted) {
         await Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => RegistroClientePage(rutInicial: rutBuscado)),
+          MaterialPageRoute(
+            builder: (_) => RegistroClientePage(rutInicial: rutBuscado),
+          ),
         );
         await _cargarClientes();
       }
@@ -185,51 +202,40 @@ class _SelectorClienteState extends State<SelectorCliente> {
 
   @override
   Widget build(BuildContext context) {
-    Cliente? valorDropdown;
-    if (clienteSeleccionado != null) {
-      final index = clientesFiltrados.indexWhere((c) => c.id == clienteSeleccionado!.id);
-      if (index != -1) {
-        valorDropdown = clientesFiltrados[index];
-      }
-    }
-
-    final List<DropdownMenuItem<Cliente?>> itemsDropdown = [
-      const DropdownMenuItem<Cliente?>(
-        value: null,
-        child: Text(
-          'Seleccione un cliente', 
-          style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
-        ),
-      ),
-      ...clientesFiltrados.map((Cliente cliente) {
-        return DropdownMenuItem<Cliente?>(
-          value: cliente,
-          child: Text(
-            '${cliente.nombre} (${cliente.rut})',
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        );
-      }),
-    ];
     final theme = Theme.of(context);
     final esOscuro = theme.brightness == Brightness.dark;
-    return Container(  
+    return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: esOscuro ? Colors.white.withValues(alpha: 0.08) : verdeApp.withValues(alpha: 0.15)),
+        border: Border.all(
+          color: esOscuro
+              ? Colors.white.withValues(alpha: 0.08)
+              : verdeApp.withValues(alpha: 0.15),
+        ),
         boxShadow: [
-          BoxShadow(color: esOscuro ? Colors.white.withValues(alpha: 0.015): Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2)),
+          BoxShadow(
+            color: esOscuro
+                ? Colors.white.withValues(alpha: 0.015)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Cliente', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text(
+            'Cliente',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 2),
-          const Text('Ingrese el RUT del cliente para buscarlo manualmente', style: TextStyle(color: Colors.grey, fontSize: 13)),
+          const Text(
+            'Ingrese el RUT del cliente para buscarlo manualmente',
+            style: TextStyle(color: Colors.grey, fontSize: 13),
+          ),
           const SizedBox(height: 20),
           TextFormField(
             controller: _rutController,
@@ -247,7 +253,9 @@ class _SelectorClienteState extends State<SelectorCliente> {
                 icon: const Icon(Icons.search),
                 onPressed: buscando ? null : _buscarClientePorRut,
               ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: verdeApp.withValues(alpha: 0.25)),
@@ -268,7 +276,10 @@ class _SelectorClienteState extends State<SelectorCliente> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.search),
               label: Text(buscando ? 'Buscando...' : 'Buscar cliente'),
@@ -276,7 +287,9 @@ class _SelectorClienteState extends State<SelectorCliente> {
                 backgroundColor: verdeApp,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -287,55 +300,136 @@ class _SelectorClienteState extends State<SelectorCliente> {
                 Expanded(child: Divider()),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Text('O seleccione de la lista', style: TextStyle(color: Colors.grey, fontSize: 15, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    'O seleccione de la lista',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
                 Expanded(child: Divider()),
               ],
             ),
           ),
-          
-          SizedBox(
-            height: 60, 
-            child: DropdownButtonFormField<Cliente?>(
-              menuMaxHeight: 250, 
-              itemHeight: 48,
-              key: Key('${valorDropdown?.id ?? 'ninguno'}_${clientesFiltrados.length}'),
-              isExpanded: true,
-              initialValue: valorDropdown, 
-              decoration: InputDecoration(
-                labelText: _rutController.text.isEmpty ? 'Seleccione un cliente' : 'Resultados de coincidencia',
-                prefixIcon: Icon(Icons.person_outline, color: verdeApp),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: verdeApp.withValues(alpha: 0.25)),
-                ),
-              ),
-              items: itemsDropdown,
-              onChanged: (Cliente? nuevoSeleccionado) {
-                setState(() {
-                  clienteSeleccionado = nuevoSeleccionado;
-                  if (nuevoSeleccionado != null) {
-                    _rutController.text = nuevoSeleccionado.rut;
-                    widget.controller.text = nuevoSeleccionado.nombre;
-                    mensaje = 'Cliente seleccionado de la lista';
-                  } else {
-                    _rutController.clear();
-                    widget.controller.clear();
-                    mensaje = null;
-                  }
+
+          Autocomplete<Cliente>(
+            optionsBuilder: (TextEditingValue textEditingValue) {
+              final textoNombre = textEditingValue.text.trim().toLowerCase();
+              final rutArriba = _normalizarRut(_rutController.text);
+
+              Iterable<Cliente> resultado = clientes;
+
+              if (rutArriba.isNotEmpty) {
+                resultado = resultado.where((cliente) {
+                  return _normalizarRut(cliente.rut).contains(rutArriba);
                 });
-                widget.onClienteSeleccionado(nuevoSeleccionado);
-              },
-            ),
+              }
+
+              if (textoNombre.isNotEmpty) {
+                resultado = resultado.where((cliente) {
+                  return cliente.nombre.toLowerCase().contains(textoNombre);
+                });
+              }
+
+              return resultado;
+            },
+            displayStringForOption: (Cliente cliente) {
+              return '${cliente.nombre} (${cliente.rut})';
+            },
+            fieldViewBuilder:
+                (context, textEditingController, focusNode, onFieldSubmitted) {
+                  if (clienteSeleccionado != null &&
+                      textEditingController.text.isEmpty) {
+                    textEditingController.text =
+                        '${clienteSeleccionado!.nombre} (${clienteSeleccionado!.rut})';
+                  }
+
+                  return TextFormField(
+                    controller: textEditingController,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText: 'Nombre del cliente',
+                      hintText: 'Escriba el nombre del cliente',
+                      prefixIcon: Icon(
+                        Icons.person_search_outlined,
+                        color: verdeApp,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: verdeApp.withValues(alpha: 0.25),
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: verdeApp, width: 2),
+                      ),
+                    ),
+                  );
+                },
+            optionsViewBuilder: (context, onSelected, options) {
+              return Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxHeight: 250,
+                      maxWidth: 420,
+                    ),
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: options.length,
+                      itemBuilder: (context, index) {
+                        final cliente = options.elementAt(index);
+
+                        return ListTile(
+                          leading: Icon(Icons.person_outline, color: verdeApp),
+                          title: Text(
+                            cliente.nombre,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            '${cliente.rut} • ${cliente.correo}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          onTap: () => onSelected(cliente),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              );
+            },
+            onSelected: (Cliente cliente) {
+              setState(() {
+                clienteSeleccionado = cliente;
+                _rutController.text = cliente.rut;
+                widget.controller.text = cliente.nombre;
+                mensaje = 'Cliente seleccionado correctamente';
+              });
+
+              widget.onClienteSeleccionado(cliente);
+            },
           ),
-          
+
           if (mensaje != null) ...[
             const SizedBox(height: 12),
             Text(
               mensaje!,
               style: TextStyle(
-                color: clienteSeleccionado == null ? Colors.orange.shade800 : verdeApp,
+                color: clienteSeleccionado == null
+                    ? Colors.orange.shade800
+                    : verdeApp,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -358,8 +452,21 @@ class _SelectorClienteState extends State<SelectorCliente> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(clienteSeleccionado!.nombre, style: TextStyle(color: verdeApp, fontWeight: FontWeight.bold, fontSize: 15)),
-                        Text('RUT: ${clienteSeleccionado!.rut}', style: TextStyle(color: verdeApp.withValues(alpha: 0.8), fontSize: 13)),
+                        Text(
+                          clienteSeleccionado!.nombre,
+                          style: TextStyle(
+                            color: verdeApp,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Text(
+                          'RUT: ${clienteSeleccionado!.rut}',
+                          style: TextStyle(
+                            color: verdeApp.withValues(alpha: 0.8),
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ),
