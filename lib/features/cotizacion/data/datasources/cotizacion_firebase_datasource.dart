@@ -35,11 +35,14 @@ class CotizacionFirestoreDataSource {
       });
     }
     // ACTUALIZAR
-    if (dto.id.isNotEmpty) {
+if (dto.id.isNotEmpty) {
+      final datosActualizacion = dto.toMap();
+      datosActualizacion.remove('fechaCreacion');
+
       await collection.doc(dto.id).set({
-        ...dto.toMap(),
+        ...datosActualizacion,
         'codigo': codigo,
-        'fechaCreacion': dto.fechaCreacion ?? FieldValue.serverTimestamp(),
+        'fechaEdicion': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
       return dto.id;
@@ -48,11 +51,16 @@ class CotizacionFirestoreDataSource {
     final nuevoDocRef = collection.doc();
     final nuevoId = nuevoDocRef.id;
 
+    final datosCreacion = dto.toMap();
+    datosCreacion.remove('fechaCreacion');
+    datosCreacion.remove('fechaEdicion');
+
     await nuevoDocRef.set({
-      ...dto.toMap(),
+      ...datosCreacion,
       'id': nuevoId,
       'codigo': codigo,
       'fechaCreacion': FieldValue.serverTimestamp(),
+      'fechaEdicion': FieldValue.serverTimestamp(),
     });
 
     return nuevoId;
