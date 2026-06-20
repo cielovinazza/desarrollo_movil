@@ -10,7 +10,7 @@ class CotizacionFirestoreDataSource {
 
   CotizacionFirestoreDataSource(this.firestore);
 
-  Future<String> guardarCotizacion(CotizacionDto dto) async {
+  Future<String> guardarCotizacion(CotizacionDto dto, {required bool esNueva}) async {
     final collection = firestore.collection('cotizaciones');
 
     // GENERAR CÓDIGO SI VIENE VACÍO
@@ -34,36 +34,37 @@ class CotizacionFirestoreDataSource {
         return 'CT-${siguienteNumero.toString().padLeft(3, '0')}';
       });
     }
-    // ACTUALIZAR
-if (dto.id.isNotEmpty) {
+    final docRef = dto.id.isNotEmpty ? collection.doc(dto.id) : collection.doc();
+
+    if (!esNueva) {
+      // ACTUALIZAR
       final datosActualizacion = dto.toMap();
       datosActualizacion.remove('fechaCreacion');
 
-      await collection.doc(dto.id).set({
+      await docRef.set({
         ...datosActualizacion,
+        'id': docRef.id,
         'codigo': codigo,
         'fechaEdicion': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      return dto.id;
+      return docRef.id;
     }
-    // CREAR
-    final nuevoDocRef = collection.doc();
-    final nuevoId = nuevoDocRef.id;
 
+    // CREAR
     final datosCreacion = dto.toMap();
     datosCreacion.remove('fechaCreacion');
     datosCreacion.remove('fechaEdicion');
 
-    await nuevoDocRef.set({
+    await docRef.set({
       ...datosCreacion,
-      'id': nuevoId,
+      'id': docRef.id,
       'codigo': codigo,
       'fechaCreacion': FieldValue.serverTimestamp(),
       'fechaEdicion': FieldValue.serverTimestamp(),
     });
 
-    return nuevoId;
+    return docRef.id;
   }
 
   Future<List<CotizacionDto>> obtenerCotizacion({

@@ -10,9 +10,10 @@ class GuardarCotizacion {
   );
 
   Future<void> call(
-    CotizacionDto dto,
-  ) async {
+    CotizacionDto dto, {
+    required bool esNueva,
+  }) async {
 
-    await repository.guardarCotizacion(dto);
+    await repository.guardarCotizacion(dto, esNueva: esNueva);
   }
 }

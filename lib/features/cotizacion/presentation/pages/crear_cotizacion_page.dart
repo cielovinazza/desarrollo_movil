@@ -194,7 +194,10 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
       estado: stringEstado,
     );
-    await guardarCotizacionUseCase(dtoConId);
+    await guardarCotizacionUseCase(
+      dtoConId,
+      esNueva: widget.cotizacionAEditar == null,
+    );
     final docSnapshot = await FirebaseFirestore.instance
         .collection('cotizaciones')
         .doc(idReal)
