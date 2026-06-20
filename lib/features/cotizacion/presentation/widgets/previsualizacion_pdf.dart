@@ -58,6 +58,9 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
     double totalFinal = baseConUtilidad + montoIva;
 
     String clp(double valor) => '${CurrencyFormatter.format(valor)} CLP';
+    
+    // Función local para limpiar el .0 en la generación del documento PDF
+    String fmt(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
 
     pdf.addPage(
         pw.MultiPage(
@@ -419,16 +422,16 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text(
-                          'Utilidad (${cotizacion.porcentajeUtilidad}%):',
-                        ),
+                        // PDF FIX: Quita el .0 en la utilidad impresa en el PDF
+                        pw.Text('Utilidad (${fmt(cotizacion.porcentajeUtilidad)}%):'),
                         pw.Text(clp(montoUtilidad)),
                       ],
                     ),
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('IVA (${cotizacion.porcentajeIva}%):'),
+                        // PDF FIX: Quita el .0 en el IVA impreso en el PDF
+                        pw.Text('IVA (${fmt(cotizacion.porcentajeIva)}%):'),
                         pw.Text(clp(montoIva)),
                       ],
                     ),
@@ -522,6 +525,9 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   String _clp(double valor) {
     return '${CurrencyFormatter.format(valor)} CLP';
   }
+
+  // Función nativa en el State para limpiar la vista previa de la tarjeta verde en la app móvil
+  String _fmt(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
 
   @override
   void initState() {
@@ -727,7 +733,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Renderizado del Logo Corporativo Redondo con fondo blanco protector (100% Offline)
           Container(
             width: 42,
             height: 42,
@@ -930,7 +935,8 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           ),
           const SizedBox(height: 6),
           _filaResumen(
-            'Utilidad aplicada (${porcentajeUtilidad.toStringAsFixed(1)}%)',
+            // INTERFAZ FIX: Limpia el .0 en el porcentaje de utilidad de la tarjeta verde
+            'Utilidad aplicada (${_fmt(porcentajeUtilidad)}%)',
             _clp(_montoUtilidad),
             icono: Icons.trending_up,
             colorIcono: _verde,
@@ -939,7 +945,8 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           _filaResumen('Base + utilidad', _clp(_baseConUtilidad)),
           const SizedBox(height: 6),
           _filaResumen(
-            'IVA (${porcentajeIva.toStringAsFixed(0)}%)',
+            // INTERFAZ FIX: Limpia el .0 en el porcentaje de IVA de la tarjeta verde
+            'IVA (${_fmt(porcentajeIva)}%)',
             _clp(_montoIva),
             icono: Icons.percent,
             colorIcono: Colors.orange,
