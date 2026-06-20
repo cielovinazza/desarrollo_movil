@@ -7,6 +7,7 @@ import '../../data/repositories/cliente_repository_impl.dart';
 import '../../domain/entities/cliente.dart';
 import '../../domain/usecases/listar_clientes.dart';
 import 'editar_cliente_page.dart';
+//AGREGAMOS LA IMPORTACIÓN DE LA PÁGINA DE COTIZACIÓN
 import '../../../cotizacion/presentation/pages/crear_cotizacion_page.dart';
 
 class ListadoClientesPage extends StatefulWidget {
@@ -94,8 +95,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: theme.colorScheme.error),
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Eliminar',
-              style: TextStyle(color: Colors.white),),
+              child: const Text('Eliminar'),
             ),
           ],
         );
@@ -124,7 +124,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme=Theme.of(context);
+    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -148,7 +148,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                       hintText: 'Buscar cliente por nombre o RUT...',
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
-                      fillColor: theme.cardColor,
+                      fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -187,13 +187,46 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
 
                   Expanded(
                     child: clientesFiltrados.isEmpty
-                        ? const Center(child: Text('No se encontraron clientes'))
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.person_search_outlined, size: 48, color: Colors.grey[400]),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'No se encontraron clientes para tu búsqueda.',
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                // CRITERIO DE ACEPTACIÓN 2: Opción dinámica global para crear cliente contextual
+                                TextButton.icon(
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: theme.primaryColor.withValues(alpha: 0.08),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                  onPressed: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const RegistroClientePage()),
+                                    );
+                                    cargarClientes();
+                                  },
+                                  icon: Icon(Icons.person_add_alt_1, color: theme.primaryColor, size: 18),
+                                  label: Text(
+                                    'Crear "${_buscadorController.text.trim()}"',
+                                    style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
                         : ListView.separated(
                             itemCount: clientesFiltrados.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 12),
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final cliente = clientesFiltrados[index];
-                              final esOscuro = Theme.of(context).brightness==Brightness.dark;
                               
                               return Dismissible(
                                 key: Key(cliente.id ?? index.toString()),
@@ -203,16 +236,16 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                                   padding: const EdgeInsets.only(left: 20),
                                   alignment: Alignment.centerLeft,
                                   decoration: BoxDecoration(
-                                    color: esOscuro ? const Color.fromARGB(255, 137, 0, 0) : Colors.red[100],
+                                    color: Colors.red[100],
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.delete_sweep_rounded, color: esOscuro ? const Color.fromARGB(255, 255, 7, 7) : Colors.red[800], size: 28),
+                                      Icon(Icons.delete_sweep_rounded, color: Colors.red[800], size: 28),
                                       const SizedBox(width: 8),
                                       Text(
                                         'Eliminar Cliente', 
-                                        style: TextStyle(color: esOscuro ? const Color.fromARGB(255, 255, 7, 7): Colors.red[800], fontWeight: FontWeight.bold)
+                                        style: TextStyle(color: Colors.red[800], fontWeight: FontWeight.bold)
                                       ),
                                     ],
                                   ),
@@ -239,8 +272,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
   }
 
   Widget _buildPanel() {
-    final theme=Theme.of(context);
-    final esOscuro = theme.brightness == Brightness.dark;
+    final theme = Theme.of(context);
     final int totalEmpresas = clientes.where((c) {
       final cleanRut = c.rut.replaceAll('.', '').replaceAll('-', '');
       return cleanRut.startsWith('76') || cleanRut.startsWith('77');
@@ -286,7 +318,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
           child: Column(
             children: [
               Material(
-                color: Colors.transparent, 
+                color: const Color(0xFFE3F2FD), 
                 borderRadius: BorderRadius.circular(8),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(8),
@@ -297,10 +329,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: esOscuro ?  theme.colorScheme.surfaceContainerHighest : const Color(0xFFE8EAF6),
-                      borderRadius: BorderRadius.circular(8)
-                    ),
+                    color: const Color(0xFFE8EAF6),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -309,16 +338,16 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                           children: [
                             Text(
                               'ACCIONES',
-                              style: TextStyle(color: esOscuro ? Colors.white.withValues(alpha: 0.5) : Colors.blue[900]!.withValues(alpha: 0.6), fontSize: 8, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: Colors.blue[900]!.withValues(alpha: 0.6), fontSize: 8, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'Añadir Cliente',
-                              style: TextStyle(color: esOscuro ? Colors.white : Colors.indigo[900], fontSize: 13, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: Colors.indigo[900], fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
-                        Icon(Icons.person_add_alt_1_outlined, color: esOscuro ?  theme.colorScheme.secondary : Colors.indigo[800], size: 18),
+                        Icon(Icons.person_add_alt_1_outlined, color: Colors.indigo[800], size: 18),
                       ],
                     ),
                   ),
@@ -330,15 +359,15 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: esOscuro ?  theme.colorScheme.surfaceContainerHighest : const Color(0xFFE8EAF6),
+                  color: const Color(0xFFE8EAF6),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('EMPRESAS', style: TextStyle(color: esOscuro ? Colors.white.withValues(alpha: 0.5) :Colors.indigo[900]!.withValues(alpha: 0.7), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.2)),
+                    Text('EMPRESAS', style: TextStyle(color: Colors.indigo[900]!.withValues(alpha: 0.7), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.2)),
                     const SizedBox(height: 2),
-                    Text('$totalEmpresas', style: TextStyle(color: esOscuro ? Colors.white :Colors.indigo[900], fontSize: 14, fontWeight: FontWeight.bold)),
+                    Text('$totalEmpresas', style: TextStyle(color: Colors.indigo[900], fontSize: 14, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -363,14 +392,12 @@ class _ClienteCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final esOscuro = theme.brightness == Brightness.dark;
     final cleanRut = cliente.rut.replaceAll('.', '').replaceAll('-', '');
     final bool isEmpresa = cleanRut.startsWith('76') || cleanRut.startsWith('77');
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
       ),
@@ -392,7 +419,7 @@ class _ClienteCardWidget extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: esOscuro ? theme.primaryColor.withValues(alpha: 0.1) : const Color(0xFFE8F5E9),
+                      color: const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
@@ -444,8 +471,8 @@ class _ClienteCardWidget extends StatelessWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: onEdit,
-                      icon: Icon(Icons.edit_outlined, size: 18, color:  esOscuro ? Colors.white : Colors.black87),
-                      label: Text('Editar', style: TextStyle(color: esOscuro ? Colors.white : Colors.black87, fontWeight: FontWeight.w600)),
+                      icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.black87),
+                      label: const Text('Editar', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -459,7 +486,7 @@ class _ClienteCardWidget extends StatelessWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 0,
                       ),
-                      
+                      // IMPLEMENTACIÓN DEL FLUJO DIRECTO CON PASO DE PARÁMETRO
                       onPressed: () {
                         Navigator.push(
                           context,
