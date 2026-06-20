@@ -186,7 +186,7 @@ class ConnectivitySyncService {
         noSincronizadas.add(cotizacion);
       }
     }
-    await batch.commit();
+    
     await _localStorage.limpiarCotizacionesPendientes();
     if (noSincronizadas.isNotEmpty) {
       for (final cotizacion in noSincronizadas) {
