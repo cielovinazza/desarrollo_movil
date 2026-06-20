@@ -168,47 +168,40 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   }
 
   Future<String> _guardarCotizacion() async {
-    final cotizacion = _obtenerEstadoActual();
-    final String idReal =
-        widget.cotizacionAEditar?.id ??
-        FirebaseFirestore.instance.collection('cotizaciones').doc().id;
+  final cotizacion = _obtenerEstadoActual();
+  final bool esEdicion = widget.cotizacionAEditar != null;
+  final String idParaDto = esEdicion ? widget.cotizacionAEditar!.id : '';
 
-    final int versionNueva = widget.cotizacionAEditar != null
-        ? (widget.cotizacionAEditar!.version + 1)
-        : 1;
+  final int versionNueva = esEdicion
+      ? (widget.cotizacionAEditar!.version + 1)
+      : 1;
 
-    final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
-    final String stringEstado = 'En Proceso';
+  final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
+  final String stringEstado = 'En Proceso';
 
-    final dto = CotizacionMapper.toDto(
-      cotizacion: cotizacion,
-      materiales: _materialesAgregados,
-      usuarioId: _auth.currentUser?.uid ?? '',
-      estado: stringEstado,
-    );
+  final dto = CotizacionMapper.toDto(
+    cotizacion: cotizacion,
+    materiales: _materialesAgregados,
+    usuarioId: _auth.currentUser?.uid ?? '',
+    estado: stringEstado,
+  );
 
+  final dtoConId = dto.copyWith(
+    id: idParaDto,
+    version: versionNueva,
+    codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
+    estado: stringEstado,
+  );
 
-    final dtoConId = dto.copyWith(
-      id: idReal,
-      version: versionNueva,
-      codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
-      estado: stringEstado,
-    );
-    await guardarCotizacionUseCase(dtoConId);
-    final docSnapshot = await FirebaseFirestore.instance
-        .collection('cotizaciones')
-        .doc(idReal)
-        .get();
-    if (docSnapshot.exists) {
-      final datosGuardados = docSnapshot.data();
-      final codigoAsignado = datosGuardados?['codigo'] as String?;
-      setState(() {
-        _codigoCotizacionCreada = codigoAsignado;
-      });
-    }
+  final dtoGuardado = await guardarCotizacionUseCase(dtoConId);
 
-    return idReal;
-  }
+  setState(() {
+    _codigoCotizacionCreada = dtoGuardado.codigo;
+    _idCotizacionCreada = dtoGuardado.id;
+  });
+
+  return dtoGuardado.id;
+}
 
   Future<void> _ejecutarGuardadoFinal() async {
     final theme = Theme.of(context);
@@ -671,21 +664,20 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     }
 
     final raw = await _localStorage.obtenerBorradorCotizacion();
-
-    // Sin borrador — solo inyectar cliente si viene
+    //si viene un cliente inyectado se ignora el borrador para evitar inconsistencias con el cliente seleccionado
+    if (widget.clienteInyectado != null) {
+      if (!mounted) return;
+      setState(() {
+        _clienteSeleccionado = widget.clienteInyectado;
+        _clienteController.text = widget.clienteInyectado!.nombre;
+      });
+      return;
+    }
     if (raw == null) {
-      if (widget.clienteInyectado != null) {
-        setState(() {
-          _clienteSeleccionado = widget.clienteInyectado;
-          _clienteController.text = widget.clienteInyectado!.nombre;
-        });
-      }
       return;
     }
 
     if (!mounted) return;
-
-    // Hay borrador — preguntar al usuario
     final continuar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -711,28 +703,17 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
 
     if (continuar != true) {
       await _localStorage.limpiarBorradorCotizacion();
-      if (widget.clienteInyectado != null && mounted) {
-        setState(() {
-          _clienteSeleccionado = widget.clienteInyectado;
-          _clienteController.text = widget.clienteInyectado!.nombre;
-        });
-      }
       return;
     }
 
     final dto = BorradorCotizacionDto.fromJson(raw);
 
     setState(() {
-      if (widget.clienteInyectado == null) {
-        _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
-        if (dto.clienteTexto.trim().isEmpty) {
-          _clienteSeleccionado = null;
-        }
-        _clienteController.text = dto.clienteTexto;
-      } else {
-        _clienteSeleccionado = widget.clienteInyectado;
-        _clienteController.text = widget.clienteInyectado!.nombre;
+      _clienteSeleccionado = BorradorCotizacionMapper.clienteFromDto(dto);
+      if (dto.clienteTexto.trim().isEmpty) {
+        _clienteSeleccionado = null;
       }
+      _clienteController.text = dto.clienteTexto;
       _direccionController.text = dto.direccion;
       _viaticoController.text = dto.viatico;
       _utilidadController.text = dto.utilidad;

@@ -158,80 +158,85 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   }
 
   Future<String?> mostrarModalObservacionEstado(String nuevoEstado) async {
-    final observacionController = TextEditingController();
+  final observacionController = TextEditingController();
 
-    final resultado = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Cambiar estado'),
-        content: SizedBox(
-          width: 420,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Nuevo estado: $nuevoEstado'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: observacionController,
-                minLines: 4,
-                maxLines: 4,
-                keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
-                maxLength: 250,
-                decoration: InputDecoration(
-                  labelText: nuevoEstado == 'Rechazada por el Cliente'
-                      ? 'Motivo de rechazo'
-                      : 'Observaciones',
-                  hintText: nuevoEstado == 'Rechazada por el Cliente'
-                      ? 'Ingrese el motivo del rechazo'
-                      : 'Ingrese una observación opcional',
-                  border: OutlineInputBorder(),
-                ),
+  final resultado = await showDialog<String>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => AlertDialog(
+      title: const Text('Cambiar estado'),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Nuevo estado: $nuevoEstado'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: observacionController,
+              minLines: 4,
+              maxLines: 4,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
+              maxLength: 250,
+              decoration: InputDecoration(
+                labelText: nuevoEstado == 'Rechazada por el Cliente'
+                    ? 'Motivo de rechazo'
+                    : 'Observaciones',
+                hintText: nuevoEstado == 'Rechazada por el Cliente'
+                    ? 'Ingrese el motivo del rechazo'
+                    : 'Ingrese una observación opcional',
+                border: OutlineInputBorder(),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, null),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final texto = observacionController.text.trim();
-
-              final cantidadPalabras = texto
-                  .split(RegExp(r'\s+'))
-                  .where((p) => p.isNotEmpty)
-                  .length;
-
-              final requiereObservacion =
-                  nuevoEstado == 'Rechazada por el Cliente';
-
-              if (requiereObservacion && cantidadPalabras < 3) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Debe ingresar un motivo de rechazo de al menos 3 palabras.',
-                    ),
-                  ),
-                );
-                return;
-              }
-
-              Navigator.pop(context, texto);
-            },
-            child: const Text('Guardar cambio'),
-          ),
-        ],
       ),
-    );
+      actions: [
+        TextButton(
+          onPressed: () {
+            FocusManager.instance.primaryFocus?.unfocus();
+            Navigator.pop(context, null);
+          },
+          child: const Text('Cancelar'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final texto = observacionController.text.trim();
 
+            final cantidadPalabras = texto
+                .split(RegExp(r'\s+'))
+                .where((p) => p.isNotEmpty)
+                .length;
+
+            final requiereObservacion =
+                nuevoEstado == 'Rechazada por el Cliente';
+
+            if (requiereObservacion && cantidadPalabras < 3) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Debe ingresar un motivo de rechazo de al menos 3 palabras.',
+                  ),
+                ),
+              );
+              return;
+            }
+            FocusManager.instance.primaryFocus?.unfocus();
+            Navigator.pop(context, texto);
+          },
+          child: const Text('Guardar cambio'),
+        ),
+      ],
+    ),
+  );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
     observacionController.dispose();
-    return resultado;
-  }
+  });
+
+  return resultado;
+}
 
   Future<void> cambiarEstado(
     CotizacionDto cotizacion,
@@ -315,9 +320,12 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     }
   }
 
-  int contarPorEstado(String estado) {
-    return cotizaciones.where((c) => c.estado == estado).length;
-  }
+  int contarPorEstado(
+  List<CotizacionDto> lista,
+  String estado,
+) {
+  return lista.where((c) => c.estado == estado).length;
+}
 
   bool _estacargando = false;
 
@@ -420,7 +428,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     final esOscuro = theme.brightness == Brightness.dark;
     
     final cotizacionesFiltradas = cotizaciones.where((c) {
-      final cumpleId = filterId.isEmpty || c.id.toUpperCase().contains(filterId);
+      final cumpleId = filterId.isEmpty || c.codigo.toUpperCase().contains(filterId);
       final cumpleCliente = filterCliente.isEmpty || c.clienteNombre.toLowerCase().contains(filterCliente.toLowerCase());
       return cumpleId && cumpleCliente;
     }).toList();
@@ -562,7 +570,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                           children: [
                             _ItemResumenNeutro(
                               label: 'Total',
-                              value: cotizaciones.length.toString(),
+                              value: cotizacionesFiltradas.length.toString(),
                               colorText:
                                   theme.textTheme.bodyLarge?.color ??
                                   AppTheme.textDark,
@@ -570,28 +578,28 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                             _buildVerticalDivider(theme),
                             _ItemResumenNeutro(
                               label: 'Enviadas',
-                              value:
-                                  (contarPorEstado('Enviada') +
-                                          contarPorEstado('Pendiente'))
-                                      .toString(),
+                              value: (
+                                contarPorEstado(cotizacionesFiltradas, 'Enviada') +
+                                contarPorEstado(cotizacionesFiltradas, 'Pendiente')
+                              ).toString(),
                               colorText: Colors.blueGrey,
                             ),
                             _buildVerticalDivider(theme),
                             _ItemResumenNeutro(
                               label: 'Aprobadas',
-                              value:
-                                  (contarPorEstado('Aprobada por el Cliente') +
-                                          contarPorEstado('Aceptada'))
-                                      .toString(),
+                              value: (
+                                contarPorEstado(cotizacionesFiltradas, 'Aprobada por el Cliente') +
+                                contarPorEstado(cotizacionesFiltradas, 'Aceptada')
+                              ).toString(),
                               colorText: AppTheme.primary,
                             ),
                             _buildVerticalDivider(theme),
                             _ItemResumenNeutro(
                               label: 'Rechazadas',
-                              value:
-                                  (contarPorEstado('Rechazada por el Cliente') +
-                                          contarPorEstado('Rechazada'))
-                                      .toString(),
+                              value: (
+                                contarPorEstado(cotizacionesFiltradas, 'Rechazada por el Cliente') +
+                                contarPorEstado(cotizacionesFiltradas, 'Rechazada')
+                              ).toString(),
                               colorText: AppTheme.danger,
                             ),
                           ],
@@ -605,12 +613,14 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                         fechaInicioFiltro: fechaInicioFiltro,
                         fechaFinFiltro: fechaFinFiltro,
                         onFiltroIdChanged: (val) {
-                          filterId = val.trim().toUpperCase();
-                          cargarCotizacion();
+                          setState((){
+                            filterId = val.trim().toUpperCase();
+                          });
                         },
                         onFiltroClienteChanged: (val) {
-                          filterCliente = val;
-                          cargarCotizacion();
+                          setState(() {
+                            filterCliente = val;
+                          });
                         },
                         onEstadoChanged: (val) {
                           setState(() => estadoFiltro = val);

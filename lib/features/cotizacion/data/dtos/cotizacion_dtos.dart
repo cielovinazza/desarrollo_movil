@@ -14,6 +14,7 @@ class CotizacionDto {
   final List<dynamic> trabajos; 
   final List<dynamic> manoObra;
   final List<dynamic> materiales;
+  final String? observacion;
 
   final double subtotalObra;
   final double subtotalMateriales;
@@ -39,6 +40,7 @@ class CotizacionDto {
     required this.clienteRut,
     required this.clienteTelefono,
     this.pdfUrl,
+    this.observacion,
     required this.clienteDireccion,
     required this.codigo,
     required this.direccion,
@@ -67,6 +69,7 @@ class CotizacionDto {
       'clienteRut': clienteRut,
       'clienteTelefono': clienteTelefono,
       'pdfUrl': pdfUrl,
+      'observacion': observacion,
       'clienteDireccion': clienteDireccion,
       'codigo': codigo,
       'direccion': direccion,
@@ -101,6 +104,7 @@ class CotizacionDto {
       clienteTelefono: map['clienteTelefono'] ?? '',
       clienteDireccion: map['clienteDireccion'] ?? '',
       pdfUrl: map['pdfUrl'],
+      observacion: map['observacion'],
       codigo: map['codigo'] ?? '',
       direccion: map['direccion'] ?? '',
       trabajos: map['trabajos'] ?? [], // Firestore recupera el mapa interno con el string opcional
@@ -138,6 +142,7 @@ class CotizacionDto {
     String? clienteDireccion,
     String? clienteTelefono,
     String? pdfUrl,
+    String? observacion,
     String? direccion,
     String? codigo,
     List<dynamic>? trabajos,
@@ -165,6 +170,7 @@ class CotizacionDto {
       clienteDireccion: clienteDireccion ?? this.clienteDireccion,
       clienteTelefono: clienteTelefono ?? this.clienteTelefono,
       pdfUrl: pdfUrl ?? this.pdfUrl,
+      observacion: observacion ?? this.observacion,
       direccion: direccion ?? this.direccion,
       codigo: codigo ?? this.codigo,
       trabajos: trabajos ?? this.trabajos,

@@ -9,61 +9,57 @@ class CotizacionFirestoreDataSource {
   final FirebaseStorage storage = FirebaseStorage.instance;
 
   CotizacionFirestoreDataSource(this.firestore);
-
-  Future<String> guardarCotizacion(CotizacionDto dto) async {
+  Future<CotizacionDto> guardarCotizacion(CotizacionDto dto) async {
     final collection = firestore.collection('cotizaciones');
+    final bool esNueva = dto.id.isEmpty;
+    final DocumentReference<Map<String, dynamic>> docRef =
+        esNueva ? collection.doc() : collection.doc(dto.id);
 
-    // GENERAR CÓDIGO SI VIENE VACÍO
-    String codigo = dto.codigo;
+    Map<String, dynamic> construirPayload(String codigo) {
+      final datos = dto.toMap();
+      datos.remove('fechaCreacion');
+      datos.remove('fechaEdicion');
 
-    if (codigo.trim().isEmpty) {
-      final contadorRef = firestore.collection('contadores').doc('cotizaciones');
-      codigo = await firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(contadorRef);
-        int siguienteNumero = 1;
-        if (snapshot.exists) {
-          final datos = snapshot.data();
-          final ultimoNumero = datos?['ultimoNumero'] as int? ?? 0;
-          siguienteNumero = ultimoNumero + 1;
-        }
-        transaction.set(
-          contadorRef,
-          {'ultimoNumero': siguienteNumero},
-          SetOptions(merge: true),
-        );
-        return 'CT-${siguienteNumero.toString().padLeft(3, '0')}';
-      });
-    }
-    // ACTUALIZAR
-if (dto.id.isNotEmpty) {
-      final datosActualizacion = dto.toMap();
-      datosActualizacion.remove('fechaCreacion');
-
-      await collection.doc(dto.id).set({
-        ...datosActualizacion,
+      return {
+        ...datos,
         'codigo': codigo,
         'fechaEdicion': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      return dto.id;
+        if (esNueva) ...{
+          'id': docRef.id,
+          'fechaCreacion': FieldValue.serverTimestamp(),
+        },
+      };
     }
-    // CREAR
-    final nuevoDocRef = collection.doc();
-    final nuevoId = nuevoDocRef.id;
 
-    final datosCreacion = dto.toMap();
-    datosCreacion.remove('fechaCreacion');
-    datosCreacion.remove('fechaEdicion');
+    if (dto.codigo.trim().isNotEmpty) {
+      await docRef.set(construirPayload(dto.codigo), SetOptions(merge: true));
+      return dto.copyWith(id: docRef.id, codigo: dto.codigo);
+    }
+    final contadorRef = firestore.collection('contadores').doc('cotizaciones');
 
-    await nuevoDocRef.set({
-      ...datosCreacion,
-      'id': nuevoId,
-      'codigo': codigo,
-      'fechaCreacion': FieldValue.serverTimestamp(),
-      'fechaEdicion': FieldValue.serverTimestamp(),
+    final codigoGenerado = await firestore.runTransaction<String>((
+      transaction,
+    ) async {
+      final snapshot = await transaction.get(contadorRef);
+      int siguienteNumero = 1;
+      if (snapshot.exists) {
+        final datos = snapshot.data();
+        final ultimoNumero = datos?['ultimoNumero'] as int? ?? 0;
+        siguienteNumero = ultimoNumero + 1;
+      }
+      final codigo = 'CT-${siguienteNumero.toString().padLeft(3, '0')}';
+
+      transaction.set(
+        contadorRef,
+        {'ultimoNumero': siguienteNumero},
+        SetOptions(merge: true),
+      );
+      transaction.set(docRef, construirPayload(codigo), SetOptions(merge: true));
+
+      return codigo;
     });
 
-    return nuevoId;
+    return dto.copyWith(id: docRef.id, codigo: codigoGenerado);
   }
 
   Future<List<CotizacionDto>> obtenerCotizacion({
@@ -110,12 +106,7 @@ if (dto.id.isNotEmpty) {
     }
 
     query = query.orderBy('fechaCreacion', descending: true);
-    QuerySnapshot snapshot;
-    try {
-      snapshot = await query.get(const GetOptions(source: Source.server));
-    } catch (_) {
-      snapshot = await query.get(const GetOptions(source: Source.cache));
-    }
+    final QuerySnapshot snapshot = await _obtenerSnapshotConCache(query);
     var resultados = snapshot.docs
         .map(
           (doc) =>
@@ -132,6 +123,24 @@ if (dto.id.isNotEmpty) {
     return resultados;
   }
 
+  Future<QuerySnapshot> _obtenerSnapshotConCache(Query query) async {
+    try {
+      final cacheSnapshot = await query.get(
+        const GetOptions(source: Source.cache),
+      );
+      if (cacheSnapshot.docs.isNotEmpty) {
+        return cacheSnapshot;
+      }
+    } catch (_) {
+    }
+
+    try {
+      return await query.get(const GetOptions(source: Source.server));
+    } catch (_) {
+      return await query.get(const GetOptions(source: Source.cache));
+    }
+  }
+
   Future<void> actualizarEstado(
     String id,
     String estado, {
@@ -139,7 +148,7 @@ if (dto.id.isNotEmpty) {
   }) async {
     await firestore.collection('cotizaciones').doc(id).update({
       'estado': estado,
-      'observacionEstado': observacion?.trim() ?? '',
+      'observacion': observacion?.trim() ?? '',
       'fechaCambioEstado': FieldValue.serverTimestamp(),
     });
   }

@@ -2,7 +2,7 @@ import 'dart:io';
 import '../../data/dtos/cotizacion_dtos.dart';
 
 abstract class CotizacionRepository {
-  Future<void> guardarCotizacion(CotizacionDto dto);
+  Future<CotizacionDto> guardarCotizacion(CotizacionDto dto);
 
   Future<List<CotizacionDto>> obtenerCotizaciones({
     String? idBusqueda,

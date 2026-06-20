@@ -37,7 +37,7 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
   CotizacionRepositoryImpl(this.datasource);
 
   @override
-  Future<String> guardarCotizacion(CotizacionDto dto) async {
+  Future<CotizacionDto> guardarCotizacion(CotizacionDto dto) async {
     final estadoFinal = dto.estado.trim().isEmpty
         ? FlujoEstados.enProceso
         : dto.estado;
