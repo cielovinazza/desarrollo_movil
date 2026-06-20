@@ -25,7 +25,7 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
     super.initState();
     _cotizacionDataSource = CotizacionFirestoreDataSource(FirebaseFirestore.instance);
     _historialCotizacionesFuture = _cotizacionDataSource.obtenerCotizacion(
-      clienteNombre: widget.cliente.nombre,
+      clienteId: widget.cliente.id,
     );
   }
 

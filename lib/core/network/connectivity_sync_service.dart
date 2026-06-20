@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../storage/local_storage.dart';
+import '../../features/cliente/presentation/formatters/mascara_rut_formatters.dart';
 
 class ConnectivitySyncService {
   final LocalStorage _localStorage;
@@ -58,64 +59,63 @@ class ConnectivitySyncService {
     }
   }
 
-  Future<void> _sincronizarClientes() async {
-    final pendientes = await _localStorage.obtenerClientesPendientes();
-    if (pendientes.isEmpty) return;
+Future<void> _sincronizarClientes() async {
+  final pendientes = await _localStorage.obtenerClientesPendientes();
+  if (pendientes.isEmpty) return;
 
-    final List<Map<String, dynamic>> noSincronizados = [];
+  final List<Map<String, dynamic>> noSincronizados = [];
 
-    for (final cliente in pendientes) {
-      final rut = cliente['rut']?.toString() ?? '';
-      if (rut.isEmpty) continue;
-      final rutNormalizado = _normalizarRut(rut);
-      if (rutNormalizado.isEmpty) continue;
+  for (final cliente in pendientes) {
+    final rut = cliente['rut']?.toString() ?? '';
+    if (rut.isEmpty) continue;
+    final rutFormateado = RutInputFormatter.formatear(rut);
+    if (rutFormateado.isEmpty) continue;
 
-      try {
-        final querySnapshot = await _firestore
-            .collection('cliente')
-            .where('rut', isEqualTo: rutNormalizado)
-            .limit(1)
-            .get(const GetOptions(source: Source.server));
+    try {
+      final docRef = _firestore.collection('cliente').doc(rutFormateado);
+      final docSnapshot = await docRef.get(
+        const GetOptions(source: Source.server),
+      );
 
-        if (querySnapshot.docs.isNotEmpty) {
-          await _reasociarCotizaciones(
-            rutDuplicado: rutNormalizado,
-            idClienteOriginal: rutNormalizado,
-          );
-          continue;
-        }
-        await _firestore.collection('cliente').doc(rutNormalizado).set({
-          'id': rutNormalizado,
-          'nombre': cliente['nombre']?.toString() ?? 'Sin Nombre',
-          'rut': rut,
-          'correo': cliente['correo']?.toString() ?? '',
-          'telefono': cliente['telefono']?.toString() ?? '',
-          'direccion': cliente['direccion']?.toString() ?? '',
-        });
-
+      if (docSnapshot.exists) {
         await _reasociarCotizaciones(
-          rutDuplicado: rutNormalizado,
-          idClienteOriginal: rutNormalizado,
+          rutDuplicado: _normalizarRut(rut),
+          idClienteOriginal: rutFormateado,
         );
-      } catch (e) {
-        if (e is FirebaseException &&
-            (e.code == 'permission-denied' || e.code == 'already-exists')) {
-          await _reasociarCotizaciones(
-            rutDuplicado: rutNormalizado,
-            idClienteOriginal: rutNormalizado,
-          );
-        } else {
-          noSincronizados.add(cliente);
-        }
+        continue;
       }
-    }
-    await _localStorage.limpiarClientesPendientes();
-    if (noSincronizados.isNotEmpty) {
-      for (final cl in noSincronizados) {
-        await _localStorage.guardarClientePendiente(cl);
+
+      await docRef.set({
+        'id': rutFormateado,
+        'nombre': cliente['nombre']?.toString() ?? 'Sin Nombre',
+        'rut': rutFormateado,
+        'correo': cliente['correo']?.toString() ?? '',
+        'telefono': cliente['telefono']?.toString() ?? '',
+        'direccion': cliente['direccion']?.toString() ?? '',
+      });
+
+      await _reasociarCotizaciones(
+        rutDuplicado: _normalizarRut(rut),
+        idClienteOriginal: rutFormateado,
+      );
+    } catch (e) {
+      if (e is FirebaseException &&
+          (e.code == 'permission-denied' || e.code == 'already-exists')) {
+        await _reasociarCotizaciones(
+          rutDuplicado: _normalizarRut(rut),
+          idClienteOriginal: rutFormateado,
+        );
+      } else {
+        noSincronizados.add(cliente);
       }
     }
   }
+
+  await _localStorage.limpiarClientesPendientes();
+  for (final cl in noSincronizados) {
+    await _localStorage.guardarClientePendiente(cl);
+  }
+}
 
   Future<void> _reasociarCotizaciones({
   required String rutDuplicado,
@@ -127,6 +127,7 @@ class ConnectivitySyncService {
 
     final actualizadas = pendientes.map((cotizacion) {
       final rutCotizacion = _extraerRutDeCotizacion(cotizacion);
+      if (rutCotizacion.isEmpty) return cotizacion;
       if (rutCotizacion == rutDuplicadoNormalizado) {
         return {...cotizacion, 'clienteId': idClienteOriginal};
       }
@@ -138,6 +139,7 @@ class ConnectivitySyncService {
       await _localStorage.guardarCotizacionPendiente(cotizacion);
     }
   }
+  
   Future<void> _sincronizarCotizaciones() async {
     final pendientes = await _localStorage.obtenerCotizacionesPendientes();
     if (pendientes.isEmpty) return;

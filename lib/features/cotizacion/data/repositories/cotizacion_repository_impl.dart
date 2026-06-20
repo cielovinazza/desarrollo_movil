@@ -49,6 +49,7 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
   Future<List<CotizacionDto>> obtenerCotizaciones({
     String? idBusqueda,
     String? clienteNombre,
+    String? clienteId,
     String? estado,
     DateTime? fechaInicio,
     DateTime? fechaFin,
@@ -58,6 +59,7 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
       remotas = await datasource.obtenerCotizacion(
         idBusqueda: idBusqueda,
         clienteNombre: clienteNombre,
+        clienteId: clienteId,
         estado: estado,
         fechaInicio: fechaInicio,
         fechaFin: fechaFin,

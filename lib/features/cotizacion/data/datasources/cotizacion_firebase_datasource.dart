@@ -65,6 +65,7 @@ class CotizacionFirestoreDataSource {
   Future<List<CotizacionDto>> obtenerCotizacion({
     String? idBusqueda,
     String? clienteNombre,
+    String? clienteId,
     String? estado,
     DateTime? fechaInicio,
     DateTime? fechaFin,
@@ -74,7 +75,10 @@ class CotizacionFirestoreDataSource {
     // 1. SI HAY CÓDIGO, HACEMOS BÚSQUEDA DIRECTA Y RETORNAMOS
     final codigoBusqueda = idBusqueda?.trim().toUpperCase();
 
-    // 2. SI NO HAY ID, RECIÉN AHÍ APLICAMOS LOS FILTROS DE LISTADO MASIVO
+    if (clienteId != null && clienteId.trim().isNotEmpty) {
+      query = query.where('clienteId', isEqualTo: clienteId.trim());
+    }
+    
     if (clienteNombre != null && clienteNombre.trim().isNotEmpty) {
       final busqueda = clienteNombre.toTitleCase();
       query = query

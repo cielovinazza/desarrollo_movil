@@ -18,12 +18,39 @@ class ClientesRemoteDataSource {
     await docRef.set(cliente.toMap());
 }
 
-  Future<List<ClienteDto>> getClientes() async {
-    final snapshot = await firestore.collection(_collection).get();
-    return snapshot.docs.map((doc) {
-      return ClienteDto.fromFirestore(doc.id, doc.data());
-    }).toList();
+  Future<List<ClienteDto>> getClientes({bool forzarServidor = false}) async {
+  final query = firestore.collection(_collection);
+
+  if (!forzarServidor) {
+    try {
+      final cacheSnapshot = await query.get(
+        const GetOptions(source: Source.cache),
+      );
+      if (cacheSnapshot.docs.isNotEmpty) {
+        print('✅ CLIENTES DESDE CACHÉ (${cacheSnapshot.docs.length} docs)');
+        return cacheSnapshot.docs
+            .map((doc) => ClienteDto.fromFirestore(doc.id, doc.data()))
+            .toList();
+      }
+    } catch (_) {}
   }
+  print('🌐 CLIENTES DESDE SERVIDOR');
+  try {
+    return await _obtenerDesdeServidor(query);
+  } catch (_) {
+    return await _obtenerDesdeServidor(query, source: Source.cache);
+  }
+}
+
+  Future<List<ClienteDto>> _obtenerDesdeServidor(
+  Query<Map<String, dynamic>> query, {
+  Source source = Source.server,
+}) async {
+  final snapshot = await query.get(GetOptions(source: source));
+  return snapshot.docs
+      .map((doc) => ClienteDto.fromFirestore(doc.id, doc.data()))
+      .toList();
+}
 
   Future<void> editarCliente(String id, ClienteDto cliente) async {
     await firestore

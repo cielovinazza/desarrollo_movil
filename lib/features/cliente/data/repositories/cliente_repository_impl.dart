@@ -14,6 +14,7 @@ class ClienteRepositoryImpl implements ClienteRepository {
   Future<void> registrarCliente(Cliente cliente) async {
     final dto = ClienteMapper.toDto(cliente);
     await remoteDataSource.agregarCliente(dto);
+    await remoteDataSource.getClientes(forzarServidor: true);
   }
 
   @override

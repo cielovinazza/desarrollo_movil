@@ -170,27 +170,33 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   Future<String> _guardarCotizacion() async {
   final cotizacion = _obtenerEstadoActual();
   final bool esEdicion = widget.cotizacionAEditar != null;
-  final String idParaDto = esEdicion ? widget.cotizacionAEditar!.id : '';
 
   final int versionNueva = esEdicion
       ? (widget.cotizacionAEditar!.version + 1)
       : 1;
 
-  final String codigoEstablecido = widget.cotizacionAEditar?.codigo ?? '';
-  final String stringEstado = 'En Proceso';
+  final String codigoBase = widget.cotizacionAEditar?.codigo ?? '';
+  final bool esRechazada= widget.cotizacionAEditar?.estado == 'Rechazada por el Cliente';
+  final String codigoNuevo = (esEdicion && esRechazada)
+        ? _generarCodigoVersionado(codigoBase, versionNueva)
+        : codigoBase;
+  
 
   final dto = CotizacionMapper.toDto(
     cotizacion: cotizacion,
     materiales: _materialesAgregados,
     usuarioId: _auth.currentUser?.uid ?? '',
-    estado: stringEstado,
+    estado: 'En Proceso',
   );
+  final String idParaDto = (esEdicion && !esRechazada)
+    ? widget.cotizacionAEditar!.id
+    : '';
 
   final dtoConId = dto.copyWith(
     id: idParaDto,
     version: versionNueva,
-    codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
-    estado: stringEstado,
+    codigo: codigoNuevo,
+    estado: 'En Proceso',
   );
 
   final dtoGuardado = await guardarCotizacionUseCase(dtoConId);
@@ -201,6 +207,16 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   });
 
   return dtoGuardado.id;
+}
+
+String _generarCodigoVersionado(String codigoBase, int versionNueva) {
+  final regExp = RegExp(r'^(CT-\d+)(-V\d+)?$');
+  final match = regExp.firstMatch(codigoBase);
+  if (match != null) {
+    final base = match.group(1) ?? codigoBase;
+    return '$base-V$versionNueva';
+  }
+  return '$codigoBase-V$versionNueva';
 }
 
   Future<void> _ejecutarGuardadoFinal() async {

@@ -10,6 +10,7 @@ class ObtenerCotizacion {
   Future<List<CotizacionDto>> call({
     String? idBusqueda,
     String? clienteNombre,
+    String? clienteId,
     String? estado,
     DateTime? fechaInicio,
     DateTime? fechaFin,
@@ -17,6 +18,7 @@ class ObtenerCotizacion {
     return await repository.obtenerCotizaciones(
       idBusqueda: idBusqueda,
       clienteNombre: clienteNombre,
+      clienteId: clienteId,
       estado: estado,
       fechaInicio: fechaInicio,
       fechaFin: fechaFin,
