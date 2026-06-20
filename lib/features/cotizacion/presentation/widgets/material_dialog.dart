@@ -180,7 +180,6 @@ class _MaterialDialogState extends State<MaterialDialog> {
                         contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),
                       hint: const Text('Selecciona u. de medida'),
-                      isExpanded: true, // <-- fuerza al dropdown a ocupar todo el ancho disponible
                       items: _unidadesDisponibles.map((String unidad) {
                         return DropdownMenuItem<String>(
                           value: unidad,
