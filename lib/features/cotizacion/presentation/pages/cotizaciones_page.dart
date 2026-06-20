@@ -418,6 +418,23 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     final textTheme = Theme.of(context).textTheme;
     final theme = Theme.of(context);
     final esOscuro = theme.brightness == Brightness.dark;
+    
+    final cotizacionesFiltradas = cotizaciones.where((c) {
+      final cumpleId = filterId.isEmpty || c.id.toUpperCase().contains(filterId);
+      final cumpleCliente = filterCliente.isEmpty || c.clienteNombre.toLowerCase().contains(filterCliente.toLowerCase());
+      return cumpleId && cumpleCliente;
+    }).toList();
+
+   
+    final localesDefinitivos = cotizacionesFiltradas.where((c) => c.id.startsWith('local-')).toList();
+    final remotasDefinitivas = cotizacionesFiltradas.where((c) => !c.id.startsWith('local-')).toList();
+    
+    localesDefinitivos.sort((a, b) {
+      if (a.fechaCreacion == null || b.fechaCreacion == null) return 0;
+      return b.fechaCreacion!.compareTo(a.fechaCreacion!);
+    });
+    
+    final listaOrdenadaDefinitiva = [...localesDefinitivos, ...remotasDefinitivas];
     return Stack(
       children: [
         Scaffold(
@@ -610,14 +627,8 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       ),
 
                       const SizedBox(height: 20),
-                      if (cargando)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(40.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      else if (cotizaciones.isEmpty)
+                     
+                        if (cotizaciones.isEmpty)
                         Center(
                           child: Padding(
                             padding: const EdgeInsets.all(30),
@@ -629,15 +640,15 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                             ),
                           ),
                         )
-                      else
+                      else ...[
                         ListView.separated(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          itemCount: cotizaciones.length,
+                          itemCount: listaOrdenadaDefinitiva.length, 
                           separatorBuilder: (_, _) =>
                               const SizedBox(height: 14),
                           itemBuilder: (context, index) {
-                            final cotizacion = cotizaciones[index];
+                            final cotizacion = listaOrdenadaDefinitiva[index]; 
                             return _CotizacionCard(
                               cotizacionRaw: cotizacion,
                               codigo: cotizacion.codigo,
@@ -663,6 +674,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                             );
                           },
                         ),
+                      ],
                       const SizedBox(height: 25),
                     ],
                   ),
@@ -692,6 +704,13 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                   ),
                 ),
               ),
+            ),
+          ),
+        if (cargando && cotizaciones.isNotEmpty)
+          Container(
+            color: Colors.black.withValues(alpha: 0.35),
+            child: Center(
+              child: CircularProgressIndicator(color: theme.primaryColor),
             ),
           ),
       ], // Stack
@@ -850,11 +869,21 @@ class _CotizacionCard extends StatelessWidget {
                           // Mantener color de texto solicitado
                         ),
                       ),
-                      Text(
-                        codigo.isEmpty ? 'Generando código...' : codigo,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: theme.textTheme.bodyMedium?.color,
-                        ),
+                      Row(
+                        children: [
+                          if (cotizacionRaw.id.startsWith('local-')) ...[
+                            Icon(Icons.cloud_off, size: 12, color: Colors.orange),
+                            const SizedBox(width: 4),
+                          ],
+                          Text(
+                            codigo.isEmpty ? 'Pendiente de subir' : codigo,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: cotizacionRaw.id.startsWith('local-')
+                                  ? Colors.orange
+                                  : theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

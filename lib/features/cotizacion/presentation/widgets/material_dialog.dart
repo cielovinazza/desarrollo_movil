@@ -183,10 +183,7 @@ class _MaterialDialogState extends State<MaterialDialog> {
                       items: _unidadesDisponibles.map((String unidad) {
                         return DropdownMenuItem<String>(
                           value: unidad,
-                          child: Text(
-                            unidad,
-                            overflow: TextOverflow.ellipsis, // <-- corta texto largo
-                          ),
+                          child: Text(unidad),
                         );
                       }).toList(),
                       onChanged: (String? nuevoValor) {
@@ -195,8 +192,9 @@ class _MaterialDialogState extends State<MaterialDialog> {
                         });
                         _validarFormulario();
                       },
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Ingresa la unidad' : null,
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Ingresa la unidad'
+                          : null,
                     ),
                   ),
                   const SizedBox(width: 8),

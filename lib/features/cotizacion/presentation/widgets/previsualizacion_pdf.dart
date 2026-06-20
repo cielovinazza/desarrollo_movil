@@ -1,5 +1,7 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -29,10 +31,7 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
     required this.habilitado,
   });
 
-  // FIX 5.17: Retorna la URL del PDF subido para que el llamador pueda
-  // fusionarla en la escritura del documento, eliminando vincularPdfACotizacion
-  // como operación separada.
-  static Future<String> generarYsubirPdfEstatico({
+  static Future<void> generarYsubirPdfEstatico({
     required CotizacionModel cotizacion,
     required List<MaterialEntity> materiales,
     required String codigoCotizacion,
@@ -42,6 +41,11 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
   }) async {
     final pdf = pw.Document();
     final cliente = cotizacion.cliente;
+
+    // Carga segura de bytes del logo corporativo desde assets (100% Offline)
+    final ByteData bytesData = await rootBundle.load('assets/images/logoapp.png');
+    final Uint8List logoBytes = bytesData.buffer.asUint8List();
+    final pw.MemoryImage logoImage = pw.MemoryImage(logoBytes);
 
     double subtotalMateriales = materiales.fold(0.0, (suma, m) => suma + m.subtotal);
     double subtotalManoObra = manoObra.fold(0.0, (suma, mo) => suma + mo.subtotal);
@@ -70,32 +74,41 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
           },
           build: (pw.Context context) {
             return [
-              pw.Container(
-                padding: const pw.EdgeInsets.all(15),
-                decoration: const pw.BoxDecoration(
-                  color: PdfColor.fromInt(0xFF2E7D32),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      'COTIZACION PROFESIONAL',
-                      style: pw.TextStyle(
-                        color: PdfColors.white,
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 14,
-                      ),
+              // Encabezado del PDF unificado con Logo Redondo
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.ClipOval(
+                    child: pw.Container(
+                      height: 50,
+                      width: 50,
+                      color: PdfColors.white,
+                      child: pw.Image(logoImage, fit: pw.BoxFit.cover),
                     ),
-                    pw.Text(
-                      codigoCotizacion,
-                      style: pw.TextStyle(
-                        color: PdfColors.white,
-                        fontWeight: pw.FontWeight.bold,
-                        fontSize: 12,
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text(
+                        'COTIZACION PROFESIONAL',
+                        style: pw.TextStyle(
+                          color: const PdfColor.fromInt(0xFF2E7D32),
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 14,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        'Código: $codigoCotizacion',
+                        style: pw.TextStyle(
+                          color: PdfColors.grey700,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
 
               pw.SizedBox(height: 15),
@@ -263,7 +276,7 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
                         pw.Expanded(
                           flex: 4,
                           child: pw.Text(
-                            '${m.cantidad} ${m.unidadMedida}',
+                            '${m.cantidad.toStringAsFixed(0)} ${m.unidadMedida} × ${clp(m.costoUnitario)}',
                             style: const pw.TextStyle(fontSize: 10),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -330,7 +343,7 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
                         pw.Expanded(
                           flex: 4,
                           child: pw.Text(
-                            '${mo.dias} días × ${clp(mo.valorJornada)}',
+                            '${mo.dias.toStringAsFixed(0)} días × ${clp(mo.valorJornada)}',
                             style: const pw.TextStyle(fontSize: 10),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -448,36 +461,32 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
     );
 
     final directorio = await getTemporaryDirectory();
-    final nombreSeguro = codigoCotizacion.replaceAll('/', '-');
+    final nombreSeguro = AppTemplateUtils.limpiarCodigo(codigoCotizacion);
     final nombrePdf = '$nombreSeguro.pdf';
     final rutaArchivo = '${directorio.path}/$nombrePdf';
-    final archivoFisico = File(rutaArchivo);
+    final directorioArchivo = File(rutaArchivo);
     
-    await archivoFisico.writeAsBytes(await pdf.save());
-
-    // FIX 5.17: Capturamos la URL retornada por gestionarYSubirPdf.
-    // El llamador (crear_cotizacion_page) la usa para vincularla al documento
-    // en la MISMA escritura del guardado, evitando una operación extra de red.
-    final pdfUrl = await repository.gestionarYSubirPdf(
+    await directorioArchivo.writeAsBytes(await pdf.save());
+    
+    await repository.gestionarYSubirPdf(
       id: idCotizacion,
       codigo: codigoCotizacion,
-      archivo: archivoFisico,
+      archivo: directorioArchivo,
     );
-
-    return pdfUrl;
   }
 
   @override
   State<PrevisualizacionPdfWidget> createState() =>
       _PrevisualizacionPdfWidgetState();
+}
 
-  
+class AppTemplateUtils {
+  static String limpiarCodigo(String codigo) => codigo.replaceAll('/', '-');
 }
 
 class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   bool _cargado = false;
-  bool _subiendo = false;
-  
+  final bool _subiendo = false;
 
   static const Color _verde = Color(0xFF2E7D32);
   static const Color _verdeSuave = Color(0xFFE8F5E9);
@@ -517,8 +526,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   @override
   void initState() {
     super.initState();
- 
-   
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
@@ -709,7 +716,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
 
   Widget _buildEncabezado() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: const BoxDecoration(
         color: _verde,
         borderRadius: BorderRadius.only(
@@ -718,42 +725,62 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
         ),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Icon(
-            Icons.picture_as_pdf_outlined,
-            color: Colors.white70,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'PREVISUALIZACIÓN DE COTIZACIÓN',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
+          // Renderizado del Logo Corporativo Redondo con fondo blanco protector (100% Offline)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: Colors.white.withAlpha((0.2 * 255).toInt()),
-              borderRadius: BorderRadius.circular(6),
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
             ),
-            child: Text(
-              widget.codigoCotizacion,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+            padding: const EdgeInsets.all(2),
+            child: ClipOval(
+              child: Image.asset(
+                'assets/images/logoapp.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(
+                    Icons.picture_as_pdf_outlined,
+                    color: _verde,
+                    size: 20,
+                  );
+                },
               ),
             ),
           ),
-          
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'PREVISUALIZACIÓN',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha((0.2 * 255).toInt()),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  widget.codigoCotizacion,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -801,8 +828,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               Text(label, style: const TextStyle(fontSize: 10, color: _gris)),
               Text(
                 value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

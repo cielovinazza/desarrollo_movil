@@ -187,12 +187,6 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       estado: stringEstado,
     );
 
-    final Map<String, dynamic> datosAEnviar = dto.copyWith(
-      id: idReal,
-      version: versionNueva,
-      codigo: codigoEstablecido.isNotEmpty ? codigoEstablecido : dto.codigo,
-      estado: stringEstado,
-    ).toMap();
 
     final dtoConId = dto.copyWith(
       id: idReal,
@@ -348,7 +342,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       cotizacion: cotizacion,
       materiales: _materialesAgregados,
       usuarioId: _auth.currentUser?.uid ?? '',
-      estado: 'Pendiente de sincronización',
+      estado: FlujoEstados.enProceso,
     );
 
     final idLocal = 'local-${DateTime.now().millisecondsSinceEpoch}';
@@ -374,7 +368,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       'porcentajeUtilidad': dto.porcentajeUtilidad,
       'porcentajeIva': dto.porcentajeIva,
       'totalFinal': dto.totalFinal,
-      'estado': 'Pendiente de sincronización',
+      'estado': FlujoEstados.enProceso,  
       'usuarioId': dto.usuarioId,
       'version': 1,
       'pdfUrl': null,
@@ -929,7 +923,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
                   setState(() => _guardandoEnFirestore = false);
                   await _cerrarFlujoOffline();
                 } catch (e) {
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   setState(() => _guardandoEnFirestore = false);
                   AppDialogs.mostrarSnackBar(
                     context,

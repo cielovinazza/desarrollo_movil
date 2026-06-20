@@ -17,46 +17,50 @@ class CotizacionFirestoreDataSource {
     String codigo = dto.codigo;
 
     if (codigo.trim().isEmpty) {
-      final snapshot = await collection
-          .orderBy('fechaCreacion', descending: true)
-          .limit(1)
-          .get();
-
-      int numero = 1;
-
-      if (snapshot.docs.isNotEmpty) {
-        final ultimoCodigo = snapshot.docs.first.data()['codigo'] ?? 'CT-000';
-
-        final match = RegExp(r'CT-(\d+)').firstMatch(ultimoCodigo);
-
-        if (match != null) {
-          numero = int.parse(match.group(1)!) + 1;
+      final contadorRef = firestore.collection('contadores').doc('cotizaciones');
+      codigo = await firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(contadorRef);
+        int siguienteNumero = 1;
+        if (snapshot.exists) {
+          final datos = snapshot.data();
+          final ultimoNumero = datos?['ultimoNumero'] as int? ?? 0;
+          siguienteNumero = ultimoNumero + 1;
         }
-      }
-
-      codigo = 'CT-${numero.toString().padLeft(3, '0')}';
+        transaction.set(
+          contadorRef,
+          {'ultimoNumero': siguienteNumero},
+          SetOptions(merge: true),
+        );
+        return 'CT-${siguienteNumero.toString().padLeft(3, '0')}';
+      });
     }
-
     // ACTUALIZAR
-    if (dto.id.isNotEmpty) {
+if (dto.id.isNotEmpty) {
+      final datosActualizacion = dto.toMap();
+      datosActualizacion.remove('fechaCreacion');
+
       await collection.doc(dto.id).set({
-        ...dto.toMap(),
+        ...datosActualizacion,
         'codigo': codigo,
-        'fechaCreacion': dto.fechaCreacion ?? FieldValue.serverTimestamp(),
+        'fechaEdicion': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
       return dto.id;
     }
-
     // CREAR
     final nuevoDocRef = collection.doc();
     final nuevoId = nuevoDocRef.id;
 
+    final datosCreacion = dto.toMap();
+    datosCreacion.remove('fechaCreacion');
+    datosCreacion.remove('fechaEdicion');
+
     await nuevoDocRef.set({
-      ...dto.toMap(),
+      ...datosCreacion,
       'id': nuevoId,
       'codigo': codigo,
       'fechaCreacion': FieldValue.serverTimestamp(),
+      'fechaEdicion': FieldValue.serverTimestamp(),
     });
 
     return nuevoId;
@@ -106,7 +110,12 @@ class CotizacionFirestoreDataSource {
     }
 
     query = query.orderBy('fechaCreacion', descending: true);
-    final snapshot = await query.get();
+    QuerySnapshot snapshot;
+    try {
+      snapshot = await query.get(const GetOptions(source: Source.server));
+    } catch (_) {
+      snapshot = await query.get(const GetOptions(source: Source.cache));
+    }
     var resultados = snapshot.docs
         .map(
           (doc) =>
@@ -211,9 +220,10 @@ Future<String> enviarCorreoTriggerEmail({
         ],
       },
     });
+    print('Correo enviado con éxito.');
     return docRef.id;
 
-    print('Correo enviado con éxito.');
+    
   } catch (e) {
     print('Error al registrar el correo en Firestore: $e');
     throw Exception('No se pudo programar el envío del correo de la cotización.');

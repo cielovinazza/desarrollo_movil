@@ -82,8 +82,8 @@ class CotizacionDto {
       'totalFinal': totalFinal,
       'estado': estado,
       'usuarioId': usuarioId,
-      'fechaCreacion': fechaCreacion ?? DateTime.now().toUtc().toIso8601String(),
-      'fechaEdicion': fechaEdicion ?? DateTime.now().toUtc().toIso8601String(),
+      if (fechaCreacion != null) 'fechaCreacion': fechaCreacion,
+      if (fechaEdicion != null) 'fechaEdicion': fechaEdicion,
       'version': version,
     };
   }

@@ -214,6 +214,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
       'direccion': direccionLimpia ?? '',
     });
     await _localStorage.limpiarBorradorCliente();
+    if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(

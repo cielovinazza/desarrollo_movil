@@ -26,14 +26,13 @@ Future<void> main() async {
     persistenceEnabled: true,
     cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
   );
-  await FirebaseFirestore.instance.enableNetwork();
 
   final dataSource = AuthFirebaseDataSource();
   final repository = AuthRepositoryImpl(dataSource);
   final useCase = LoginUseCase(repository);
 
   _syncService = ConnectivitySyncService();
-  _syncService.iniciar();
+  await _syncService.iniciar();
 
   runApp(MyApp(useCase: useCase));
 }
@@ -47,8 +46,27 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   ThemeMode _themeMode = ThemeMode.light;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncService.sincronizarPendientes();
+    }
+  }
 
   void cambiarTema(bool oscuro) {
     setState(() {
