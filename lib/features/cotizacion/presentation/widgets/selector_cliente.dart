@@ -316,22 +316,24 @@ class _SelectorClienteState extends State<SelectorCliente> {
 
           Autocomplete<Cliente>(
             optionsBuilder: (TextEditingValue textEditingValue) {
-              final texto = textEditingValue.text.trim().toLowerCase();
+              final textoNombre = textEditingValue.text.trim().toLowerCase();
+              final rutArriba = _normalizarRut(_rutController.text);
 
-              if (texto.isEmpty) {
-                return clientes;
+              Iterable<Cliente> resultado = clientes;
+
+              if (rutArriba.isNotEmpty) {
+                resultado = resultado.where((cliente) {
+                  return _normalizarRut(cliente.rut).contains(rutArriba);
+                });
               }
 
-              return clientes.where((cliente) {
-                final nombre = cliente.nombre.toLowerCase();
-                final rut = _normalizarRut(cliente.rut);
-                final correo = cliente.correo.toLowerCase();
-                final busquedaRut = _normalizarRut(texto);
+              if (textoNombre.isNotEmpty) {
+                resultado = resultado.where((cliente) {
+                  return cliente.nombre.toLowerCase().contains(textoNombre);
+                });
+              }
 
-                return nombre.contains(texto) ||
-                    rut.contains(busquedaRut) ||
-                    correo.contains(texto);
-              });
+              return resultado;
             },
             displayStringForOption: (Cliente cliente) {
               return '${cliente.nombre} (${cliente.rut})';
@@ -348,8 +350,8 @@ class _SelectorClienteState extends State<SelectorCliente> {
                     controller: textEditingController,
                     focusNode: focusNode,
                     decoration: InputDecoration(
-                      labelText: 'Buscar cliente',
-                      hintText: 'Escriba nombre, RUT o correo',
+                      labelText: 'Nombre del cliente',
+                      hintText: 'Escriba el nombre del cliente',
                       prefixIcon: Icon(
                         Icons.person_search_outlined,
                         color: verdeApp,
