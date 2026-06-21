@@ -10,12 +10,14 @@ import '../../../cliente/presentation/formatters/mascara_rut_formatters.dart';
 
 class SelectorCliente extends StatefulWidget {
   final TextEditingController controller;
-  final Function(Cliente?) onClienteSeleccionado; // Ahora acepta valores nulos
+  final Function(Cliente?) onClienteSeleccionado;
+  final Cliente? clienteInicial;
 
   const SelectorCliente({
     super.key,
     required this.controller,
     required this.onClienteSeleccionado,
+    this.clienteInicial,
   });
 
   @override
@@ -45,6 +47,29 @@ class _SelectorClienteState extends State<SelectorCliente> {
     _cargarClientes();
     _rutController.addListener(_filtrarClientes);
     _cargarClientesIniciales();
+    if (widget.clienteInicial != null) {
+      clienteSeleccionado = widget.clienteInicial;
+      _rutController.text = widget.clienteInicial!.rut;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant SelectorCliente oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // El borrador de cotización carga el cliente de forma asíncrona, por lo
+    // que clienteInicial puede llegar DESPUÉS de que este widget ya se haya
+    // creado (con clienteInicial == null). initState() no se vuelve a
+    // ejecutar en ese caso, así que hay que sincronizar acá para que el
+    // cliente recuperado se muestre visualmente como seleccionado.
+    if (widget.clienteInicial != null &&
+        widget.clienteInicial!.id != clienteSeleccionado?.id) {
+      setState(() {
+        clienteSeleccionado = widget.clienteInicial;
+        _rutController.text = widget.clienteInicial!.rut;
+        widget.controller.text = widget.clienteInicial!.nombre;
+        mensaje = 'Cliente precargado correctamente';
+      });
+    }
   }
 
   @override
@@ -314,111 +339,85 @@ class _SelectorClienteState extends State<SelectorCliente> {
             ),
           ),
 
-          Autocomplete<Cliente>(
-            optionsBuilder: (TextEditingValue textEditingValue) {
-              final textoNombre = textEditingValue.text.trim().toLowerCase();
-              final rutArriba = _normalizarRut(_rutController.text);
-
-              Iterable<Cliente> resultado = clientes;
-
-              if (rutArriba.isNotEmpty) {
-                resultado = resultado.where((cliente) {
-                  return _normalizarRut(cliente.rut).contains(rutArriba);
-                });
-              }
-
-              if (textoNombre.isNotEmpty) {
-                resultado = resultado.where((cliente) {
-                  return cliente.nombre.toLowerCase().contains(textoNombre);
-                });
-              }
-
-              return resultado;
-            },
-            displayStringForOption: (Cliente cliente) {
-              return '${cliente.nombre} (${cliente.rut})';
-            },
-            fieldViewBuilder:
-                (context, textEditingController, focusNode, onFieldSubmitted) {
-                  if (clienteSeleccionado != null &&
-                      textEditingController.text.isEmpty) {
-                    textEditingController.text =
-                        '${clienteSeleccionado!.nombre} (${clienteSeleccionado!.rut})';
-                  }
-
-                  return TextFormField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    decoration: InputDecoration(
-                      labelText: 'Nombre del cliente',
-                      hintText: 'Escriba el nombre del cliente',
-                      prefixIcon: Icon(
-                        Icons.person_search_outlined,
-                        color: verdeApp,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return DropdownMenu<Cliente>(
+                controller: widget.controller,
+                width: constraints.maxWidth,
+                menuHeight: 250,
+                enableFilter: true,
+                requestFocusOnTap: true,
+                label: const Text('Nombre del cliente'),
+                leadingIcon: Icon(
+                  Icons.person_search_outlined,
+                  color: verdeApp,
+                ),
+                trailingIcon: clienteSeleccionado == null
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Quitar cliente seleccionado',
+                        onPressed: () {
+                          setState(() {
+                            widget.controller.clear();
+                            _rutController.clear();
+                            clienteSeleccionado = null;
+                            mensaje = null;
+                          });
+                          widget.onClienteSeleccionado(null);
+                        },
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: verdeApp.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: verdeApp, width: 2),
-                      ),
-                    ),
-                  );
-                },
-            optionsViewBuilder: (context, onSelected, options) {
-              return Align(
-                alignment: Alignment.topLeft,
-                child: Material(
-                  elevation: 4,
-                  borderRadius: BorderRadius.circular(12),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxHeight: 250,
-                      maxWidth: 420,
-                    ),
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: options.length,
-                      itemBuilder: (context, index) {
-                        final cliente = options.elementAt(index);
-
-                        return ListTile(
-                          leading: Icon(Icons.person_outline, color: verdeApp),
-                          title: Text(
-                            cliente.nombre,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          subtitle: Text(
-                            '${cliente.rut} • ${cliente.correo}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () => onSelected(cliente),
-                        );
-                      },
+                inputDecorationTheme: InputDecorationTheme(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: verdeApp.withValues(alpha: 0.25),
                     ),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: verdeApp, width: 2),
+                  ),
                 ),
+                dropdownMenuEntries: clientesFiltrados.isEmpty
+                    ? [
+                        DropdownMenuEntry<Cliente>(
+                          value: Cliente(
+                            id: '',
+                            nombre: '',
+                            correo: '',
+                            rut: '',
+                            telefono: '',
+                            direccion: '',
+                          ),
+                          label: 'No se encontraron clientes',
+                          enabled: false,
+                        ),
+                      ]
+                    : clientesFiltrados.map((cliente) {
+                        return DropdownMenuEntry<Cliente>(
+                          value: cliente,
+                          label: cliente.nombre,
+                          leadingIcon: Icon(
+                            Icons.person_outline,
+                            color: verdeApp,
+                          ),
+                        );
+                      }).toList(),
+                onSelected: (cliente) {
+                  if (cliente == null) return;
+                  setState(() {
+                    clienteSeleccionado = cliente;
+                    _rutController.text = cliente.rut;
+                    widget.controller.text = cliente.nombre;
+                    mensaje = 'Cliente seleccionado correctamente';
+                  });
+                  widget.onClienteSeleccionado(cliente);
+                },
               );
-            },
-            onSelected: (Cliente cliente) {
-              setState(() {
-                clienteSeleccionado = cliente;
-                _rutController.text = cliente.rut;
-                widget.controller.text = cliente.nombre;
-                mensaje = 'Cliente seleccionado correctamente';
-              });
-
-              widget.onClienteSeleccionado(cliente);
             },
           ),
 

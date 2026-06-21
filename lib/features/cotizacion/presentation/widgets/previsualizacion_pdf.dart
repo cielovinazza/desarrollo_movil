@@ -58,14 +58,41 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
     double totalFinal = baseConUtilidad + montoIva;
 
     String clp(double valor) => '${CurrencyFormatter.format(valor)} CLP';
-    
-    // Función local para limpiar el .0 en la generación del documento PDF
     String fmt(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
+
+    String fmtFecha(DateTime? fecha) {
+      if (fecha == null) return '-';
+      final f = fecha.toLocal();
+      return '${f.day.toString().padLeft(2, '0')}/${f.month.toString().padLeft(2, '0')}/${f.year}';
+    }
+
+    final bool fueEditada = cotizacion.fechaEdicion != null &&
+        cotizacion.fechaCreacion != null &&
+        cotizacion.fechaEdicion!.difference(cotizacion.fechaCreacion!).abs() >
+            const Duration(minutes: 1);
 
     pdf.addPage(
         pw.MultiPage(
-          pageFormat: PdfPageFormat.letter,
-          margin: const pw.EdgeInsets.all(28),
+          pageTheme: pw.PageTheme(
+            pageFormat: PdfPageFormat.letter,
+            margin: const pw.EdgeInsets.all(28),
+            buildBackground: (pw.Context context) {
+              return pw.FullPage(
+                ignoreMargins: true,
+                child: pw.Center(
+                  child: pw.Opacity(
+                    opacity: 0.1,
+                    child: pw.Image(
+                      logoImage,
+                      width: 320,
+                      height: 320,
+                      fit: pw.BoxFit.contain,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
           footer: (pw.Context context) {
             return pw.Align(
               alignment: pw.Alignment.centerRight,
@@ -78,41 +105,34 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
           build: (pw.Context context) {
             return [
               // Encabezado del PDF unificado con Logo Redondo
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.ClipOval(
-                    child: pw.Container(
-                      height: 50,
-                      width: 50,
-                      color: PdfColors.white,
-                      child: pw.Image(logoImage, fit: pw.BoxFit.cover),
-                    ),
-                  ),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'COTIZACION PROFESIONAL',
-                        style: pw.TextStyle(
-                          color: const PdfColor.fromInt(0xFF2E7D32),
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      pw.SizedBox(height: 2),
-                      pw.Text(
-                        'Código: $codigoCotizacion',
-                        style: pw.TextStyle(
-                          color: PdfColors.grey700,
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              pw.Container(
+  padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  decoration: const pw.BoxDecoration(
+    color: PdfColor.fromInt(0xFF2E7D32),
+  ),
+  child: pw.Row(
+    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+    crossAxisAlignment: pw.CrossAxisAlignment.center,
+    children: [
+      pw.Text(
+        'COTIZACION PROFESIONAL',
+        style: pw.TextStyle(
+          color: PdfColors.white,
+          fontWeight: pw.FontWeight.bold,
+          fontSize: 16,
+        ),
+      ),
+      pw.Text(
+        codigoCotizacion,
+        style: pw.TextStyle(
+          color: PdfColors.white,
+          fontWeight: pw.FontWeight.bold,
+          fontSize: 14,
+        ),
+      ),
+    ],
+  ),
+),
 
               pw.SizedBox(height: 15),
 
@@ -170,6 +190,21 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
                           style: const pw.TextStyle(fontSize: 11),
                           textAlign: pw.TextAlign.right,
                         ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          'Fecha: ${fmtFecha(cotizacion.fechaCreacion)}',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold,
+                            fontSize: 11,),
+                          ),
+                        if (fueEditada)
+                          pw.Text(
+                            'Editado: ${fmtFecha(cotizacion.fechaEdicion)}',
+                            style: pw.TextStyle(
+                              color: PdfColors.grey700,
+                              fontSize: 11,
+                              fontStyle: pw.FontStyle.italic,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -422,7 +457,6 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        // PDF FIX: Quita el .0 en la utilidad impresa en el PDF
                         pw.Text('Utilidad (${fmt(cotizacion.porcentajeUtilidad)}%):'),
                         pw.Text(clp(montoUtilidad)),
                       ],
@@ -430,7 +464,6 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        // PDF FIX: Quita el .0 en el IVA impreso en el PDF
                         pw.Text('IVA (${fmt(cotizacion.porcentajeIva)}%):'),
                         pw.Text(clp(montoIva)),
                       ],
@@ -526,7 +559,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     return '${CurrencyFormatter.format(valor)} CLP';
   }
 
-  // Función nativa en el State para limpiar la vista previa de la tarjeta verde en la app móvil
   String _fmt(double v) => v % 1 == 0 ? v.toInt().toString() : v.toStringAsFixed(1);
 
   @override
@@ -935,7 +967,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           ),
           const SizedBox(height: 6),
           _filaResumen(
-            // INTERFAZ FIX: Limpia el .0 en el porcentaje de utilidad de la tarjeta verde
             'Utilidad aplicada (${_fmt(porcentajeUtilidad)}%)',
             _clp(_montoUtilidad),
             icono: Icons.trending_up,
@@ -945,7 +976,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           _filaResumen('Base + utilidad', _clp(_baseConUtilidad)),
           const SizedBox(height: 6),
           _filaResumen(
-            // INTERFAZ FIX: Limpia el .0 en el porcentaje de IVA de la tarjeta verde
             'IVA (${_fmt(porcentajeIva)}%)',
             _clp(_montoIva),
             icono: Icons.percent,

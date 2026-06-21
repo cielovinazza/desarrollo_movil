@@ -29,6 +29,8 @@ class CotizacionModel {
   final double porcentajeIva; 
   final List<MaterialEntity> materiales;     
   final List<ManoDeObra> listaManoObra;
+  final DateTime? fechaCreacion;
+  final DateTime? fechaEdicion;
 
   CotizacionModel({
     required this.cliente,
@@ -39,6 +41,8 @@ class CotizacionModel {
     this.porcentajeIva = 19.0,
     required this.materiales,
     required this.listaManoObra,
+    this.fechaCreacion,
+    this.fechaEdicion,
   });
 
   // Suma total de todos los subtotales de la lista de trabajos

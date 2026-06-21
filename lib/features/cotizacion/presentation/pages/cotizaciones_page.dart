@@ -12,6 +12,7 @@ import '../../../../core/utils/currency_formatter.dart';
 import 'generar_pdf_page.dart';
 import '../../../../shared/widgets/app_dialogs.dart';
 import '../widgets/panel_filtros.dart';
+import '../widgets/post_it_observaciones.dart';
 
 class CotizacionesPage extends StatefulWidget {
   final bool filtrarMesActual;
@@ -239,50 +240,65 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
 }
 
   Future<void> cambiarEstado(
-    CotizacionDto cotizacion,
-    String nuevoEstado,
-  ) async {
-    try {
-      final observacion = await mostrarModalObservacionEstado(nuevoEstado);
-
-      if (observacion == null) {
-        return;
-      }
-
-      if (nuevoEstado == 'Enviada') {
-        await mostrarModalResumenEnvio(cotizacion);
-        return;
-      }
-
-      await actualizarEstadoUseCase(
-        cotizacion.id,
-        cotizacion.estado,
-        nuevoEstado,
-        observacion: observacion,
-      );
-
-      await cargarCotizacion();
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Cotización actualizada a: $nuevoEstado'),
-          backgroundColor: estadoColor(nuevoEstado),
-        ),
-      );
-    } catch (e) {
-      AppDialogs.mostrarError(
-        context,
-        'Transición de Estado Inválida',
-        e.toString().replaceAll('Exception: ', ''),
-      );
-    }
+  CotizacionDto cotizacion,
+  String nuevoEstado,
+) async {
+  if (!FlujoEstados.validarTransicion(cotizacion.estado, nuevoEstado)) {
+    AppDialogs.mostrarError(
+      context,
+      'Transición de Estado Inválida',
+      'No se puede cambiar de "${cotizacion.estado}" a "$nuevoEstado".',
+    );
+    return;
   }
 
-  Future<void> procesarEnvioCorreo(CotizacionDto cotizacion) async {
+  try {
+    final observacion = await mostrarModalObservacionEstado(nuevoEstado);
+
+    if (observacion == null) {
+      return;
+    }
+
+    if (nuevoEstado == 'Enviada') {
+      await mostrarModalResumenEnvio(cotizacion, observacion: observacion);
+      return;
+    }
+
+    await actualizarEstadoUseCase(
+      cotizacion.id,
+      cotizacion.estado,
+      nuevoEstado,
+      observacion: observacion,
+    );
+
+    await cargarCotizacion();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Cotización actualizada a: $nuevoEstado'),
+        backgroundColor: estadoColor(nuevoEstado),
+      ),
+    );
+  } catch (e) {
+    AppDialogs.mostrarError(
+      context,
+      'Transición de Estado Inválida',
+      e.toString().replaceAll('Exception: ', ''),
+    );
+  }
+}
+
+  Future<void> procesarEnvioCorreo(
+    CotizacionDto cotizacion, {
+    String? observacion,
+  }) async {
     setState(() => enviandoCorreo = true);
     try {
-      await repository.enviarCotizacionPorCorreo(cotizacion);
+      await repository.enviarCotizacionPorCorreo(
+        cotizacion,
+        observacion: observacion,
+      );
       await cargarCotizacion();
 
       if (!mounted) return;
@@ -329,7 +345,10 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
 
   bool _estacargando = false;
 
-  Future<void> mostrarModalResumenEnvio(CotizacionDto cotizacion) async {
+  Future<void> mostrarModalResumenEnvio(
+    CotizacionDto cotizacion, {
+    String? observacion,
+  }) async {
     final subtotalCostosDirectos =
         cotizacion.subtotalObra +
         cotizacion.subtotalMateriales +
@@ -417,7 +436,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     );
 
     if (confirmar == true) {
-      await procesarEnvioCorreo(cotizacion);
+      await procesarEnvioCorreo(cotizacion, observacion: observacion);
     }
   }
 
@@ -746,7 +765,7 @@ class _ItemResumenNeutro extends StatelessWidget {
     required this.value,
     required this.colorText,
   });
-
+  
   @override
   Widget build(BuildContext context) {
     return Expanded(
@@ -826,7 +845,11 @@ class _CotizacionCard extends StatelessWidget {
         estado == 'Aprobada por el Cliente' ||
         estado == 'Aceptada';
 
-    return InkWell(
+    final bool tieneObservacion =
+        cotizacionRaw.observacion != null &&
+        cotizacionRaw.observacion!.trim().isNotEmpty;
+
+    final Widget cardContent = InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: () {
         if (tienePdf) {
@@ -1191,6 +1214,23 @@ class _CotizacionCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+
+    if (!tieneObservacion) return cardContent;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        cardContent,
+        Positioned(
+          top: -6,
+          right: -6,
+          child: PostItTab(
+            observacion: cotizacionRaw.observacion!,
+            codigo: codigo,
+          ),
+        ),
+      ],
     );
   }
 }

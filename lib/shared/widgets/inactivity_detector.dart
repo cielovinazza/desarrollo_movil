@@ -44,9 +44,8 @@ class _InactivityDetectorState extends State<InactivityDetector> {
     await FirebaseAuth.instance.signOut();
   }
 
-  // CRITERIO DE ACEPTACIÓN 2: Cancela la cuenta regresiva de gracia y reinicia el timer general
   void _mantenerConectado(BuildContext dialogCtx) {
-    _timer?.cancel(); // Frena el timer que gatillaba _cerrarSesion
+    _timer?.cancel(); 
     setState(() {
       _dialogoVisible = false;
     });
@@ -65,7 +64,7 @@ class _InactivityDetectorState extends State<InactivityDetector> {
 
     showDialog(
       context: context,
-      barrierDismissible: false, // Forzar uso de botones explícitos para consistencia de UX
+      barrierDismissible: false, 
       builder: (ctx) => AlertDialog(
         title: const Text('Sesión a punto de expirar'),
         content: Text(
@@ -73,7 +72,7 @@ class _InactivityDetectorState extends State<InactivityDetector> {
           'por inactividad.',
         ),
         actions: [
-          // CRITERIO DE ACEPTACIÓN 1: Botón de acción secundario explícito para continuar
+      
           OutlinedButton(
             onPressed: () => _mantenerConectado(ctx),
             child: const Text('Mantener conectado'),
@@ -88,7 +87,7 @@ class _InactivityDetectorState extends State<InactivityDetector> {
         ],
       ),
     ).then((_) {
-      // Manejo seguro por si el diálogo es destruido por otra vía
+
       if (!_cerrando && _dialogoVisible) {
         setState(() {
           _dialogoVisible = false;

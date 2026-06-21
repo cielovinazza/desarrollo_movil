@@ -47,6 +47,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   bool _cotizacionGuardada = false;
   bool _guardandoEnFirestore = false;
   String? _idCotizacionCreada;
+  DateTime? fechaRecienCreada;
 
   final List<ManoDeObra> _manoObraAgregada = [];
   final List<ItemTrabajo> _trabajosAgregados = [];
@@ -164,12 +165,21 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       porcentajeUtilidad: double.tryParse(_utilidadController.text) ?? 0.0,
       porcentajeIva: double.tryParse(_ivaController.text) ?? 19.0,
       materiales: _materialesAgregados,
+      fechaCreacion: widget.cotizacionAEditar?.fechaCreacion != null
+        ? DateTime.parse(widget.cotizacionAEditar!.fechaCreacion!)
+        : fechaRecienCreada,
+      fechaEdicion: widget.cotizacionAEditar?.fechaEdicion != null
+        ? DateTime.parse(widget.cotizacionAEditar!.fechaEdicion!)
+        : null,
     );
   }
 
   Future<String> _guardarCotizacion() async {
   final cotizacion = _obtenerEstadoActual();
   final bool esEdicion = widget.cotizacionAEditar != null;
+  if (!esEdicion){
+    fechaRecienCreada = DateTime.now();
+  }
 
   final int versionNueva = esEdicion
       ? (widget.cotizacionAEditar!.version + 1)
@@ -956,6 +966,7 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
                         : 1.0,
                     child: SelectorCliente(
                       controller: _clienteController,
+                      clienteInicial: _clienteSeleccionado,
                       onClienteSeleccionado: (Cliente? cliente) {
                         setState(() => _clienteSeleccionado = cliente);
                         if (cliente == null) {
@@ -1052,7 +1063,7 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
                             ),
                           ),
                           subtitle: Text(
-                            '${item.metrosCuadrados} m² × ${CurrencyFormatter.format(item.precioPorMetro)} / m²',
+                            '${item.metrosCuadrados.toInt()} m² × ${CurrencyFormatter.format(item.precioPorMetro)} / m²' '\n${item.descripcionBreve ?? ''}',
                             style: TextStyle(
                               color: esOscuro ? Colors.white70 : Colors.grey,
                             ),

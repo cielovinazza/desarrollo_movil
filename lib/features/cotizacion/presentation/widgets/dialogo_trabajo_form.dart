@@ -79,10 +79,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(subContext).pop();
-              nuevoTipoController.dispose();
-            },
+            onPressed: () => Navigator.of(subContext).pop(),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -91,15 +88,13 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              if (formKeyTipo.currentState!.validate()) {
-                final nuevoTipo = nuevoTipoController.text.trim();
-                widget.onNuevoTipoCreado(nuevoTipo);
-                setState(() {
-                  tipoSeleccionado = nuevoTipo;
-                });
-                Navigator.of(subContext).pop();
-                nuevoTipoController.dispose();
-              }
+              if (!formKeyTipo.currentState!.validate()) return;
+              final nuevoTipo = nuevoTipoController.text.trim();
+              Navigator.of(subContext).pop();
+              widget.onNuevoTipoCreado(nuevoTipo);
+              setState(() {
+                tipoSeleccionado = nuevoTipo;
+              });
             },
             child: const Text('Crear'),
           ),

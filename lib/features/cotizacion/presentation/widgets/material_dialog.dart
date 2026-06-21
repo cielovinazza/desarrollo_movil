@@ -218,7 +218,9 @@ class _MaterialDialogState extends State<MaterialDialog> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _cantidadController,
-                inputFormatters: [LengthLimitingTextInputFormatter(3)],
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                  LengthLimitingTextInputFormatter(6)],
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),

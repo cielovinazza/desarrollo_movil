@@ -14,8 +14,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 
 class RegistroClientePage extends StatefulWidget {
   final String? rutInicial;
+  final String? nombreInicial;
 
-  const RegistroClientePage({super.key, this.rutInicial});
+  const RegistroClientePage({super.key, this.rutInicial, this.nombreInicial});
 
   @override
   State<RegistroClientePage> createState() => _RegistroClientePageState();
@@ -52,8 +53,14 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
     _telefonoController.addListener(_autoguardarCliente);
     _direccionController.addListener(_autoguardarCliente);
     
-    if (widget.rutInicial != null) {
-      _rutController.text = widget.rutInicial!;
+    if (widget.rutInicial != null || widget.nombreInicial != null) {
+    // Si viene dato inyectado, ignorar borrador
+      if (widget.rutInicial != null) {
+        _rutController.text = RutInputFormatter.formatear(widget.rutInicial!);
+      }
+      if (widget.nombreInicial != null) {
+        _nombreController.text = widget.nombreInicial!;
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) => _validarFormulario());
     }
   }
@@ -253,6 +260,7 @@ class _RegistroClientePageState extends State<RegistroClientePage> {
   }
 
   Future<void> _recuperarBorradorCliente() async {
+    if (widget.rutInicial!= null || widget.nombreInicial!= null) return;
     final borrador = await _localStorage.obtenerBorradorCliente();
     if (borrador == null) return;
 

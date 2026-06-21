@@ -110,6 +110,8 @@ class CotizacionMapper {
       viatico: dto.viatico,
       porcentajeUtilidad: dto.porcentajeUtilidad,
       porcentajeIva: dto.porcentajeIva,
+      fechaCreacion: dto.fechaCreacion != null ? DateTime.parse(dto.fechaCreacion!) : null,
+      fechaEdicion: dto.fechaEdicion != null ? DateTime.parse(dto.fechaEdicion!) : null,
     );
   }
 

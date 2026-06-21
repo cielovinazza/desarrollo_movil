@@ -167,7 +167,10 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
   }
 
 @override
-Future<void> enviarCotizacionPorCorreo(CotizacionDto cotizacion) async {
+Future<void> enviarCotizacionPorCorreo(
+  CotizacionDto cotizacion, {
+  String? observacion,
+}) async {
   if (cotizacion.pdfUrl == null || cotizacion.pdfUrl!.isEmpty) {
     throw Exception(
       'No se puede enviar la cotización sin un documento PDF vinculado.',
@@ -205,6 +208,7 @@ Future<void> enviarCotizacionPorCorreo(CotizacionDto cotizacion) async {
     cotizacion.id,
     cotizacion.estado,
     FlujoEstados.enviada,
+    observacion: observacion,
   );
   FirebaseFirestore.instance
       .collection('historial_correos')

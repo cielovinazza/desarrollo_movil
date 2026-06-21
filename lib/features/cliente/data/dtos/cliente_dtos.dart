@@ -39,7 +39,7 @@ class ClienteDto {
       rut: map['rut'] ?? '',
       correo: map['correo'] ?? '',
       telefono: map['telefono'] ?? '',
-      direccion: map['direccion'],
+      direccion: map['direccion'] ?? 'Sin Dirección',
     );
   }
 }

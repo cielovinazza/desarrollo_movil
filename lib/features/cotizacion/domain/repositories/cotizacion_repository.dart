@@ -26,5 +26,8 @@ abstract class CotizacionRepository {
     required File archivo,
   });
 
-  Future<void> enviarCotizacionPorCorreo(CotizacionDto cotizacion);
+  Future<void> enviarCotizacionPorCorreo(
+    CotizacionDto cotizacion, {
+    String? observacion,
+  });
 }
