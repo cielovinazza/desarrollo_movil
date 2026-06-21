@@ -73,7 +73,7 @@ class CotizacionMapper {
         metrosCuadrados: (e['metrosCuadrados'] as num).toDouble(),
         precioPorMetro: (e['precioPorMetro'] as num).toDouble(),
         descripcionBreve:
-            e['descripcionBreve'] as String?, //Recuperación desde Firestore
+            e['descripcionBreve'] as String?, 
       );
     }).toList();
 

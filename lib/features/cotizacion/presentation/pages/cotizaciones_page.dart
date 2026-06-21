@@ -168,30 +168,28 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
       title: const Text('Cambiar estado'),
       content: SizedBox(
         width: 420,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Nuevo estado: $nuevoEstado'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: observacionController,
-              minLines: 4,
-              maxLines: 4,
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
-              maxLength: 250,
-              decoration: InputDecoration(
-                labelText: nuevoEstado == 'Rechazada por el Cliente'
-                    ? 'Motivo de rechazo'
-                    : 'Observaciones',
-                hintText: nuevoEstado == 'Rechazada por el Cliente'
-                    ? 'Ingrese el motivo del rechazo'
-                    : 'Ingrese una observación opcional',
-                border: OutlineInputBorder(),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Nuevo estado: $nuevoEstado'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: observacionController,
+                minLines: 4,
+                maxLines: 4,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                maxLength: 250,
+                decoration: const InputDecoration(
+                  labelText: 'Motivo de rechazo',
+                  hintText: 'Ingrese el motivo del rechazo',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       actions: [
@@ -212,13 +210,14 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                 .length;
 
             final requiereObservacion =
-                nuevoEstado == 'Rechazada por el Cliente';
+                nuevoEstado == 'Rechazada por el Cliente' ||
+                nuevoEstado == 'Cancelada';
 
             if (requiereObservacion && cantidadPalabras < 3) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Debe ingresar un motivo de rechazo de al menos 3 palabras.',
+                    'Debe ingresar un motivo de al menos 3 palabras.',
                   ),
                 ),
               );
@@ -331,6 +330,8 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
         return AppTheme.primary.withValues(alpha: 0.7);
       case 'Enviada':
         return Colors.blueGrey;
+      case 'Cancelada':
+        return Colors.grey;
       default:
         return AppTheme.warning;
     }
@@ -742,7 +743,7 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
               child: CircularProgressIndicator(color: theme.primaryColor),
             ),
           ),
-      ], // Stack
+      ], 
     );
   }
 
@@ -840,10 +841,6 @@ class _CotizacionCard extends StatelessWidget {
     final bool esRechazada =
         estado == 'Rechazada por el Cliente' || estado == 'Rechazada';
     final bool esEnProceso = estado == 'En Proceso';
-    final bool esEnviadaOAprobada =
-        estado == 'Enviada' ||
-        estado == 'Aprobada por el Cliente' ||
-        estado == 'Aceptada';
 
     final bool tieneObservacion =
         cotizacionRaw.observacion != null &&
@@ -869,28 +866,14 @@ class _CotizacionCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.12)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
-                  child: Icon(
-                    Icons.description_outlined,
-                    color: theme.primaryColor,
-                  ),
-                ),
-                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -899,21 +882,21 @@ class _CotizacionCard extends StatelessWidget {
                         cliente,
                         style: textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          // Mantener color de texto solicitado
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 2),
                       Row(
                         children: [
                           if (cotizacionRaw.id.startsWith('local-')) ...[
-                            Icon(Icons.cloud_off, size: 12, color: Colors.orange),
+                            Icon(Icons.cloud_off, size: 12, color: theme.hintColor),
                             const SizedBox(width: 4),
                           ],
                           Text(
                             codigo.isEmpty ? 'Pendiente de subir' : codigo,
                             style: textTheme.bodySmall?.copyWith(
-                              color: cotizacionRaw.id.startsWith('local-')
-                                  ? Colors.orange
-                                  : theme.textTheme.bodyMedium?.color,
+                              color: theme.hintColor,
                             ),
                           ),
                         ],
@@ -921,56 +904,63 @@ class _CotizacionCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                Chip(
-                  label: Text(
-                    estado,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                const SizedBox(width: 12),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: estadoColor,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  padding: EdgeInsets.zero,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  backgroundColor: estadoColor,
-                  side: BorderSide.none,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                    const SizedBox(width: 6),
+                    Text(
+                      estado,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: estadoColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const Divider(height: 24),
+            const SizedBox(height: 16),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Icon(
                   Icons.calendar_today_outlined,
-                  size: 16,
+                  size: 14,
                   color: theme.hintColor,
                 ),
                 const SizedBox(width: 6),
-                Text(fecha, style: textTheme.bodyMedium),
-                Expanded(
-                  child: Text(
-                    monto,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.primaryColor,
-                    ),
+                Text(fecha, style: textTheme.bodyMedium?.copyWith(color: theme.hintColor)),
+                const Spacer(),
+                Text(
+                  monto,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.primaryColor,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 14),
+              child: Divider(height: 1),
+            ),
             Row(
               children: [
                 Text(
                   'Estado:',
                   style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -982,8 +972,12 @@ class _CotizacionCard extends StatelessWidget {
                         horizontal: 10,
                         vertical: 4,
                       ),
+                      isDense: true,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(
+                          color: theme.dividerColor.withValues(alpha: 0.4),
+                        ),
                       ),
                     ),
                     style: textTheme.bodyMedium,
@@ -1008,6 +1002,10 @@ class _CotizacionCard extends StatelessWidget {
                         value: 'Rechazada por el Cliente',
                         child: Text('Rechazada por el Cliente'),
                       ),
+                      DropdownMenuItem(
+                        value: 'Cancelada',
+                        child: Text('Cancelada'),
+                      ),
                     ],
                     onChanged: (val) {
                       if (val != null && val != estado) {
@@ -1019,145 +1017,90 @@ class _CotizacionCard extends StatelessWidget {
               ],
             ),
             if (esListaParaEnvio) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.primaryColor.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  if (noTienePdf) ...[
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          if (noTienePdf) {
-                            final resultado = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    GenerarPdfPage(cotizacion: cotizacionRaw),
-                              ),
-                            );
-                            if (resultado == true) {
-                              await onRecargar();
-                            }
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VerPdfPage(
-                                  url: cotizacionRaw.pdfUrl,
-                                  codigoCotizacion: cotizacionRaw.codigo,
-                                ),
-                              ),
-                            );
+                          final resultado = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  GenerarPdfPage(cotizacion: cotizacionRaw),
+                            ),
+                          );
+                          if (resultado == true) {
+                            await onRecargar();
                           }
                         },
-                        icon: Icon(
-                          noTienePdf
-                              ? Icons.picture_as_pdf_outlined
-                              : Icons.picture_as_pdf,
-                          size: 16,
-                        ),
-                        label: Text(noTienePdf ? 'Generar PDF' : 'Ver PDF'),
+                        icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
+                        label: const Text('Generar PDF'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: tienePdf
-                              ? theme.colorScheme.error
-                              : theme.primaryColor,
+                          foregroundColor: theme.colorScheme.onSurfaceVariant,
                           side: BorderSide(
-                            color: tienePdf
-                                ? theme.colorScheme.error
-                                : theme.primaryColor,
+                            color: theme.dividerColor.withValues(alpha: 0.4),
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: onEnviarCorreoSolicitado,
-                        icon: const Icon(Icons.mail, size: 16),
-                        label: const Text('Enviar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.primaryColor,
-                          foregroundColor: theme.colorScheme.onPrimary,
-                        ),
+                  ],
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: onEnviarCorreoSolicitado,
+                      icon: const Icon(Icons.mail_outline, size: 16),
+                      label: const Text('Enviar'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.primaryColor,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        elevation: 0,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
             if (esRechazada) ...[
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.primaryColor.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    if (tienePdf)
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => VerPdfPage(
-                                  url: cotizacionRaw.pdfUrl,
-                                  codigoCotizacion: cotizacionRaw.codigo,
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.picture_as_pdf, size: 16),
-                          label: const Text('Ver PDF'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: theme.colorScheme.error,
-                            side: BorderSide(color: theme.colorScheme.error),
-                          ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CrearCotizacionPage(
+                          cotizacionAEditar: cotizacionRaw,
                         ),
                       ),
-                    if (tienePdf) const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CrearCotizacionPage(
-                                cotizacionAEditar: cotizacionRaw,
-                              ),
-                            ),
-                          );
-                          await onRecargar();
-                        },
-                        icon: const Icon(Icons.edit_note, size: 18),
-                        label: const Text(
-                          'Editar',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.primaryColor,
-                          foregroundColor: theme.colorScheme.onPrimary,
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                    await onRecargar();
+                  },
+                  icon: const Icon(Icons.edit_note, size: 18),
+                  label: const Text(
+                    'Editar',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.primaryColor,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
               ),
             ],
             if (esEnProceso) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.primaryColor,
                     foregroundColor: theme.colorScheme.onPrimary,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -1182,33 +1125,17 @@ class _CotizacionCard extends StatelessWidget {
                 ),
               ),
             ],
-            if (esEnviadaOAprobada && tienePdf) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => VerPdfPage(
-                          url: cotizacionRaw.pdfUrl,
-                          codigoCotizacion: cotizacionRaw.codigo,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.picture_as_pdf, size: 18),
-                  label: const Text('Ver PDF'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.colorScheme.error,
-                    side: BorderSide(color: theme.colorScheme.error),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+            if (tienePdf) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Icon(Icons.touch_app_outlined, size: 13, color: theme.hintColor),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Toca la tarjeta para ver el PDF',
+                    style: textTheme.bodySmall?.copyWith(color: theme.hintColor),
                   ),
-                ),
+                ],
               ),
             ],
           ],

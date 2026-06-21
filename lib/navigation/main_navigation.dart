@@ -20,6 +20,7 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
   bool _filtrarMesActual = false;
+  final _listadoClientesKey = GlobalKey<ListadoClientesPageState>();
 
   void changeTab(int index) {
     setState(() {
@@ -29,6 +30,9 @@ class _MainNavigationState extends State<MainNavigation> {
         _filtrarMesActual = false;
       }
     });
+    if (index == 1) {
+      _listadoClientesKey.currentState?.cargarClientes();
+    }
   }
 
   void abrirCotizacionesMesActual() {
@@ -60,7 +64,7 @@ class _MainNavigationState extends State<MainNavigation> {
           onThemeChanged: widget.onThemeChanged,
            onReintentarEnvio: _reintentarEnvio,
         ),
-        const ListadoClientesPage(),
+        ListadoClientesPage(key: _listadoClientesKey),
         CotizacionesPage(filtrarMesActual: _filtrarMesActual,
         codigoParaReintentar: _codigoParaReintentar,
         onReintentoCompletado: _limpiarReintento,

@@ -48,6 +48,9 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   ThemeMode _themeMode = ThemeMode.light;
+  final Future<void> _delayInicial = Future.delayed(
+    const Duration(milliseconds: 500),
+  );
 
   @override
   void initState() {
@@ -92,7 +95,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
           if (snapshot.hasData) {
             return FutureBuilder(
-              future: Future.delayed(const Duration(milliseconds: 500)),
+              future: _delayInicial,
               builder: (context, delaySnapshot) {
                 if (delaySnapshot.connectionState != ConnectionState.done) {
                   return const Scaffold(

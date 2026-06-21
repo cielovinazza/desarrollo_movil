@@ -71,8 +71,6 @@ class CotizacionFirestoreDataSource {
     DateTime? fechaFin,
   }) async {
     Query query = firestore.collection('cotizaciones');
-
-    // 1. SI HAY CÓDIGO, HACEMOS BÚSQUEDA DIRECTA Y RETORNAMOS
     final codigoBusqueda = idBusqueda?.trim().toUpperCase();
 
     if (clienteId != null && clienteId.trim().isNotEmpty) {

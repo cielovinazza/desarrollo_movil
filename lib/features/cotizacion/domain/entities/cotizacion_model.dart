@@ -6,16 +6,14 @@ class ItemTrabajo {
   final String tipo;
   final double metrosCuadrados;
   final double precioPorMetro;
-  final String? descripcionBreve; //Atributo opcional
+  final String? descripcionBreve; 
 
   ItemTrabajo({
     required this.tipo,
     required this.metrosCuadrados,
     required this.precioPorMetro,
-    this.descripcionBreve, //Parámetro opcional en el constructor
+    this.descripcionBreve, 
   });
-
-  // Subtotal de este ítem específico
   double get subtotal =>
     double.parse((metrosCuadrados * precioPorMetro).toStringAsFixed(2));
 }
@@ -45,7 +43,7 @@ class CotizacionModel {
     this.fechaEdicion,
   });
 
-  // Suma total de todos los subtotales de la lista de trabajos
+
   double get subtotalObraTotal {
     final total = listaTrabajos.fold(
       0.0,
@@ -84,7 +82,6 @@ class CotizacionModel {
     totalCalculado =
       double.parse(totalCalculado.toStringAsFixed(2));
 
-    // Redondeo tradicional a CLP sin decimales
     return totalCalculado.roundToDouble();
   } 
 }

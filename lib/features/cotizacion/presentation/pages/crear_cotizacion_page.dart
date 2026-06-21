@@ -59,6 +59,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
   final _localStorage = LocalStorage();
+  final FocusNode _direccionFocus = FocusNode();
   
   String _formatearNumero(num valor){
     return valor % 1 == 0 ? valor.toInt().toString() 
@@ -132,6 +133,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     _viaticoController.dispose();
     _utilidadController.dispose();
     _ivaController.dispose();
+    _direccionFocus.dispose();
     _clienteController.removeListener(_autoguardar);
     _direccionController.removeListener(_autoguardar);
     _viaticoController.removeListener(_autoguardar);
@@ -286,7 +288,7 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
       context: context,
       barrierDismissible: false,
       builder: (context) => PopScope(
-        canPop: false, //
+        canPop: false,
         child: AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -425,6 +427,8 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
   }
 
   void _mostrarDialogoAgregarTrabajo() {
+    // Cierra el teclado para que no reaparezca al volver del diálogo
+    _direccionFocus.unfocus();
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -452,6 +456,45 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
             }
           });
         },
+      ),
+    );
+  }
+
+  Widget _trabajoCard(
+    BuildContext context,
+    ItemTrabajo item,
+    int index,
+    bool esOscuro,
+  ) {
+    return Card(
+      color: esOscuro ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(
+          color: esOscuro ? Colors.white24 : Colors.grey.shade200,
+        ),
+      ),
+      child: ListTile(
+        leading: Icon(Icons.build_circle_outlined, color: _verdeApp),
+        title: Text(
+          item.tipo,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: esOscuro ? Colors.white : Colors.black87),
+        ),
+        subtitle: Text(
+          '${item.metrosCuadrados.toInt()} m² × ${CurrencyFormatter.format(item.precioPorMetro)} / m²' '\n${item.descripcionBreve ?? ''}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: esOscuro ? Colors.white70 : Colors.grey),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+          onPressed: () {
+            setState(() => _trabajosAgregados.removeAt(index));
+            _autoguardar();
+          },
+        ),
       ),
     );
   }
@@ -690,7 +733,6 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
     }
 
     final raw = await _localStorage.obtenerBorradorCotizacion();
-    //si viene un cliente inyectado se ignora el borrador para evitar inconsistencias con el cliente seleccionado
     if (widget.clienteInyectado != null) {
       if (!mounted) return;
       setState(() {
@@ -989,13 +1031,17 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
                 content: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextFormField(
-                      controller: _direccionController,
-                      textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(
-                        labelText: 'Dirección general del proyecto',
-                        prefixIcon: Icon(Icons.location_on_outlined),
-                        border: OutlineInputBorder(),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: TextFormField(
+                        controller: _direccionController,
+                        focusNode: _direccionFocus,
+                        textCapitalization: TextCapitalization.words,
+                        decoration: InputDecoration(
+                          labelText: 'Dirección general del proyecto',
+                          prefixIcon: Icon(Icons.location_on_outlined),
+                          border: OutlineInputBorder(),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -1036,53 +1082,28 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
                           ),
                         ),
                       ),
-                    ..._trabajosAgregados.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      return Card(
-                        color: esOscuro
-                            ? const Color(0xFF1E1E1E)
-                            : Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(
-                            color: esOscuro
-                                ? Colors.white24
-                                : Colors.grey.shade200,
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: Icon(
-                            Icons.build_circle_outlined,
-                            color: _verdeApp,
-                          ),
-                          title: Text(
-                            item.tipo,
-                            style: TextStyle(
-                              color: esOscuro ? Colors.white : Colors.black87,
-                            ),
-                          ),
-                          subtitle: Text(
-                            '${item.metrosCuadrados.toInt()} m² × ${CurrencyFormatter.format(item.precioPorMetro)} / m²' '\n${item.descripcionBreve ?? ''}',
-                            style: TextStyle(
-                              color: esOscuro ? Colors.white70 : Colors.grey,
-                            ),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                            ),
-                            onPressed: () {
-                              setState(
-                                () => _trabajosAgregados.removeAt(index),
+                    if (_trabajosAgregados.isNotEmpty)
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 360),
+                        child: Scrollbar(
+                          thumbVisibility: true,
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            physics: const ClampingScrollPhysics(),
+                            itemCount: _trabajosAgregados.length,
+                            itemBuilder: (context, index) {
+                              final item = _trabajosAgregados[index];
+
+                              return _trabajoCard(
+                                context,
+                                item,
+                                index,
+                                esOscuro,
                               );
-                              _autoguardar();
                             },
                           ),
                         ),
-                      );
-                    }),
+                      ),
                     if (_trabajosAgregados.isNotEmpty)
                       const SizedBox(height: 16),
                     Container(
@@ -1097,20 +1118,30 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Subtotal Obra:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _verdeApp,
-                              fontSize: 14,
+                          Flexible(
+                            child: Text(
+                              'Subtotal Obra:',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _verdeApp,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
-                          Text(
-                            '${CurrencyFormatter.format(datosEnVivo.subtotalObraTotal)} CLP',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _verdeApp,
-                              fontSize: 16,
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '${CurrencyFormatter.format(datosEnVivo.subtotalObraTotal)} CLP',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: _verdeApp,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
                         ],
@@ -1165,15 +1196,18 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
                 isActive: _currentStep >= 4,
                 content: Column(
                   children: [
-                    TextFormField(
-                      controller: _viaticoController,
-                      keyboardType: TextInputType.number,
-                      validator: (val) => _validarCampoNumerico(val, 'Viático'),
-                      inputFormatters: [ClpInputFormatter(maxDigits: 9)],
-                      decoration: const InputDecoration(
-                        labelText: 'Viático adicional (Opcional - CLP)',
-                        prefixIcon: Icon(Icons.payments_outlined),
-                        border: OutlineInputBorder(),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: TextFormField(
+                        controller: _viaticoController,
+                        keyboardType: TextInputType.number,
+                        validator: (val) => _validarCampoNumerico(val, 'Viático'),
+                        inputFormatters: [ClpInputFormatter(maxDigits: 9)],
+                        decoration: const InputDecoration(
+                          labelText: 'Viático adicional (Opcional - CLP)',
+                          prefixIcon: Icon(Icons.payments_outlined),
+                          border: OutlineInputBorder(),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1246,7 +1280,6 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
                   ],
                 ),
               ),
-              //previsualización y guardado final
               Step(
                 title: const Text(
                   'Previsualización y Confirmación',

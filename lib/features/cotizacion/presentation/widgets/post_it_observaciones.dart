@@ -9,7 +9,7 @@ class PostItTab extends StatelessWidget {
     super.key,
     required this.observacion,
     required this.codigo,
-    this.color = const Color.fromARGB(255, 223, 244, 243)
+    this.color = const Color(0xFFFFF59D),
   });
 
   @override
@@ -24,12 +24,12 @@ class PostItTab extends StatelessWidget {
           height: 30,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(4), // Bordes ligeramente redondeados
+            borderRadius: BorderRadius.circular(4),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 3,
-                offset: const Offset(1, 1), // Sombra sutil para dar relieve
+                offset: const Offset(1, 1), 
               ),
             ],
           ),
@@ -59,7 +59,7 @@ class PostItTab extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 320),
               padding: const EdgeInsets.fromLTRB(22, 28, 22, 22),
               decoration: BoxDecoration(
-                color: const Color.fromARGB(255, 223, 244, 243),
+                color: const Color(0xFFFFF59D),
                 borderRadius: BorderRadius.circular(2),
                 boxShadow: [
                   BoxShadow(
@@ -106,7 +106,7 @@ class PostItTab extends StatelessWidget {
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              codigo.isEmpty ? 'Nota' : 'Nota · $codigo',
+                              codigo.isEmpty ? 'Observación' : 'Observación · $codigo',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -148,14 +148,12 @@ class PostItTab extends StatelessWidget {
   }
 }
 
-/// Recorta la forma de "bandera": un rectángulo con punta triangular
-/// hacia la derecha, igual al estilo de etiquetas de nota tipo flag.
 class _FlagClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final double w = size.width;
     final double h = size.height;
-    final double puntaW = h * 0.55; // ancho de la punta triangular
+    final double puntaW = h * 0.55;
 
     final path = Path()
       ..moveTo(0, 0)
@@ -170,9 +168,6 @@ class _FlagClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
-
-/// Dibuja un borde punteado siguiendo el mismo contorno de [_FlagClipper],
-/// replicando la línea discontinua del diseño de referencia.
 class _FlagDashedBorderPainter extends CustomPainter {
   final Color color;
   final double dashWidth;

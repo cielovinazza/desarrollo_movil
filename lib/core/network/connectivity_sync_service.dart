@@ -53,6 +53,7 @@ class ConnectivitySyncService {
 
     try {
       await _sincronizarClientes();
+      await _sincronizarClientesEditados();
       await _sincronizarCotizaciones();
     } finally {
       _isSyncing = false;
@@ -114,6 +115,37 @@ Future<void> _sincronizarClientes() async {
   await _localStorage.limpiarClientesPendientes();
   for (final cl in noSincronizados) {
     await _localStorage.guardarClientePendiente(cl);
+  }
+}
+
+Future<void> _sincronizarClientesEditados() async {
+  final pendientes = await _localStorage.obtenerClientesEditadosPendientes();
+  if (pendientes.isEmpty) return;
+
+  final List<Map<String, dynamic>> noSincronizados = [];
+
+  for (final cliente in pendientes) {
+    final id = cliente['id']?.toString() ?? cliente['rut']?.toString() ?? '';
+    if (id.isEmpty) continue;
+
+    try {
+      final docRef = _firestore.collection('cliente').doc(id);
+      await docRef.set({
+        'id': id,
+        'nombre': cliente['nombre']?.toString() ?? '',
+        'rut': cliente['rut']?.toString() ?? '',
+        'correo': cliente['correo']?.toString() ?? '',
+        'telefono': cliente['telefono']?.toString() ?? '',
+        'direccion': cliente['direccion']?.toString(),
+      }, SetOptions(merge: true));
+    } catch (_) {
+      noSincronizados.add(cliente);
+    }
+  }
+
+  await _localStorage.limpiarClientesEditadosPendientes();
+  for (final cl in noSincronizados) {
+    await _localStorage.guardarClienteEditadoPendiente(cl);
   }
 }
 

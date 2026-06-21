@@ -35,14 +35,11 @@ class ManoObraLista extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
           children: [
-            Text(
-              'Personal Asignado',
-
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-
-                fontSize: 16,
-
+            Flexible(
+              child: Text(
+                'Personal Asignado',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
 
@@ -105,113 +102,19 @@ class ManoObraLista extends StatelessWidget {
             ),
           ),
 
-        ...items.asMap().entries.map((entry) {
-          int index = entry.key;
+        if (items.isNotEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 360),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
 
-          ManoDeObra item = entry.value;
-
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 4),
-
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-
-              borderRadius: BorderRadius.circular(10),
-
-              border: Border.all(
-                color: esOscuro ? Colors.grey.shade700 : Colors.grey.shade200,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.02),
-                  blurRadius: 4,
-
-                  offset: const Offset(0, 2),
-                ),
-              ],
+                return _itemCard(context, item, index, theme, esOscuro);
+              },
             ),
-
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 4,
-              ),
-
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-
-                decoration: BoxDecoration(
-                  color: verdeApp.withValues(alpha: 0.1),
-
-                  shape: BoxShape.circle,
-                ),
-
-                child: Icon(
-                  Icons.engineering_outlined,
-
-                  color: verdeApp,
-
-                  size: 22,
-                ),
-              ),
-
-              title: Text(
-                item.cargo,
-
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black87,
-
-                  fontSize: 15,
-                ),
-              ),
-
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4),
-
-                child: Text(
-                  '${item.dias.toStringAsFixed(0)} días × ${CurrencyFormatter.format(item.valorJornada)}',
-
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                ),
-              ),
-
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-
-                children: [
-                  Text(
-                    CurrencyFormatter.format(item.subtotal),
-
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-
-                      fontSize: 15,
-
-                      color: esOscuro ? Colors.white : Colors.black87,
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline,
-
-                      color: Colors.redAccent,
-
-                      size: 22,
-                    ),
-
-                    onPressed: () => onEliminar(index),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
+          ),
 
         if (items.isNotEmpty) const SizedBox(height: 16),
 
@@ -230,27 +133,34 @@ class ManoObraLista extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
             children: [
-              Text(
-                'Subtotal Mano de Obra:',
+              Flexible(
+                child: Text(
+                  'Subtotal Mano de Obra:',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
 
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+                    color: verdeApp,
 
-                  color: verdeApp,
-
-                  fontSize: 14,
+                    fontSize: 14,
+                  ),
                 ),
               ),
 
-              Text(
-                '${CurrencyFormatter.format(total)} CLP',
+              const SizedBox(width: 8),
 
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  '${CurrencyFormatter.format(total)} CLP',
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
 
-                  color: verdeApp,
+                    color: verdeApp,
 
-                  fontSize: 16,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],
@@ -258,6 +168,125 @@ class ManoObraLista extends StatelessWidget {
         ),
         const SizedBox(height: 8),
       ],
+    );
+  }
+
+  Widget _itemCard(
+    BuildContext context,
+    ManoDeObra item,
+    int index,
+    ThemeData theme,
+    bool esOscuro,
+  ) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+
+        borderRadius: BorderRadius.circular(10),
+
+        border: Border.all(
+          color: esOscuro ? Colors.grey.shade700 : Colors.grey.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.02),
+            blurRadius: 4,
+
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 10,
+        ),
+
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+
+              decoration: BoxDecoration(
+                color: verdeApp.withValues(alpha: 0.1),
+
+                shape: BoxShape.circle,
+              ),
+
+              child: Icon(
+                Icons.engineering_outlined,
+
+                color: verdeApp,
+
+                size: 22,
+              ),
+            ),
+
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.cargo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: esOscuro ? Colors.white : Colors.black87,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${item.dias.toStringAsFixed(0)} días × ${CurrencyFormatter.format(item.valorJornada)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 8),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  CurrencyFormatter.format(item.subtotal),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: esOscuro ? Colors.white : Colors.black87,
+                  ),
+                ),
+                IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                    size: 22,
+                  ),
+                  onPressed: () => onEliminar(index),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

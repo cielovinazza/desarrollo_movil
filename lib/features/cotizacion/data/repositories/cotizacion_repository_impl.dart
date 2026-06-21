@@ -11,18 +11,23 @@ class FlujoEstados {
   static const String enviada = 'Enviada';
   static const String aprobada = 'Aprobada por el Cliente';
   static const String rechazada = 'Rechazada por el Cliente';
+  static const String cancelada = 'Cancelada';
+
   static bool validarTransicion(String actual, String nueva) {
   
 
     switch (actual) {
       case enProceso:
-        return nueva == listaParaEnvio;
+        return nueva == listaParaEnvio || nueva == cancelada;
       case listaParaEnvio:
-        return nueva == enviada;
+        return nueva == enviada || nueva == cancelada;
       case enviada:
-        return nueva == aprobada || nueva == rechazada;
+        return nueva == aprobada || nueva == rechazada || nueva == cancelada;
       case aprobada:
+      return false;
       case rechazada:
+        return nueva == cancelada;
+      case cancelada:
         return false;
       default:
         return false;

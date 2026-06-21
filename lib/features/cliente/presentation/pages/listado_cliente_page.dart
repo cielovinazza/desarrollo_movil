@@ -9,20 +9,20 @@ import '../../domain/entities/cliente.dart';
 import '../../domain/usecases/listar_clientes.dart';
 import 'editar_cliente_page.dart';
 import '../../../cotizacion/presentation/pages/crear_cotizacion_page.dart';
-import '../formatters/mascara_rut_formatters.dart';
 
 class ListadoClientesPage extends StatefulWidget {
   const ListadoClientesPage({super.key});
 
   @override
-  State<ListadoClientesPage> createState() => _ListadoClientesPageState();
+  State<ListadoClientesPage> createState() => ListadoClientesPageState();
 }
 
-class _ListadoClientesPageState extends State<ListadoClientesPage> {
+class ListadoClientesPageState extends State<ListadoClientesPage> {
   late final ListarClientes listarClientesUseCase;
   final repository = ClienteRepositoryImpl(ClientesRemoteDataSource(FirebaseFirestore.instance));
   bool get _busquedaEsRut => RegExp(r'^\d').hasMatch(_buscadorController.text.trim());
   final TextEditingController _buscadorController = TextEditingController();
+  final FocusNode _focusBuscador = FocusNode();
 
   List<Cliente> clientes = [];
   List<Cliente> clientesFiltrados = [];
@@ -39,6 +39,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
   @override
   void dispose() {
     _buscadorController.dispose();
+    _focusBuscador.dispose();
     super.dispose();
   }
 
@@ -58,33 +59,33 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
   }
 
   void _filtrarClientes() {
-  final textoBusqueda = _buscadorController.text.trim();
-  final esRut = RegExp(r'^\d').hasMatch(textoBusqueda);
+    final textoBusqueda = _buscadorController.text.trim();
+    final esRut = RegExp(r'^\d').hasMatch(textoBusqueda);
 
-  setState(() {
-    if (textoBusqueda.isEmpty) {
-      clientesFiltrados = clientes;
-    } else if (esRut) {
-      final busquedaNormalizada = textoBusqueda
-          .replaceAll('.', '')
-          .replaceAll('-', '')
-          .toLowerCase();
-      clientesFiltrados = clientes.where((cliente) {
-        final rutNormalizado = cliente.rut
+    setState(() {
+      if (textoBusqueda.isEmpty) {
+        clientesFiltrados = clientes;
+      } else if (esRut) {
+        final busquedaNormalizada = textoBusqueda
             .replaceAll('.', '')
             .replaceAll('-', '')
             .toLowerCase();
-        return rutNormalizado.contains(busquedaNormalizada);
-      }).toList();
-    } else {
-      clientesFiltrados = clientes.where((cliente) {
-        return cliente.nombre
-            .toLowerCase()
-            .contains(textoBusqueda.toLowerCase());
-      }).toList();
-    }
-  });
-}
+        clientesFiltrados = clientes.where((cliente) {
+          final rutNormalizado = cliente.rut
+              .replaceAll('.', '')
+              .replaceAll('-', '')
+              .toLowerCase();
+          return rutNormalizado.contains(busquedaNormalizada);
+        }).toList();
+      } else {
+        clientesFiltrados = clientes.where((cliente) {
+          return cliente.nombre
+              .toLowerCase()
+              .contains(textoBusqueda.toLowerCase());
+        }).toList();
+      }
+    });
+  }
 
   Future<bool?> _confirmarEliminar(Cliente cliente) async {
     if (cliente.id == null || cliente.id!.isEmpty) {
@@ -109,7 +110,8 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: theme.colorScheme.error),
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Eliminar'),
+              child: const Text('Eliminar',
+              style: TextStyle(color: Colors.white),),
             ),
           ],
         );
@@ -136,11 +138,18 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
     }
   }
 
+  Future<T?> _navegarCerrandoTeclado<T>(Widget page) {
+    // Quita el foco del buscador para que al volver no se reabra el teclado
+    _focusBuscador.unfocus();
+    return Navigator.push<T>(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
+    final theme=Theme.of(context);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -160,25 +169,26 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                 children: [
                   TextField(
                     controller: _buscadorController,
+                    focusNode: _focusBuscador,
                     decoration: InputDecoration(
                       hintText: 'Buscar cliente por nombre o RUT...',
-                      prefixIcon: Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
-                      fillColor: colorScheme.surface,
+                      fillColor: theme.cardColor,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
+                        borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
+                        borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
 
-                  _buildPanel(theme),
+                  _buildPanel(),
                   const SizedBox(height: 24),
 
                   Row(
@@ -207,15 +217,15 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.person_search_outlined, size: 48, color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                                Icon(Icons.person_search_outlined, size: 48, color: Colors.grey[400]),
                                 const SizedBox(height: 12),
                                 Text(
                                   'No se encontraron clientes para tu búsqueda.',
-                                  style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 14),
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 16),
-  
+
                                 TextButton.icon(
                                   style: TextButton.styleFrom(
                                     backgroundColor: theme.primaryColor.withValues(alpha: 0.08),
@@ -224,34 +234,32 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                                   ),
                                   onPressed: () async {
                                     final texto = _buscadorController.text.trim();
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => RegistroClientePage(
-                                          rutInicial: _busquedaEsRut
-                                          ? RutInputFormatter.formatear(texto): null, 
-                                          nombreInicial: _busquedaEsRut ? null : texto,
-                                        ),
+                                    await _navegarCerrandoTeclado(
+                                      RegistroClientePage(
+                                        rutInicial: _busquedaEsRut
+                                            ? RutInputFormatter.formatear(texto) : null,
+                                        nombreInicial: _busquedaEsRut ? null : texto,
                                       ),
                                     );
                                     cargarClientes();
                                   },
                                   icon: Icon(Icons.person_add_alt_1, color: theme.primaryColor, size: 18),
                                   label: Text(
-                                  _busquedaEsRut
-                                      ? 'Registrar RUT ${RutInputFormatter.formatear(_buscadorController.text.trim())}'
-                                      : 'Registrar a "${_buscadorController.text.trim()}"',
-                                  style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold),
-                                ),
+                                    _busquedaEsRut
+                                        ? 'Registrar RUT ${RutInputFormatter.formatear(_buscadorController.text.trim())}'
+                                        : 'Registrar a "${_buscadorController.text.trim()}"',
+                                    style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold),
+                                  ),
                                 ),
                               ],
                             ),
                           )
                         : ListView.separated(
                             itemCount: clientesFiltrados.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            separatorBuilder: (_, _) => const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final cliente = clientesFiltrados[index];
+                              final esOscuro = Theme.of(context).brightness==Brightness.dark;
                               
                               return Dismissible(
                                 key: Key(cliente.id ?? index.toString()),
@@ -261,29 +269,28 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                                   padding: const EdgeInsets.only(left: 20),
                                   alignment: Alignment.centerLeft,
                                   decoration: BoxDecoration(
-                                    color: theme.brightness == Brightness.dark
-                                        ? colorScheme.error.withValues(alpha: 0.25)
-                                        : colorScheme.error.withValues(alpha: 0.12),
+                                    color: esOscuro ? const Color.fromARGB(255, 218, 61, 61) : const Color.fromARGB(255, 230, 1, 1),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.delete_sweep_rounded, color: colorScheme.error, size: 28),
+                                      Icon(Icons.delete_sweep_rounded, color: esOscuro ? const Color.fromARGB(255, 255, 255, 255) : const Color.fromARGB(255, 255, 255, 255), size: 28),
                                       const SizedBox(width: 8),
                                       Text(
                                         'Eliminar Cliente', 
-                                        style: TextStyle(color: colorScheme.error, fontWeight: FontWeight.bold)
+                                        style: TextStyle(color: esOscuro ? const Color.fromARGB(255, 255, 255, 255): const Color.fromARGB(255, 255, 255, 255), fontWeight: FontWeight.bold)
                                       ),
                                     ],
                                   ),
                                 ),
                                 child: _ClienteCardWidget(
                                   cliente: cliente,
+                                  primaryColor: theme.primaryColor,
+                                  onVerDetalle: () => _navegarCerrandoTeclado(
+                                    DetalleClientePage(cliente: cliente),
+                                  ),
                                   onEdit: () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => EditarClientePage(cliente: cliente)),
-                                    );
+                                    await _navegarCerrandoTeclado(EditarClientePage(cliente: cliente));
                                     cargarClientes();
                                   },
                                 ),
@@ -297,8 +304,9 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
     );
   }
 
-  Widget _buildPanel(ThemeData theme) {
-    final colorScheme = theme.colorScheme;
+  Widget _buildPanel() {
+    final theme=Theme.of(context);
+    final esOscuro = theme.brightness == Brightness.dark;
     final int totalEmpresas = clientes.where((c) {
       final cleanRut = c.rut.replaceAll('.', '').replaceAll('-', '');
       return cleanRut.startsWith('76') || cleanRut.startsWith('77');
@@ -312,7 +320,7 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
             padding: const EdgeInsets.all(16),
             height: 105, 
             decoration: BoxDecoration(
-              color: colorScheme.primary,
+              color: theme.primaryColor,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -321,16 +329,16 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
               children: [
                 Text(
                   'TOTAL CLIENTES',
-                  style: TextStyle(color: colorScheme.onPrimary.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.bold),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       '${clientes.length}',
-                      style: TextStyle(color: colorScheme.onPrimary, fontSize: 26, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
                     ),
-                    Icon(Icons.people_outline, color: colorScheme.onPrimary.withValues(alpha: 0.3), size: 28),
+                    Icon(Icons.people_outline, color: Colors.white.withValues(alpha: 0.3), size: 28),
                   ],
                 )
               ],
@@ -344,17 +352,21 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
           child: Column(
             children: [
               Material(
-                color: colorScheme.secondaryContainer,
+                color: Colors.transparent, 
                 borderRadius: BorderRadius.circular(8),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(8),
                   onTap: () async {
-                     await Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroClientePage()));
-                     cargarClientes(); 
+                    await _navegarCerrandoTeclado(const RegistroClientePage());
+                    cargarClientes();
                   },
                   child: Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: esOscuro ?  theme.colorScheme.surfaceContainerHighest : const Color(0xFFE8EAF6),
+                      borderRadius: BorderRadius.circular(8)
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -363,16 +375,16 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                           children: [
                             Text(
                               'ACCIONES',
-                              style: TextStyle(color: colorScheme.onSecondaryContainer.withValues(alpha: 0.6), fontSize: 8, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: esOscuro ? Colors.white.withValues(alpha: 0.5) : Colors.blue[900]!.withValues(alpha: 0.6), fontSize: 8, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'Añadir Cliente',
-                              style: TextStyle(color: colorScheme.onSecondaryContainer, fontSize: 13, fontWeight: FontWeight.bold),
+                              style: TextStyle(color: esOscuro ? Colors.white : Colors.indigo[900], fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
-                        Icon(Icons.person_add_alt_1_outlined, color: colorScheme.onSecondaryContainer, size: 18),
+                        Icon(Icons.person_add_alt_1_outlined, color: esOscuro ?  theme.colorScheme.secondary : Colors.indigo[800], size: 18),
                       ],
                     ),
                   ),
@@ -384,15 +396,15 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: colorScheme.secondaryContainer,
+                  color: esOscuro ?  theme.colorScheme.surfaceContainerHighest : const Color(0xFFE8EAF6),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('EMPRESAS', style: TextStyle(color: colorScheme.onSecondaryContainer.withValues(alpha: 0.7), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.2)),
+                    Text('EMPRESAS', style: TextStyle(color: esOscuro ? Colors.white.withValues(alpha: 0.5) :Colors.indigo[900]!.withValues(alpha: 0.7), fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.2)),
                     const SizedBox(height: 2),
-                    Text('$totalEmpresas', style: TextStyle(color: colorScheme.onSecondaryContainer, fontSize: 14, fontWeight: FontWeight.bold)),
+                    Text('$totalEmpresas', style: TextStyle(color: esOscuro ? Colors.white :Colors.indigo[900], fontSize: 14, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -406,17 +418,21 @@ class _ListadoClientesPageState extends State<ListadoClientesPage> {
 
 class _ClienteCardWidget extends StatelessWidget {
   final Cliente cliente;
+  final Color primaryColor;
   final VoidCallback onEdit;
+  final VoidCallback onVerDetalle;
 
   const _ClienteCardWidget({
     required this.cliente,
+    required this.primaryColor,
     required this.onEdit,
+    required this.onVerDetalle,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final esOscuro = theme.brightness == Brightness.dark;
     final cleanRut = cliente.rut.replaceAll('.', '').replaceAll('-', '');
     final bool isEmpresa = cleanRut.startsWith('76') || cleanRut.startsWith('77');
 
@@ -424,16 +440,11 @@ class _ClienteCardWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => DetalleClientePage(cliente: cliente)),
-          );
-        },
+        onTap: onVerDetalle,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -444,12 +455,12 @@ class _ClienteCardWidget extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
+                      color: esOscuro ? theme.primaryColor.withValues(alpha: 0.1) : const Color(0xFFE8F5E9),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       isEmpresa ? Icons.business : Icons.person_outline,
-                      color: colorScheme.onPrimaryContainer,
+                      color: primaryColor,
                       size: 24,
                     ),
                   ),
@@ -460,13 +471,13 @@ class _ClienteCardWidget extends StatelessWidget {
                       children: [
                         Text(
                           cliente.nombre,
-                          style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           'RUT: ${cliente.rut}',
-                          style: TextStyle(color: theme.textTheme.bodyMedium?.color, fontSize: 12),
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
                         ),
                       ],
                     ),
@@ -479,11 +490,11 @@ class _ClienteCardWidget extends StatelessWidget {
                 child: Divider(height: 1, thickness: 0.5),
               ),
 
-              _buildDataRow(theme, Icons.mail_outline, cliente.correo),
+              _buildDataRow(Icons.mail_outline, cliente.correo),
               const SizedBox(height: 6),
-              _buildDataRow(theme, Icons.phone_outlined, cliente.telefono),
+              _buildDataRow(Icons.phone_outlined, cliente.telefono),
               const SizedBox(height: 6),
-              _buildDataRow(theme, Icons.location_on_outlined, cliente.direccion ?? 'Sin dirección'),
+              _buildDataRow(Icons.location_on_outlined, cliente.direccion ?? 'Sin dirección'),
 
               const SizedBox(height: 16),
               Row(
@@ -492,12 +503,12 @@ class _ClienteCardWidget extends StatelessWidget {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
+                        side: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       onPressed: onEdit,
-                      icon: Icon(Icons.edit_outlined, size: 18, color: colorScheme.onSurface),
-                      label: Text('Editar', style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.w600)),
+                      icon: Icon(Icons.edit_outlined, size: 18, color: esOscuro ? Colors.white : Colors.black87),
+                      label: Text('Editar', style: TextStyle(color: esOscuro ? Colors.white : Colors.black87, fontWeight: FontWeight.w600)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -505,8 +516,8 @@ class _ClienteCardWidget extends StatelessWidget {
                   Expanded(
                     child: FilledButton.icon(
                       style: FilledButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 0,
@@ -534,16 +545,15 @@ class _ClienteCardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildDataRow(ThemeData theme, IconData icon, String value) {
-    final color = theme.textTheme.bodyMedium?.color;
+  Widget _buildDataRow(IconData icon, String value) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: color),
+        Icon(icon, size: 16, color: Colors.grey[500]),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             value,
-            style: TextStyle(color: color, fontSize: 13),
+            style: TextStyle(color: Colors.grey[700], fontSize: 13),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

@@ -56,11 +56,6 @@ class _SelectorClienteState extends State<SelectorCliente> {
   @override
   void didUpdateWidget(covariant SelectorCliente oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // El borrador de cotización carga el cliente de forma asíncrona, por lo
-    // que clienteInicial puede llegar DESPUÉS de que este widget ya se haya
-    // creado (con clienteInicial == null). initState() no se vuelve a
-    // ejecutar en ese caso, así que hay que sincronizar acá para que el
-    // cliente recuperado se muestre visualmente como seleccionado.
     if (widget.clienteInicial != null &&
         widget.clienteInicial!.id != clienteSeleccionado?.id) {
       setState(() {

@@ -49,7 +49,7 @@ class _InactivityDetectorState extends State<InactivityDetector> {
     setState(() {
       _dialogoVisible = false;
     });
-    Navigator.of(dialogCtx).pop(); // Cierra el modal de alerta
+    Navigator.of(dialogCtx).pop(); 
     _timer = Timer(
       Duration(minutes: widget.timeoutMinutes - widget.warningMinutes),
       _mostrarAviso,

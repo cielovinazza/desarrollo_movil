@@ -27,14 +27,12 @@ class ClientesRemoteDataSource {
         const GetOptions(source: Source.cache),
       );
       if (cacheSnapshot.docs.isNotEmpty) {
-        print('CLIENTES DESDE CACHÉ (${cacheSnapshot.docs.length} docs)');
         return cacheSnapshot.docs
             .map((doc) => ClienteDto.fromFirestore(doc.id, doc.data()))
             .toList();
       }
     } catch (_) {}
   }
-  print('CLIENTES DESDE SERVIDOR');
   try {
     return await _obtenerDesdeServidor(query);
   } catch (_) {

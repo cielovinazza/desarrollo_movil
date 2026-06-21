@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project/features/auth/domain/usecases/login_usecase.dart';
+import 'package:project/features/auth/domain/exceptions/auth_exception.dart';
 import 'package:project/shared/design_system/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -40,9 +41,12 @@ class _LoginPageState extends State<LoginPage> {
       );
     } catch (e) {
       if (!mounted) return;
+      final mensaje = e is AuthException
+          ? e.message
+          : 'Ocurrió un error al iniciar sesión. Intenta nuevamente.';
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      ).showSnackBar(SnackBar(content: Text(mensaje)));
     } finally {
       if (mounted) {
         setState(() {

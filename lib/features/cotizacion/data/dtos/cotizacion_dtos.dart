@@ -107,7 +107,7 @@ class CotizacionDto {
       observacion: map['observacion'],
       codigo: map['codigo'] ?? '',
       direccion: map['direccion'] ?? '',
-      trabajos: map['trabajos'] ?? [], // Firestore recupera el mapa interno con el string opcional
+      trabajos: map['trabajos'] ?? [], 
       manoObra: map['manoObra'] ?? [],
       materiales: map['materiales'] ?? [],
       subtotalObra: (map['subtotalObra'] as num?)?.toDouble() ?? 0.0,

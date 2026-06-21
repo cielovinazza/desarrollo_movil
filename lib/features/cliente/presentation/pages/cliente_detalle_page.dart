@@ -107,7 +107,7 @@ class _DetalleClientePageState extends State<DetalleClientePage> {
       ),
     );
   }
-}//info del cliente
+}
 class _ClienteCard extends StatelessWidget {
   final Cliente cliente;
 
@@ -164,7 +164,7 @@ class _ClienteCard extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.bold, 
                           fontSize: 18,
-                          color: esOscuro ? Colors.white :Colors.black, // Negro de alta fidelidad
+                          color: esOscuro ? Colors.white :Colors.black,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -223,14 +223,21 @@ class _CotizacionItem extends StatelessWidget {
 
   const _CotizacionItem({required this.cotizacion});
 
-  Color _getEstadoColor(String estado) {
+  Color _getEstadoColor(BuildContext context, String estado) {
+    final theme = Theme.of(context);
     switch (estado) {
-      case 'Aprobada por el Cliente': return Colors.green;
-      case 'Rechazada por el Cliente': return Colors.red;
-      case 'En Proceso': return Colors.orange;
-      case 'Enviada': return Colors.blueGrey;
-      case 'Lista para Envío': return Colors.blue;
-      default: return Colors.grey;
+      case 'Aprobada por el Cliente':
+        return theme.primaryColor;
+      case 'Rechazada por el Cliente':
+        return theme.colorScheme.error;
+      case 'En Proceso':
+        return Colors.orange;
+      case 'Enviada':
+        return Colors.blueGrey;
+      case 'Lista para Envío':
+        return theme.primaryColor.withValues(alpha: 0.7);
+      default:
+        return theme.hintColor;
     }
   }
 
@@ -238,8 +245,10 @@ class _CotizacionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final totalFormateado = '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP';
-    final colorEstado = _getEstadoColor(cotizacion.estado);
+    final colorEstado = _getEstadoColor(context, cotizacion.estado);
     final puedeEditar = cotizacion.estado == 'En Proceso' || cotizacion.estado == 'Rechazada por el Cliente';
+
+    final bool tienePdf = cotizacion.pdfUrl != null && cotizacion.pdfUrl!.isNotEmpty;
 
     return Card(
       elevation: 0,
@@ -249,14 +258,27 @@ class _CotizacionItem extends StatelessWidget {
         side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.08)),
       ),
       child: ListTile(
+        onTap: tienePdf
+            ? () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => VerPdfPage(
+                      url: cotizacion.pdfUrl!,
+                      codigoCotizacion: cotizacion.codigo,
+                    ),
+                  ),
+                );
+              }
+            : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: const Color(0xFF0F5A3C).withValues(alpha: 0.08),
+            color: theme.primaryColor.withValues(alpha: 0.08),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.description_outlined, color: Color(0xFF0F5A3C), size: 22),
+          child: Icon(Icons.description_outlined, color: theme.primaryColor, size: 22),
         ),
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -277,7 +299,7 @@ class _CotizacionItem extends StatelessWidget {
                 textAlign: TextAlign.end,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF0F5A3C),
+                  color: theme.primaryColor,
                   fontSize: 14,
                 ),
               ),
@@ -300,91 +322,75 @@ class _CotizacionItem extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
-                      decoration: BoxDecoration(
-                        color: colorEstado.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: colorEstado,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
                     child: Text(
                       cotizacion.estado,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: colorEstado, 
-                        fontSize: 11, 
-                        fontWeight: FontWeight.bold
+                        color: colorEstado,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
+                  const SizedBox(width: 10),
                   Text(
                     'Ver. ${cotizacion.version}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.5),
                     ),
                   ),
+                  if (tienePdf) ...[
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.picture_as_pdf_outlined,
+                      size: 13,
+                      color: theme.hintColor,
+                    ),
+                  ],
                 ],
               ),
             ],
           ),
         ),
-        trailing: Row(
-          
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (cotizacion.pdfUrl != null)
-              IconButton(
-                icon: const Icon(
-                  Icons.picture_as_pdf_rounded,
-                  color: Colors.redAccent,
-                ),
-                onPressed: () {
-                  Navigator.push(
+        trailing: puedeEditar
+            ? IconButton(
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: 'Editar cotización',
+                onPressed: () async {
+                  final actualizado = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => VerPdfPage(
-                        url: cotizacion.pdfUrl!,
-                        codigoCotizacion: cotizacion.codigo,
+                      builder: (_) => CrearCotizacionPage(
+                        cotizacionAEditar: cotizacion,
                       ),
                     ),
                   );
+
+                  if (actualizado == true && context.mounted) {
+                    final state =
+                        context.findAncestorStateOfType<_DetalleClientePageState>();
+
+                    state?.setState(() {
+                      state._historialCotizacionesFuture =
+                          state._cotizacionDataSource.obtenerCotizacion(
+                            clienteNombre: state.widget.cliente.nombre,
+                          );
+                    });
+                  }
                 },
-              ),
-            if (puedeEditar)
-            IconButton(
-              icon: const Icon(
-                Icons.edit_outlined,
-                
-              ),
-              tooltip: 'Editar cotización',
-              onPressed: () async {
-                final actualizado = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CrearCotizacionPage(
-                      cotizacionAEditar: cotizacion,
-                    ),
-                  ),
-                );
-
-                if (actualizado == true && context.mounted) {
-                  final state =
-                      context.findAncestorStateOfType<_DetalleClientePageState>();
-
-                  state?.setState(() {
-                    state._historialCotizacionesFuture =
-                        state._cotizacionDataSource.obtenerCotizacion(
-                          clienteNombre: state.widget.cliente.nombre,
-                        );
-                  });
-                }
-              },
-            ),
-          ],
-        ),
+              )
+            : null,
       ),
     );
   }

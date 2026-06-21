@@ -6,7 +6,6 @@ class ObtenerCotizacion {
 
   ObtenerCotizacion(this.repository);
 
-  // Definimos los parámetros nombrados opcionales para que la UI pueda filtrar
   Future<List<CotizacionDto>> call({
     String? idBusqueda,
     String? clienteNombre,

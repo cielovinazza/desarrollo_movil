@@ -3,12 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorage {
   static const _keyClientes     = 'pending_clientes';
+  static const _keyClientesEditados = 'pending_clientes_editados';
   static const _keyCotizaciones = 'pending_cotizaciones';
   static const _keyFormCliente  = 'draft_cliente';
   static const _keyFormCotizacion = 'draft_cotizacion';
-
-  // Datos pendientes(Para guardar datos localmente cuando no hay internet o algo fallo)
-  // 1. Clientes que quedaron pendientes
 
   Future<void> guardarClientePendiente(Map<String, dynamic> cliente) async {
     final prefs = await SharedPreferences.getInstance();
@@ -30,7 +28,29 @@ class LocalStorage {
     await prefs.remove(_keyClientes);
   }
 
-  // 2. Cotizaciones que quedaron pendientes
+  Future<void> guardarClienteEditadoPendiente(Map<String, dynamic> cliente) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lista = await obtenerClientesEditadosPendientes();
+
+    final id = cliente['id']?.toString() ?? cliente['rut']?.toString() ?? '';
+    lista.removeWhere((c) => (c['id']?.toString() ?? c['rut']?.toString() ?? '') == id);
+    lista.add(cliente);
+
+    await prefs.setString(_keyClientesEditados, jsonEncode(lista));
+  }
+
+  Future<List<Map<String, dynamic>>> obtenerClientesEditadosPendientes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyClientesEditados);
+    if (raw == null) return [];
+    final decoded = jsonDecode(raw) as List<dynamic>;
+    return decoded.cast<Map<String, dynamic>>();
+  }
+
+  Future<void> limpiarClientesEditadosPendientes() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyClientesEditados);
+  }
 
   Future<void> guardarCotizacionPendiente(Map<String, dynamic> cotizacion) async {
     final prefs = await SharedPreferences.getInstance();

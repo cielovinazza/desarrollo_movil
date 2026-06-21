@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project/core/utils/currency_formatter.dart';
 import '../widgets/alertas_fallo_correo.dart';
+import '../widgets/modal_configuracion.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onGoToCotizaciones;
@@ -26,42 +27,10 @@ class HomePage extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Configuración',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              SwitchListTile(
-                title: const Text('Modo Oscuro'),
-                value: isDarkMode,
-                onChanged: (value) {
-                  onThemeChanged(value);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.sync),
-                title: const Text('Sincronizar datos'),
-                subtitle: const Text('Sincronización manual con Firebase'),
-                onTap: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Sincronización manual seleccionada'),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        );
-      },
+      builder: (_) => ConfiguracionModal(
+        isDarkMode: isDarkMode,
+        onThemeChanged: onThemeChanged,
+      ),
     );
   }
 
@@ -443,5 +412,3 @@ class _DashboardMetricasState extends State<_DashboardMetricas> {
     );
   }
 }
-
-

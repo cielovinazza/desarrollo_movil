@@ -84,7 +84,7 @@ class AppTheme {
         primary: verdeApp,
         secondary: lightGreen,
         surface: const Color(0xFF1E1E1E),
-        error: danger,
+        error: Color.fromARGB(255, 218, 61, 61),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor:  Colors.transparent,
@@ -98,21 +98,19 @@ class AppTheme {
         prefixIconColor: Colors.white70,
         suffixIconColor: Colors.white70,
         enabledBorder: OutlineInputBorder(
-          // El borde pasivo se vuelve un gris/blanco sutil responsivo al ojo oscuro
           borderSide: const BorderSide(color: Colors.white54),
           borderRadius: BorderRadius.circular(8),
         ),
         focusedBorder: OutlineInputBorder(
-          // Al hacer foco brilla con tu verde primary resaltando sobre el fondo negro
           borderSide: const BorderSide(color: Color.fromARGB(255, 30, 146, 40), width: 2),
           borderRadius: BorderRadius.circular(8),
         ),
         errorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: danger),
+          borderSide: const BorderSide(color: Color.fromARGB(255, 218, 61, 61)),
           borderRadius: BorderRadius.circular(8),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderSide: const BorderSide(color: danger, width: 2),
+          borderSide: const BorderSide(color: Color.fromARGB(255, 218, 61, 61), width: 2),
           borderRadius: BorderRadius.circular(8),
         ),
       ),

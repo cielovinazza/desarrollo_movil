@@ -42,7 +42,6 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
     final pdf = pw.Document();
     final cliente = cotizacion.cliente;
 
-    // Carga segura de bytes del logo corporativo desde assets (100% Offline)
     final ByteData bytesData = await rootBundle.load('assets/images/logoapp.png');
     final Uint8List logoBytes = bytesData.buffer.asUint8List();
     final pw.MemoryImage logoImage = pw.MemoryImage(logoBytes);
@@ -104,7 +103,6 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
           },
           build: (pw.Context context) {
             return [
-              // Encabezado del PDF unificado con Logo Redondo
               pw.Container(
   padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 14),
   decoration: const pw.BoxDecoration(
@@ -232,34 +230,51 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
                   ),
                 )
               else
-                ...cotizacion.listaTrabajos.map(
+...cotizacion.listaTrabajos.map(
                   (t) => pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(vertical: 2),
-                    child: pw.Row(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Expanded(
-                          flex: 5,
-                          child: pw.Text(
-                            t.tipo,
-                            style: const pw.TextStyle(fontSize: 10),
-                          ),
+                        pw.Row(
+                          children: [
+                            pw.Expanded(
+                              flex: 5,
+                              child: pw.Text(
+                                t.tipo,
+                                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                              ),
+                            ),
+                            pw.Expanded(
+                              flex: 4,
+                              child: pw.Text(
+                                '${t.metrosCuadrados.toStringAsFixed(1)} m² × ${clp(t.precioPorMetro)}',
+                                style: const pw.TextStyle(fontSize: 10),
+                                textAlign: pw.TextAlign.center,
+                              ),
+                            ),
+                            pw.Expanded(
+                              flex: 3,
+                              child: pw.Text(
+                                clp(t.subtotal),
+                                style: const pw.TextStyle(fontSize: 10),
+                                textAlign: pw.TextAlign.end,
+                              ),
+                            ),
+                          ],
                         ),
-                        pw.Expanded(
-                          flex: 4,
-                          child: pw.Text(
-                            '${t.metrosCuadrados.toStringAsFixed(1)} m² × ${clp(t.precioPorMetro)}',
-                            style: const pw.TextStyle(fontSize: 10),
-                            textAlign: pw.TextAlign.center,
+                        if (t.descripcionBreve != null && t.descripcionBreve!.isNotEmpty)
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.only(top: 1),
+                            child: pw.Text(
+                              t.descripcionBreve!,
+                              style: pw.TextStyle(
+                                fontSize: 9,
+                                fontStyle: pw.FontStyle.italic,
+                                color: PdfColors.grey700,
+                              ),
+                            ),
                           ),
-                        ),
-                        pw.Expanded(
-                          flex: 3,
-                          child: pw.Text(
-                            clp(t.subtotal),
-                            style: const pw.TextStyle(fontSize: 10),
-                            textAlign: pw.TextAlign.end,
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -524,10 +539,26 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   bool _cargado = false;
   final bool _subiendo = false;
 
-  static const Color _verde = Color(0xFF2E7D32);
-  static const Color _verdeSuave = Color(0xFFE8F5E9);
-  static const Color _gris = Color(0xFF6B7280);
-  static const Color _texto = Color(0xFF0F172A);
+  static const Color _verdeLight = Color(0xFF2E7D32);
+  static const Color _verdeDark = Color(0xFF66BB6A);
+  static const Color _verdeSuaveLight = Color(0xFFE8F5E9);
+  static const Color _verdeSuaveDark = Color(0xFF1B3A22);
+  static const Color _textoLight = Color(0xFF0F172A);
+  static const Color _textoDark = Color(0xFFF1F5F9);
+  static const Color _grisLight = Color(0xFF6B7280);
+  static const Color _grisDark = Color(0xFF9CA3AF);
+  static const Color _hojaLight = Colors.white;
+  static const Color _hojaDark = Color(0xFF1E1E1E);
+  static const Color _bordeHojaLight = Color(0xFFD1D5DB);
+  static const Color _bordeHojaDark = Color(0xFF3A3A3A);
+
+  bool get _esOscuro => Theme.of(context).brightness == Brightness.dark;
+  Color get _verde => _esOscuro ? _verdeDark : _verdeLight;
+  Color get _verdeSuave => _esOscuro ? _verdeSuaveDark : _verdeSuaveLight;
+  Color get _texto => _esOscuro ? _textoDark : _textoLight;
+  Color get _gris => _esOscuro ? _grisDark : _grisLight;
+  Color get _hoja => _esOscuro ? _hojaDark : _hojaLight;
+  Color get _bordeHoja => _esOscuro ? _bordeHojaDark : _bordeHojaLight;
 
   double get _subtotalMateriales =>
       widget.materiales.fold(0.0, (suma, material) => suma + material.subtotal);
@@ -588,10 +619,10 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       key: const ValueKey('cargando'),
       padding: const EdgeInsets.symmetric(vertical: 40),
       alignment: Alignment.center,
-      child: const Column(
+      child: Column(
         children: [
           CircularProgressIndicator(color: _verde),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Text(
             'Preparando previsualización...',
             style: TextStyle(color: _gris, fontSize: 13),
@@ -606,10 +637,10 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       key: const ValueKey('subiendo'),
       padding: const EdgeInsets.symmetric(vertical: 40),
       alignment: Alignment.center,
-      child: const Column(
+      child: Column(
         children: [
-          CircularProgressIndicator(color: Colors.blue),
-          SizedBox(height: 16),
+          const CircularProgressIndicator(color: Colors.blue),
+          const SizedBox(height: 16),
           Text(
             'Subiendo PDF a Firebase Storage...',
             style: TextStyle(
@@ -630,12 +661,12 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
         return Container(
           height: MediaQuery.of(context).size.height * 0.72,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: _hoja,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFD1D5DB)),
+            border: Border.all(color: _bordeHoja),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
+                color: Colors.black.withValues(alpha: _esOscuro ? 0.25 : 0.06),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -701,13 +732,13 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                         children: [
                           Text(
                             trabajo.tipo,
-                            style: const TextStyle(fontSize: 12, color: _texto, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 12, color: _texto, fontWeight: FontWeight.bold),
                           ),
                           if (trabajo.descripcionBreve != null && trabajo.descripcionBreve!.isNotEmpty) ...[
                             const SizedBox(height: 2),
                             Text(
                               trabajo.descripcionBreve!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 color: _gris,
                                 fontStyle: FontStyle.italic,
@@ -721,7 +752,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                       flex: 4,
                       child: Text(
                         '${trabajo.metrosCuadrados.toStringAsFixed(1)} m² × ${_clp(trabajo.precioPorMetro)}',
-                        style: const TextStyle(fontSize: 11, color: _gris),
+                        style: TextStyle(fontSize: 11, color: _gris),
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -729,7 +760,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                       flex: 3,
                       child: Text(
                         _clp(trabajo.subtotal),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: _texto,
@@ -755,9 +786,9 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   Widget _buildEncabezado() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _verde,
-        borderRadius: BorderRadius.only(
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(11),
           topRight: Radius.circular(11),
         ),
@@ -778,7 +809,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
                 'assets/images/logoapp.png',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return const Icon(
+                  return Icon(
                     Icons.picture_as_pdf_outlined,
                     color: _verde,
                     size: 20,
@@ -787,36 +818,41 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               ),
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'PREVISUALIZACIÓN',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha((0.2 * 255).toInt()),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  widget.codigoCotizacion,
-                  style: const TextStyle(
+          const SizedBox(width: 8),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'PREVISUALIZACIÓN',
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha((0.2 * 255).toInt()),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    widget.codigoCotizacion,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -862,14 +898,16 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 10, color: _gris)),
+              Text(label, style: TextStyle(fontSize: 10, color: _gris)),
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: _texto,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -956,7 +994,9 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       decoration: BoxDecoration(
         color: _verdeSuave,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFA5D6A7)),
+        border: Border.all(
+          color: _esOscuro ? const Color(0xFF2E5235) : const Color(0xFFA5D6A7),
+        ),
       ),
       child: Column(
         children: [
@@ -995,7 +1035,6 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text(
             'TOTAL FINAL',
@@ -1006,12 +1045,17 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               letterSpacing: 0.3,
             ),
           ),
-          Text(
-            _clp(_totalFinal),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _clp(_totalFinal),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -1024,13 +1068,16 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       children: [
         Icon(icon, size: 14, color: _verde),
         const SizedBox(width: 5),
-        Text(
-          titulo,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: _verde,
-            letterSpacing: 0.8,
+        Flexible(
+          child: Text(
+            titulo,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: _verde,
+              letterSpacing: 0.8,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
@@ -1047,22 +1094,24 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
             flex: 5,
             child: Text(
               nombre,
-              style: const TextStyle(fontSize: 12, color: _texto),
+              style: TextStyle(fontSize: 12, color: _texto),
             ),
           ),
           Expanded(
             flex: 4,
             child: Text(
               detalle,
-              style: const TextStyle(fontSize: 11, color: _gris),
+              style: TextStyle(fontSize: 11, color: _gris),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Expanded(
             flex: 3,
             child: Text(
               monto,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: _texto,
@@ -1080,7 +1129,7 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Text(
         mensaje,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           color: _gris,
           fontStyle: FontStyle.italic,
@@ -1091,19 +1140,22 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
 
   Widget _filaSubtotal(String label, String monto) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: _verde,
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: _verde,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
+        const SizedBox(width: 8),
         Text(
           monto,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.bold,
             color: _verde,
@@ -1134,8 +1186,10 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
               fontWeight: negrita ? FontWeight.bold : FontWeight.normal,
               color: _texto,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
+        const SizedBox(width: 8),
         Text(
           monto,
           style: TextStyle(
@@ -1149,6 +1203,10 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
   }
 
   Widget _buildDivisor() {
-    return const Divider(height: 1, thickness: 1, color: Color(0xFFE5E7EB));
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: _esOscuro ? const Color(0xFF3A3A3A) : const Color(0xFFE5E7EB),
+    );
   }
 }
