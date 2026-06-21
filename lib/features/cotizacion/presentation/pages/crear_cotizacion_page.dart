@@ -484,7 +484,7 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
         ),
         subtitle: Text(
           '${item.metrosCuadrados.toInt()} m² × ${CurrencyFormatter.format(item.precioPorMetro)} / m²' '\n${item.descripcionBreve ?? ''}',
-          maxLines: 2,
+          maxLines: 4,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(color: esOscuro ? Colors.white70 : Colors.grey),
         ),
@@ -527,8 +527,8 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
     if (nombreCampo == '% IVA Legal' && numero > 35) {
       return 'El IVA no puede superar el 35%';
     }
-    if (nombreCampo == '% de utilidad' && numero > 500) {
-      return 'La utilidad no puede superar el 500%';
+    if (nombreCampo == '% de utilidad' && numero > 100) {
+      return 'La utilidad no puede superar el 100%';
     }
     return null;
   }
