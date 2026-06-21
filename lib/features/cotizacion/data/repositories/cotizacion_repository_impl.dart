@@ -171,6 +171,19 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
     await datasource.crearNuevaVersion(cotizacionId);
   }
 
+  Future<void> eliminarCotizaciones(List<String> ids) async {
+  final remotas = ids.where((id) => !id.startsWith('local-')).toList();
+  final locales = ids.where((id) => id.startsWith('local-')).toList();
+
+  if (remotas.isNotEmpty) {
+    await datasource.eliminarCotizaciones(remotas);
+  }
+
+  for (final id in locales) {
+    await _localStorage.eliminarCotizacionPendiente(id);
+  }
+}
+
 @override
 Future<void> enviarCotizacionPorCorreo(
   CotizacionDto cotizacion, {

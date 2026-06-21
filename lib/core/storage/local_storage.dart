@@ -108,4 +108,11 @@ class LocalStorage {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyFormCotizacion);
   }
+
+  Future<void> eliminarCotizacionPendiente(String id) async {
+  final prefs = await SharedPreferences.getInstance();
+  final lista = await obtenerCotizacionesPendientes();
+  lista.removeWhere((c) => (c['id']?.toString() ?? '') == id);
+  await prefs.setString(_keyCotizaciones, jsonEncode(lista));
+}
 }

@@ -15,13 +15,16 @@ class HomePage extends StatelessWidget {
   final ValueChanged<bool> onThemeChanged;
   final void Function(String codigo) onReintentarEnvio;
 
-  const HomePage({
+  HomePage({
     super.key,
     required this.onGoToCotizaciones,
     required this.isDarkMode,
     required this.onThemeChanged,
     required this.onReintentarEnvio,
   });
+
+  final GlobalKey<_DashboardMetricasState> _dashboardKey =
+      GlobalKey<_DashboardMetricasState>();
 
   void _mostrarConfiguracion(BuildContext context) {
     showModalBottomSheet(
@@ -48,146 +51,150 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-                AlertasFalloCorreo(onReintentar: onReintentarEnvio),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Theme.of(context).cardColor,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                    border: Border.all(color: AppTheme.primary, width: 3),
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/images/logoapp.png',
-                      height: 152,
-                      width: 152,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                Text(
-                  'App de Cotizaciones',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                Text(
-                  'Gestione sus proyectos y clientes con precisión y rapidez profesional.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppTheme.primary,
-                        AppTheme.primary.withValues(alpha: 0.85),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await _dashboardKey.currentState?.recargar();
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(20),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  AlertasFalloCorreo(onReintentar: onReintentarEnvio),
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Theme.of(context).cardColor,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
                       ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      border: Border.all(color: AppTheme.primary, width: 3),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primary.withValues(alpha: 0.25),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/images/logoapp.png',
+                        height: 152,
+                        width: 152,
+                        fit: BoxFit.cover,
                       ),
-                    ],
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Iniciar Cotización Rápida',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+
+                  const SizedBox(height: 24),
+
+                  Text(
+                    'App de Cotizaciones',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  Text(
+                    'Gestione sus proyectos y clientes con precisión y rapidez profesional.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primary,
+                          AppTheme.primary.withValues(alpha: 0.85),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primary.withValues(alpha: 0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Inicie una propuesta técnica hoy.',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const CrearCotizacionPage(),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Iniciar Cotización Rápida',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Inicie una propuesta técnica hoy.',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CrearCotizacionPage(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(context).cardColor,
+                              foregroundColor: esOscuro
+                                  ? Colors.white
+                                  : theme.primaryColor,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).cardColor,
-                            foregroundColor: esOscuro
-                                ? Colors.white
-                                : theme.primaryColor,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              elevation: 2,
                             ),
-                            elevation: 2,
-                          ),
-                          icon: Icon(Icons.add_circle_outline),
-                          label: Text(
-                            'Iniciar',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                            icon: Icon(Icons.add_circle_outline),
+                            label: Text(
+                              'Iniciar',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
+                  const SizedBox(height: 20),
 
+                  _DashboardMetricas(key: _dashboardKey, onTap: onGoToCotizaciones),
 
-                const SizedBox(height: 20),
-
-                _DashboardMetricas(onTap: onGoToCotizaciones),
-
-                const SizedBox(height: 20),
-              ],
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),
@@ -199,7 +206,7 @@ class HomePage extends StatelessWidget {
 class _DashboardMetricas extends StatefulWidget {
   final VoidCallback onTap;
 
-  const _DashboardMetricas({required this.onTap});
+  const _DashboardMetricas({super.key, required this.onTap});
 
   @override
   State<_DashboardMetricas> createState() => _DashboardMetricasState();
@@ -218,6 +225,13 @@ class _DashboardMetricasState extends State<_DashboardMetricas> {
   void initState() {
     super.initState();
     _cargarMetricas();
+  }
+
+  Future<void> recargar() async {
+    if (mounted) {
+      setState(() => cargando = true);
+    }
+    await _cargarMetricas();
   }
 
   Future<void> _cargarMetricas() async {

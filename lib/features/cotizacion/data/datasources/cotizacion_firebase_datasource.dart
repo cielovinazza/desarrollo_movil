@@ -165,10 +165,10 @@ class CotizacionFirestoreDataSource {
       );
 
       final TaskSnapshot snapshot = await uploadTask.timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 15),
         onTimeout: () {
           uploadTask.cancel();
-          throw Exception('Timeout: La subida superó los 5 segundos.');
+          throw Exception('Timeout: La subida superó los 15 segundos.');
         },
       );
 
@@ -203,6 +203,14 @@ class CotizacionFirestoreDataSource {
       transaction.update(docRef, {'version': versionActual + 1});
     });
   }
+
+  Future<void> eliminarCotizaciones(List<String> ids) async {
+  final batch = firestore.batch();
+  for (final id in ids) {
+    batch.delete(firestore.collection('cotizaciones').doc(id));
+  }
+  await batch.commit();
+}
 
 Future<String> enviarCorreoTriggerEmail({
   required String clienteEmail,

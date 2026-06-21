@@ -38,12 +38,16 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
   List<CotizacionDto> cotizaciones = [];
   bool cargando = true;
   bool enviandoCorreo = false;
+  bool eliminando = false;
 
   String filterCliente = '';
   String filterId = '';
   String? estadoFiltro;
   DateTime? fechaInicioFiltro;
   DateTime? fechaFinFiltro;
+
+  bool modoSeleccion = false;
+  Set<String> idsSeleccionados = {};
 
   @override
   void initState() {
@@ -158,8 +162,114 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     super.dispose();
   }
 
+  void _iniciarSeleccion(String id) {
+    setState(() {
+      modoSeleccion = true;
+      idsSeleccionados = {id};
+    });
+  }
+
+  void _alternarSeleccion(String id) {
+    setState(() {
+      if (idsSeleccionados.contains(id)) {
+        idsSeleccionados.remove(id);
+      } else {
+        idsSeleccionados.add(id);
+      }
+      if (idsSeleccionados.isEmpty) {
+        modoSeleccion = false;
+      }
+    });
+  }
+
+  void _cancelarSeleccion() {
+    setState(() {
+      modoSeleccion = false;
+      idsSeleccionados.clear();
+    });
+  }
+
+  Future<void> _confirmarEliminacion() async {
+    final cantidad = idsSeleccionados.length;
+    if (cantidad == 0) return;
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar cotizaciones'),
+        content: Text(
+          cantidad == 1
+              ? '¿Está seguro de eliminar esta cotización? Esta acción no se puede deshacer.'
+              : '¿Está seguro de eliminar $cantidad cotizaciones? Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.danger,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return;
+
+    setState(() => eliminando = true);
+    try {
+      await repository.eliminarCotizaciones(idsSeleccionados.toList());
+
+      if (!mounted) return;
+      setState(() {
+        modoSeleccion = false;
+        idsSeleccionados.clear();
+      });
+
+      await cargarCotizacion();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            cantidad == 1
+                ? 'Cotización eliminada.'
+                : 'Cotizaciones eliminadas.',
+          ),
+        ),
+      );
+    } catch (e) {
+      AppDialogs.mostrarError(
+        context,
+        'Error al eliminar',
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    } finally {
+      if (mounted) setState(() => eliminando = false);
+    }
+  }
+
   Future<String?> mostrarModalObservacionEstado(String nuevoEstado) async {
   final observacionController = TextEditingController();
+
+  String label;
+  String hint;
+  if (nuevoEstado == 'Rechazada por el Cliente') {
+    label = 'Motivo de rechazo';
+    hint = 'Ingrese el motivo del rechazo';
+  } else if (nuevoEstado == 'Cancelada') {
+    label = 'Motivo de cancelación';
+    hint = 'Ingrese el motivo de la cancelación';
+  } else {
+    label = 'Observaciones';
+    hint = 'Ingrese una observación opcional';
+  }
 
   final resultado = await showDialog<String>(
     context: context,
@@ -182,10 +292,10 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                 keyboardType: TextInputType.multiline,
                 textInputAction: TextInputAction.newline,
                 maxLength: 250,
-                decoration: const InputDecoration(
-                  labelText: 'Motivo de rechazo',
-                  hintText: 'Ingrese el motivo del rechazo',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: label,
+                  hintText: hint,
+                  border: const OutlineInputBorder(),
                 ),
               ),
             ],
@@ -203,26 +313,6 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
         ElevatedButton(
           onPressed: () {
             final texto = observacionController.text.trim();
-
-            final cantidadPalabras = texto
-                .split(RegExp(r'\s+'))
-                .where((p) => p.isNotEmpty)
-                .length;
-
-            final requiereObservacion =
-                nuevoEstado == 'Rechazada por el Cliente' ||
-                nuevoEstado == 'Cancelada';
-
-            if (requiereObservacion && cantidadPalabras < 3) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Debe ingresar un motivo de al menos 3 palabras.',
-                  ),
-                ),
-              );
-              return;
-            }
             FocusManager.instance.primaryFocus?.unfocus();
             Navigator.pop(context, texto);
           },
@@ -466,52 +556,71 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
     return Stack(
       children: [
         Scaffold(
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: _estacargando ? Colors.grey : theme.primaryColor,
-            foregroundColor: Colors.white,
-            tooltip: 'Nueva cotización',
-            onPressed: _estacargando
-                ? null
-                : () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CrearCotizacionPage(),
-                      ),
-                    );
-                    if (!mounted) return;
+          floatingActionButton: modoSeleccion
+              ? null
+              : FloatingActionButton(
+                  backgroundColor: _estacargando ? Colors.grey : theme.primaryColor,
+                  foregroundColor: Colors.white,
+                  tooltip: 'Nueva cotización',
+                  onPressed: _estacargando
+                      ? null
+                      : () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CrearCotizacionPage(),
+                            ),
+                          );
+                          if (!mounted) return;
 
-                    setState(() => _estacargando = true);
+                          setState(() => _estacargando = true);
 
-                    try {
-                      await cargarCotizacion();
-                    } finally {
-                      if (mounted) {
-                        setState(() => _estacargando = false);
-                      }
-                    }
-                  },
-            child: _estacargando
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.add, size: 28),
-          ),
+                          try {
+                            await cargarCotizacion();
+                          } finally {
+                            if (mounted) {
+                              setState(() => _estacargando = false);
+                            }
+                          }
+                        },
+                  child: _estacargando
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.add, size: 28),
+                ),
           appBar: AppBar(
             elevation: 0,
-            title: const Text('Cotizaciones'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: cargarCotizacion,
-                color: theme.appBarTheme.foregroundColor,
-              ),
-            ],
+            title: modoSeleccion
+                ? Text('${idsSeleccionados.length} seleccionada(s)')
+                : const Text('Cotizaciones'),
+            leading: modoSeleccion
+                ? IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: _cancelarSeleccion,
+                  )
+                : null,
+            actions: modoSeleccion
+                ? [
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: idsSeleccionados.isEmpty
+                          ? null
+                          : _confirmarEliminacion,
+                    ),
+                  ]
+                : [
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      onPressed: cargarCotizacion,
+                      color: theme.appBarTheme.foregroundColor,
+                    ),
+                  ],
           ),
           body: Column(
             children: [
@@ -696,11 +805,15 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                                   '${CurrencyFormatter.format(cotizacion.totalFinal)} CLP',
                               estado: cotizacion.estado,
                               estadoColor: estadoColor(cotizacion.estado),
+                              modoSeleccion: modoSeleccion,
+                              seleccionado: idsSeleccionados.contains(cotizacion.id),
                               onEstadoCambiado: (nuevoEstado) =>
                                   cambiarEstado(cotizacion, nuevoEstado),
                               onEnviarCorreoSolicitado: () =>
                                   mostrarModalResumenEnvio(cotizacion),
                               onRecargar: cargarCotizacion,
+                              onLongPress: () => _iniciarSeleccion(cotizacion.id),
+                              onTapSeleccion: () => _alternarSeleccion(cotizacion.id),
                             );
                           },
                         ),
@@ -728,6 +841,29 @@ class _CotizacionesPageState extends State<CotizacionesPage> {
                       SizedBox(height: 16),
                       Text(
                         'Enviando cotización por correo...',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        if (eliminando)
+          Container(
+            color: Colors.black45,
+            child: const Center(
+              child: Card(
+                margin: EdgeInsets.all(24),
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text(
+                        'Eliminando cotizaciones...',
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -806,9 +942,13 @@ class _CotizacionCard extends StatelessWidget {
   final String monto;
   final String estado;
   final Color estadoColor;
+  final bool modoSeleccion;
+  final bool seleccionado;
   final ValueChanged<String> onEstadoCambiado;
   final VoidCallback onEnviarCorreoSolicitado;
   final Future<void> Function() onRecargar;
+  final VoidCallback onLongPress;
+  final VoidCallback onTapSeleccion;
 
   const _CotizacionCard({
     required this.cotizacionRaw,
@@ -819,9 +959,13 @@ class _CotizacionCard extends StatelessWidget {
     required this.monto,
     required this.estado,
     required this.estadoColor,
+    required this.modoSeleccion,
+    required this.seleccionado,
     required this.onEstadoCambiado,
     required this.onEnviarCorreoSolicitado,
     required this.onRecargar,
+    required this.onLongPress,
+    required this.onTapSeleccion,
   });
 
   @override
@@ -849,6 +993,10 @@ class _CotizacionCard extends StatelessWidget {
     final Widget cardContent = InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: () {
+        if (modoSeleccion) {
+          onTapSeleccion();
+          return;
+        }
         if (tienePdf) {
           Navigator.push(
             context,
@@ -861,12 +1009,18 @@ class _CotizacionCard extends StatelessWidget {
           );
         }
       },
+      onLongPress: modoSeleccion ? null : onLongPress,
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: theme.cardColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.12)),
+          border: Border.all(
+            color: seleccionado
+                ? theme.primaryColor
+                : theme.dividerColor.withValues(alpha: 0.12),
+            width: seleccionado ? 2 : 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -874,6 +1028,13 @@ class _CotizacionCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (modoSeleccion) ...[
+                  Checkbox(
+                    value: seleccionado,
+                    onChanged: (_) => onTapSeleccion(),
+                  ),
+                  const SizedBox(width: 4),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -981,37 +1142,40 @@ class _CotizacionCard extends StatelessWidget {
                       ),
                     ),
                     style: textTheme.bodyMedium,
-                    items: const [
-                      DropdownMenuItem(
+                    items: [
+                      const DropdownMenuItem(
                         value: 'En Proceso',
                         child: Text('En Proceso'),
                       ),
-                      DropdownMenuItem(
+                      const DropdownMenuItem(
                         value: 'Lista para Envío',
                         child: Text('Lista para Envío'),
                       ),
-                      DropdownMenuItem(
+                      const DropdownMenuItem(
                         value: 'Enviada',
                         child: Text('Enviada'),
                       ),
-                      DropdownMenuItem(
+                      const DropdownMenuItem(
                         value: 'Aprobada por el Cliente',
                         child: Text('Aprobada por el Cliente'),
                       ),
-                      DropdownMenuItem(
+                      const DropdownMenuItem(
                         value: 'Rechazada por el Cliente',
                         child: Text('Rechazada por el Cliente'),
                       ),
-                      DropdownMenuItem(
-                        value: 'Cancelada',
-                        child: Text('Cancelada'),
-                      ),
+                      if (estado != 'Aprobada por el Cliente' && estado != 'Aceptada')
+                        const DropdownMenuItem(
+                          value: 'Cancelada',
+                          child: Text('Cancelada'),
+                        ),
                     ],
-                    onChanged: (val) {
-                      if (val != null && val != estado) {
-                        onEstadoCambiado(val);
-                      }
-                    },
+                    onChanged: modoSeleccion
+                        ? null
+                        : (val) {
+                            if (val != null && val != estado) {
+                              onEstadoCambiado(val);
+                            }
+                          },
                   ),
                 ),
               ],
@@ -1023,18 +1187,20 @@ class _CotizacionCard extends StatelessWidget {
                   if (noTienePdf) ...[
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () async {
-                          final resultado = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  GenerarPdfPage(cotizacion: cotizacionRaw),
-                            ),
-                          );
-                          if (resultado == true) {
-                            await onRecargar();
-                          }
-                        },
+                        onPressed: modoSeleccion
+                            ? null
+                            : () async {
+                                final resultado = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        GenerarPdfPage(cotizacion: cotizacionRaw),
+                                  ),
+                                );
+                                if (resultado == true) {
+                                  await onRecargar();
+                                }
+                              },
                         icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
                         label: const Text('Generar PDF'),
                         style: OutlinedButton.styleFrom(
@@ -1049,7 +1215,7 @@ class _CotizacionCard extends StatelessWidget {
                   ],
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: onEnviarCorreoSolicitado,
+                      onPressed: modoSeleccion ? null : onEnviarCorreoSolicitado,
                       icon: const Icon(Icons.mail_outline, size: 16),
                       label: const Text('Enviar'),
                       style: ElevatedButton.styleFrom(
@@ -1067,17 +1233,19 @@ class _CotizacionCard extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CrearCotizacionPage(
-                          cotizacionAEditar: cotizacionRaw,
-                        ),
-                      ),
-                    );
-                    await onRecargar();
-                  },
+                  onPressed: modoSeleccion
+                      ? null
+                      : () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CrearCotizacionPage(
+                                cotizacionAEditar: cotizacionRaw,
+                              ),
+                            ),
+                          );
+                          await onRecargar();
+                        },
                   icon: const Icon(Icons.edit_note, size: 18),
                   label: const Text(
                     'Editar',
@@ -1106,17 +1274,19 @@ class _CotizacionCard extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CrearCotizacionPage(
-                          cotizacionAEditar: cotizacionRaw,
-                        ),
-                      ),
-                    );
-                    await onRecargar();
-                  },
+                  onPressed: modoSeleccion
+                      ? null
+                      : () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CrearCotizacionPage(
+                                cotizacionAEditar: cotizacionRaw,
+                              ),
+                            ),
+                          );
+                          await onRecargar();
+                        },
                   icon: const Icon(Icons.edit_note, size: 20),
                   label: const Text(
                     'Editar Cotización',
