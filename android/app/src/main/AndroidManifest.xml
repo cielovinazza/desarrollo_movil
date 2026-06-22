@@ -14,7 +14,7 @@
     </queries>
     
     <application
-        android:label="project"
+        android:label="CotizApp"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -6,8 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:project/core/utils/currency_formatter.dart';
-import '../widgets/alertas_fallo_correo.dart';
 import '../widgets/modal_configuracion.dart';
+import 'notificaciones_page.dart';
 
 class HomePage extends StatelessWidget {
   final VoidCallback onGoToCotizaciones;
@@ -47,6 +47,33 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sistema de Cotizaciones'),
+        leading: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('historial_correos')
+              .where('delivery.state', isEqualTo: 'ERROR')
+              .snapshots(),
+          builder: (context, snapshot) {
+            final count =
+                snapshot.hasData ? snapshot.data!.docs.length : 0;
+            return IconButton(
+              tooltip: 'Notificaciones',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => NotificacionesPage(
+                    onReintentarEnvio: onReintentarEnvio,
+                  ),
+                ),
+              ),
+              icon: Badge(
+                isLabelVisible: count > 0,
+                label: Text('$count'),
+                backgroundColor: AppTheme.danger,
+                child: const Icon(Icons.notifications_outlined),
+              ),
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.account_circle_outlined),
@@ -67,7 +94,6 @@ class HomePage extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 10),
-                  AlertasFalloCorreo(onReintentar: onReintentarEnvio),
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
