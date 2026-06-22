@@ -32,7 +32,6 @@ class NotificacionesPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Cabecera ──────────────────────────────────────────
                     Row(
                       children: [
                         Icon(
@@ -54,8 +53,6 @@ class NotificacionesPage extends StatelessWidget {
                       style: theme.textTheme.bodySmall,
                     ),
                     const SizedBox(height: 20),
-
-                    // ── Contenido ─────────────────────────────────────────
                     if (!snapshot.hasData)
                       const Center(child: CircularProgressIndicator())
                     else if (!tieneDatos)

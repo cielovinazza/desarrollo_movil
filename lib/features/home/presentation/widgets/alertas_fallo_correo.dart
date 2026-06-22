@@ -15,13 +15,21 @@ class _AlertasFalloCorreoState extends State<AlertasFalloCorreo> {
   late final Stream<QuerySnapshot> _stream;
 
   @override
-  void initState() {
-    super.initState();
-    _stream = FirebaseFirestore.instance
-        .collection('historial_correos')
-        .where('delivery.state', isEqualTo: 'ERROR')
-        .snapshots();
-  }
+void initState() {
+  super.initState();
+  _stream = FirebaseFirestore.instance
+      .collection('historial_correos')
+      .where('delivery.state', isEqualTo: 'ERROR')
+      .where('descartado', isEqualTo: false)
+      .snapshots();
+}
+
+  Future<void> _descartar(String docId) async {
+  await FirebaseFirestore.instance
+      .collection('historial_correos')
+      .doc(docId)
+      .update({'descartado': true});
+}
 
   String _extraerCodigo(String asunto) {
     final match = RegExp(r'N°(\S+)').firstMatch(asunto);
@@ -41,7 +49,10 @@ class _AlertasFalloCorreoState extends State<AlertasFalloCorreo> {
           return const SizedBox.shrink();
         }
 
-        final docs = snapshot.data!.docs;
+        final docs = snapshot.data!.docs.where((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['descartado'] != true;
+        }).toList();
 
         return Container(
           margin: const EdgeInsets.only(bottom: 20),
@@ -105,14 +116,15 @@ class _AlertasFalloCorreoState extends State<AlertasFalloCorreo> {
                 itemCount: docs.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 6),
                 itemBuilder: (context, index) {
-                  final data = docs[index].data() as Map<String, dynamic>;
-                  final asunto =
-                      (data['message']?['subject'] as String?) ?? '';
+                  final doc = docs[index];
+                  final data = doc.data() as Map<String, dynamic>;
+                  final asunto = (data['message']?['subject'] as String?) ?? '';
                   final codigo = _extraerCodigo(asunto);
 
                   return _AlertaItem(
                     codigo: codigo,
                     onReintentar: () => widget.onReintentar(codigo),
+                    onDescartar: () => _descartar(doc.id), 
                   );
                 },
               ),
@@ -128,8 +140,9 @@ class _AlertasFalloCorreoState extends State<AlertasFalloCorreo> {
 class _AlertaItem extends StatelessWidget {
   final String codigo;
   final VoidCallback onReintentar;
+  final VoidCallback onDescartar;
 
-  const _AlertaItem({required this.codigo, required this.onReintentar});
+  const _AlertaItem({required this.codigo, required this.onReintentar, required this.onDescartar});
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +176,11 @@ class _AlertaItem extends StatelessWidget {
                 ),
               ),
               const Icon(Icons.refresh, color: AppTheme.danger, size: 18),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onDescartar,
+                child: const Icon(Icons.close, color: AppTheme.danger, size: 18),
+              ),
             ],
           ),
         ),

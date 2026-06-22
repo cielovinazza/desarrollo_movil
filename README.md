@@ -120,6 +120,11 @@ De la misma manera existe un archivo llamado firebase_options.dart dentro de la 
 
 En resumen: al clonar el repositorio y ejecutar flutter run, la app ya se conecta a Firebase automáticamente. No se requiere ningún paso adicional.
 
+## Importante: para entrar a la app utilice las siguientes credenciales de prueba, de lo contrario solicite al administrador de firebase que le otorgue un usuario con su correo personal para que ud pueda cambiar la contraseña a su gusto:
+
+## correo: pruebafirebase@test.com
+## contraseña: 123456
+
 ## Importante: si al ejecutar la app aparece un error relacionado con Firebase (por ejemplo, FirebaseException o google-services.json not found), verificar que los archivos android/app/google-services.json y lib/firebase_options.dart existen en el proyecto clonado. Si no están presentes, deben solicitarse al equipo de desarrollo ya que contienen credenciales del proyecto.
 
 Si se desea/necesita conectar la app a un proyecto Firebase propio en lugar del incluido en el repositorio, siga estos pasos:
