@@ -79,7 +79,6 @@ flutter:
 
   assets:
   - assets/images/
-  #- assets/icons/
 
 
   
@@ -116,5 +115,6 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icon/icon.png" # Asegúrate de que este archivo exista
+  image_path: "assets/images/icon.png"
   min_sdk_android: 21
+  
