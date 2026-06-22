@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class ConfiguracionModal extends StatefulWidget {
   final bool isDarkMode;
   final ValueChanged<bool> onThemeChanged;
+  final VoidCallback? onCerrarSesion;
 
   const ConfiguracionModal({
     super.key,
     required this.isDarkMode,
     required this.onThemeChanged,
+    this.onCerrarSesion,
   });
 
   @override
@@ -73,7 +75,44 @@ class _ConfiguracionModalState extends State<ConfiguracionModal> {
             },
           ),
 
+          const Divider(height: 24),
+
+          ListTile(
+            leading: const Icon(Icons.logout, color: Colors.red),
+            title: const Text(
+              'Cerrar sesión',
+              style: TextStyle(color: Colors.red, fontWeight: FontWeight.w600),
+            ),
+           
+            onTap: () => _confirmarCerrarSesion(context),
+          ),
+
           const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  void _confirmarCerrarSesion(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cerrar sesión'),
+        content: const Text('¿Estás seguro de que deseas cerrar sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              Navigator.pop(context); 
+              widget.onCerrarSesion?.call();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Cerrar sesión'),
+          ),
         ],
       ),
     );

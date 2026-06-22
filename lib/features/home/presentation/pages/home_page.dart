@@ -14,6 +14,7 @@ class HomePage extends StatelessWidget {
   final bool isDarkMode;
   final ValueChanged<bool> onThemeChanged;
   final void Function(String codigo) onReintentarEnvio;
+  final VoidCallback onCerrarSesion;
 
   HomePage({
     super.key,
@@ -21,6 +22,7 @@ class HomePage extends StatelessWidget {
     required this.isDarkMode,
     required this.onThemeChanged,
     required this.onReintentarEnvio,
+    required this.onCerrarSesion,
   });
 
   final GlobalKey<_DashboardMetricasState> _dashboardKey =
@@ -33,6 +35,7 @@ class HomePage extends StatelessWidget {
       builder: (_) => ConfiguracionModal(
         isDarkMode: isDarkMode,
         onThemeChanged: onThemeChanged,
+        onCerrarSesion: onCerrarSesion,
       ),
     );
   }

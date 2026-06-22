@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:project/core/di/injection.dart';
+import 'package:project/features/auth/presentation/pages/login_page.dart';
 import 'package:project/features/cliente/presentation/pages/listado_cliente_page.dart';
 import 'package:project/features/home/presentation/pages/home_page.dart';
 import 'package:project/features/cotizacion/presentation/pages/cotizaciones_page.dart';
+import '../features/auth/data/datasources/auth_firebase_datasource.dart';
 
 class MainNavigation extends StatefulWidget {
   final bool isDarkMode;
@@ -63,6 +66,11 @@ class _MainNavigationState extends State<MainNavigation> {
           isDarkMode: widget.isDarkMode,
           onThemeChanged: widget.onThemeChanged,
            onReintentarEnvio: _reintentarEnvio,
+           onCerrarSesion: () async {
+            await AuthFirebaseDataSource().logout();
+             Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_)=> LoginPage(useCase: loginUseCase)),
+             (route)=>false,);
+            },
         ),
         ListadoClientesPage(key: _listadoClientesKey),
         CotizacionesPage(filtrarMesActual: _filtrarMesActual,
