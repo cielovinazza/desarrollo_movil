@@ -229,6 +229,7 @@ service cloud.firestore {
     
     match /contadores/{contadorId} {
       allow read, update: if request.auth != null;
+      allow create: if request.auth != null;
     }
   }
 }
