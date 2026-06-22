@@ -167,9 +167,7 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
     return urlDescarga;
   }
 
-  Future<void> crearNuevaVersion(String cotizacionId) async {
-    await datasource.crearNuevaVersion(cotizacionId);
-  }
+
 
   Future<void> eliminarCotizaciones(List<String> ids) async {
   final remotas = ids.where((id) => !id.startsWith('local-')).toList();
