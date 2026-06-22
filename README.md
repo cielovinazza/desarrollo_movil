@@ -201,3 +201,34 @@ y luego ejecute el comando:
 flutter run
 
 A partir de este punto, la app deberia estar conectada a su nuevo proyecto de Firebase, con su propia base de datos.
+
+## 8. Configuración de reglas en Firestore
+Para que el proyecto funcione correctamente como está pensado con sus reglas de seguridad en la base de datos, pegue estas reglas en Firestore → Reglas (parte superior)
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    match /cliente/{clienteId} {
+      allow read, delete: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    match /cotizaciones/{cotizacionId} {
+      allow read, delete, create: if request.auth != null;
+      allow update: if request.auth != null &&
+      request.resource.data.fechaCreacion == resource.data.get('fechaCreacion', null);
+      allow delete: if false;
+    }
+
+    match /historial_correos/{document} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if false; 
+    }
+    
+    match /contadores/{contadorId} {
+      allow read, update: if request.auth != null;
+    }
+  }
+}
