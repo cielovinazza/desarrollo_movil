@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../dtos/cotizacion_dtos.dart';
@@ -155,28 +155,27 @@ class CotizacionFirestoreDataSource {
     });
   }
 
-  Future<String> subirPdfCotizacion(String codigo, File archivoPdf) async {
-    try {
-      final ref = storage.ref().child('cotizaciones/$codigo/documento.pdf');
+Future<String> subirPdfCotizacion(
+  String codigo,
+  Uint8List archivoPdf,
+) async {
+  final ref = storage.ref().child('cotizaciones/$codigo/documento.pdf');
 
-      final uploadTask = ref.putFile(
-        archivoPdf,
-        SettableMetadata(contentType: 'application/pdf'),
-      );
+  final uploadTask = ref.putData(
+    archivoPdf,
+    SettableMetadata(contentType: 'application/pdf'),
+  );
 
-      final TaskSnapshot snapshot = await uploadTask.timeout(
-        const Duration(seconds: 15),
-        onTimeout: () {
-          uploadTask.cancel();
-          throw Exception('Timeout: La subida superó los 15 segundos.');
-        },
-      );
+  final snapshot = await uploadTask.timeout(
+    const Duration(seconds: 30),
+    onTimeout: () {
+      uploadTask.cancel();
+      throw Exception('Timeout: La subida del PDF superó los 30 segundos.');
+    },
+  );
 
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      rethrow;
-    }
-  }
+  return await snapshot.ref.getDownloadURL();
+}
 
   Future<void> vincularPdfACotizacion(String id, String url) async {
     await firestore.collection('cotizaciones').doc(id).update({'pdfUrl': url});

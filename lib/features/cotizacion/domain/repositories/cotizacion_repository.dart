@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import '../../data/dtos/cotizacion_dtos.dart';
 
 abstract class CotizacionRepository {
@@ -20,11 +20,11 @@ abstract class CotizacionRepository {
     String? observacion,
   });
 
-  Future<String> gestionarYSubirPdf({
-    required String id,
-    required String codigo,
-    required File archivo,
-  });
+Future<String> gestionarYSubirPdf({
+  required String id,
+  required String codigo,
+  required Uint8List archivo,
+});
 
   Future<void> enviarCotizacionPorCorreo(
     CotizacionDto cotizacion, {

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/repositories/cotizacion_repository.dart';
 import '../datasources/cotizacion_firebase_datasource.dart';
@@ -150,23 +150,23 @@ class CotizacionRepositoryImpl implements CotizacionRepository {
     );
   }
 
-  @override
-  Future<String> gestionarYSubirPdf({
-    required String id,
-    required String codigo,
-    required File archivo,
-  }) async {
-    final carpetaDestino = codigo.trim().isEmpty ? id : codigo;
-    final urlDescarga = await datasource.subirPdfCotizacion(
-      carpetaDestino,
-      archivo,
-    );
+@override
+Future<String> gestionarYSubirPdf({
+  required String id,
+  required String codigo,
+  required Uint8List archivo,
+}) async {
+  final carpetaDestino = codigo.trim().isEmpty ? id : codigo;
 
-    await datasource.vincularPdfACotizacion(id, urlDescarga);
+  final urlDescarga = await datasource.subirPdfCotizacion(
+    carpetaDestino,
+    archivo,
+  );
 
-    return urlDescarga;
-  }
+  await datasource.vincularPdfACotizacion(id, urlDescarga);
 
+  return urlDescarga;
+}
 
 
   Future<void> eliminarCotizaciones(List<String> ids) async {

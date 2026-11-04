@@ -1,79 +1,133 @@
-Sistema de cotizaciones- Flutter+Firebase
+# Sistema de cotizaciones – Flutter + Firebase
 
-La aplicación móvil "CotizApp" desarrollada en Flutter está destinada para la gestión integral de cotizaciones de proyectos de pintura/construcción. Permite crear, editar, previsualizar y enviar cotizaciones mediante archivos PDF a clientes (tambien registrados dentro de la misma app). Posee soporte offline y sincronizacion automatica con Firebase.
+La aplicación móvil **CotizApp**, desarrollada en Flutter, está destinada a la gestión integral de cotizaciones de proyectos de pintura y construcción. Permite crear, editar, previsualizar y enviar cotizaciones mediante archivos PDF a clientes registrados dentro de la misma aplicación. Además, posee soporte offline y sincronización automática con Firebase.
 
-## Librerias utilizadas
+## Librerías utilizadas
 
-Libreria                Versión         Uso
-flutter (SDK)             ^3.11.1        Framework principal
-firebase_core             ^4.10.0        Inicialización de firebase
-firebase_auth             ^6.5.2         Autenticación de usuarios 
-cloud_firestore           ^6.4.1         Base de datos en tiempo real
-firebase_storage          ^13.4.1        Almacenamiento de archivos PDF (requiere plan blaze de firebase)
-pdf                       ^3.12.0        Generación de documentos PDF
-printing                  ^5.14.3        Previsualización e impresión de PDFs
-path_provider             ^2.1.5         Acceso a rutas del sistema de archivos
-intl                      ^0.20.2        Formateo de fechas y montos en CLP
-url_launcher              ^6.3.0         Apertura de urls externas
-syncfusion_flutter_pdfViewer ^28.2.7     Visualizacion de Pdfs en la app
-share_plus                 ^12.0.2       Compartir archivos desde la app (por app de mensajes)
-file_picker                ^8.0.0        importación de archivos csv (materiales para esta app)
-shared_preferences         ^2.3.2        Almacenamiento local de borradores y documentos offline
-connectivity_plus          ^7.1.1        Detección de estado de red (online/offline)
-cupertino_icons            ^1.0.8        Iconos estilo IOS
+| Librería | Versión | Uso |
+|---|---|---|
+| flutter (SDK) | ^3.11.1 | Framework principal |
+| firebase_core | ^4.10.0 | Inicialización de Firebase |
+| firebase_auth | ^6.5.2 | Autenticación de usuarios |
+| cloud_firestore | ^6.4.1 | Base de datos en tiempo real |
+| firebase_storage | ^13.4.1 | Almacenamiento de archivos PDF (requiere plan Blaze) |
+| pdf | ^3.12.0 | Generación de documentos PDF |
+| printing | ^5.14.3 | Previsualización e impresión de PDFs |
+| path_provider | ^2.1.5 | Acceso a rutas del sistema de archivos |
+| intl | ^0.20.2 | Formateo de fechas y montos en CLP |
+| url_launcher | ^6.3.0 | Apertura de URLs externas |
+| syncfusion_flutter_pdfviewer | ^28.2.7 | Visualización de PDFs en la aplicación |
+| share_plus | ^12.0.2 | Compartir archivos desde la aplicación |
+| file_picker | ^8.0.0 | Importación de archivos CSV (materiales para esta aplicación) |
+| shared_preferences | ^2.3.2 | Almacenamiento local de borradores y documentos offline |
+| connectivity_plus | ^7.1.1 | Detección del estado de red (online/offline) |
+| cupertino_icons | ^1.0.8 | Iconos estilo iOS |
 
-## Requisitos previos para el uso correcto de la app
-• FlutterSDK ^3.11.1
-• Android Studio o VS code con extensión de flutter
-• Dart SDK (incluido con flutter, pero recomendable confirmar instalación en extensiones de VS code)
-• Dispositivo android o emulador (sirve emulador de android studio)
+## Requisitos previos para el uso correcto de la aplicación
 
-## Instalación 
-## 1.Clonar repositorio de github
+- Flutter SDK ^3.11.1.
+- Android Studio o Visual Studio Code con la extensión de Flutter.
+- Dart SDK (incluido con Flutter).
+- Dispositivo Android o emulador.
 
-previamente se debe tener instalado gitbash para windows, una vez instalado gitbash abra una terminal y ejecute los comandos: 
+## Instalación
+
+### 1. Clonar repositorio de GitHub
+
+Previamente se debe tener instalado Git Bash para Windows. Una vez instalado, abrir una terminal y ejecutar:
+
+```bash
 git clone https://github.com/cielovinazza/desarrollo_movil
-cd desarollo_movil
+cd desarrollo_movil
+```
 
-## 2. Instalar dependencias
-dentro de la carpeta del proyecto ejecute el comando:
-flutter pub get (esto instala automaticamente las librerias escritas en pubspec.yaml)
+### 2. Instalar dependencias
 
-## 3. Verificar entorno
+Dentro de la carpeta del proyecto, ejecutar:
+
+```bash
+flutter pub get
+```
+
+Este comando instala automáticamente las librerías declaradas en `pubspec.yaml`.
+
+### 3. Verificar entorno
+
+Ejecutar:
+
+```bash
 flutter doctor
-este comando es para confirmar que está todo correctamente configurado (flutter, sdk, android studio, visual studio, etc) Todos los items deben aparecer con un ticket, si alguno muestra un error, siga las instrucciones mostradas en pantalla por la terminal.
+```
 
-## 4. Conectar un dispositivo
-Opcion A: puede utilizar un dispositivo android fisico, para ello antes debe activar las opciones de desarrollador (tocar 7 veces el numero de compilación en "Acerca del télefono" en configuraciones) y activar la depuracion por USB (o inalambrica si lo prefiere)
+Este comando permite comprobar que Flutter, los SDK y las herramientas necesarias estén correctamente configurados. Si algún elemento presenta errores, seguir las instrucciones mostradas en la terminal.
 
-Opcion B: usar un emulador, puede utilizar un emulador de android studio (Device Manager → create device → seleccionar un dispositivo con API21 o superior y crearlo → iniciar el emulador)
+### 4. Conectar un dispositivo
 
-para verificar que su dispositivo está conectado ejecute el comando: flutter devices
+**Opción A: Dispositivo Android físico**
 
-luego ejecute la aplicación con el comando: flutter run, si todo está preconfigurado correctamente, la app se abrirá automaticamente en su dispositivo o emulador
+Activar las opciones de desarrollador (presionar siete veces el número de compilación en "Acerca del teléfono", dentro de Configuración) y habilitar la depuración por USB o inalámbrica.
 
-5. Generar APK de release (opcional)
-si desea generar un apk instalable sin necesidad de utilizar android studio o tener activada la depuración siempre, ejecute el comando:
+**Opción B: Emulador**
 
+Utilizar un emulador de Android Studio:
+
+1. Abrir Device Manager.
+2. Seleccionar Create Device.
+3. Elegir un dispositivo con API 21 o superior.
+4. Crear e iniciar el emulador.
+
+Para verificar que el dispositivo esté conectado:
+
+```bash
+flutter devices
+```
+
+Luego ejecutar:
+
+```bash
+flutter run
+```
+
+Si todo está configurado correctamente, la aplicación se abrirá en el dispositivo o emulador.
+
+### 5. Generar APK de release (opcional)
+
+Para generar un APK instalable sin necesidad de utilizar Android Studio ni mantener activa la depuración, ejecutar:
+
+```bash
 flutter build apk --release
+```
 
-luego busque la app en el directorio "build/app/outputs/flutter-apk/app-release.apk" dentro de la carpeta del proyecto y copie el archivo .apk directamente en el dispositivo fisico (debe tener habilitada la instalación de apps de fuentes desconocidas, si no lo tiene habilitelo en Ajustes → Seguridad)
+El archivo se encontrará en:
 
-## Backend - Firebase
-El backend de la app está completamente gestionado por Firebase (servicio de Google). No requiere servidor propio ni infraestructura adicional.
+```text
+build/app/outputs/flutter-apk/app-release.apk
+```
 
-Servicios Utilizados
+Copiar el archivo `.apk` al dispositivo físico. Es posible que sea necesario habilitar la instalación de aplicaciones de fuentes desconocidas desde Ajustes → Seguridad.
 
-•Firebase Authentication: login y gestión de sesiones de usuario mediante correo y contraseña (administrada/creada desde la consola de firebase)
-•Cloud Firestore: base de datos NoSQL, donde se almacenan las cotizaciones, clientes, historial de correos enviados y contadores.
-•Firebase Storage: sistema de almacenamiento en la nube para archivos PDF generados por la app
-•Trigger Email(extensión): permite el envío automatico de pdfs al correo de los clientes, tambien escribe los datos en la coleccion historial_correos.
+---
 
-Estructura de la base de datos:
+## Backend – Firebase
+
+El backend de la aplicación está completamente gestionado por Firebase (servicio de Google). No requiere servidor propio ni infraestructura adicional.
+
+### Servicios utilizados
+
+- **Firebase Authentication:** login y gestión de sesiones de usuario mediante correo y contraseña. Las cuentas son administradas desde Firebase Console.
+- **Cloud Firestore:** base de datos NoSQL donde se almacenan las cotizaciones, clientes, historial de correos enviados y contadores.
+- **Firebase Storage:** almacenamiento en la nube para los archivos PDF generados por la aplicación.
+- **Trigger Email (extensión):** permite el envío automático de PDFs al correo de los clientes. También escribe los datos en la colección `historial_correos`.
+
+### Estructura de la base de datos
+
+**cotizaciones/**
+
+```text
 cotizaciones/
   {cotizacionId}/
     - id
-    - codigo                  (distinto de id, ej: "CT-001", o "CT-001-V2" si fue rechazada y reeditada)
+    - codigo                  (distinto de id, ej: "CT-001" o "CT-001-V2")
     - clienteId
     - clienteNombre
     - clienteEmail
@@ -99,11 +153,19 @@ cotizaciones/
     - fechaCreacion
     - fechaEdicion
     - fechaCambioEstado
+```
 
+**contadores/**
+
+```text
 contadores/
   cotizaciones/
     - ultimoNumero            (genera códigos correlativos CT-001, CT-002, ...)
+```
 
+**historial_correos/**
+
+```text
 historial_correos/
   {docId}/
     - to                      (email del cliente)
@@ -111,115 +173,181 @@ historial_correos/
         - subject
         - html
         - attachments[]       (filename, path con URL del PDF en Storage)
+```
 
-## Como conectarse a Firebase
+## Cómo conectarse a Firebase
 
-Dentro de la carpeta android/app/ de este proyecto, existe un archivo llamado google-services.json, el cual contiene toda la configuración necesaria para que la app se conecte automaticamente al proyecto Firebase donde están almacenados los datos. Este archivo fue generado de manera automatica por Firebase al momento de integrar el servicio al proyecto y ya está incluido en el repositorio, por lo que simplemente basta con clonar el repositorio para conectarse a Firebase sin necesidad de realizar ninguna configuración adicional ni instalar herramientas extra para que funcione. 
+Dentro de la carpeta `android/app/` de este proyecto existe un archivo llamado `google-services.json`, que contiene la configuración necesaria para que la aplicación Android se conecte al proyecto Firebase.
 
-De la misma manera existe un archivo llamado firebase_options.dart dentro de la carpeta lib/ que Flutter utiliza internamente para inicializar la conexión con Firebase al arrancar la app. Este archivo al igual que google-services.json ya está incluido en el repositorio.
+También existe el archivo `firebase_options.dart` dentro de la carpeta `lib/`, que Flutter utiliza internamente para inicializar la conexión con Firebase al arrancar la aplicación.
 
-En resumen: al clonar el repositorio y ejecutar flutter run, la app ya se conecta a Firebase automáticamente. No se requiere ningún paso adicional.
+Ambos archivos están incluidos en el repositorio. Por lo tanto, al clonar el proyecto y ejecutar `flutter run`, la aplicación se conecta automáticamente al proyecto Firebase configurado, sin necesidad de realizar pasos adicionales de conexión.
 
-## Importante: para entrar a la app utilice las siguientes credenciales de prueba, de lo contrario solicite al administrador de firebase que le otorgue un usuario con su correo personal para que ud pueda cambiar la contraseña a su gusto:
+### Credenciales de prueba
 
-## correo: pruebafirebase@test.com
-## contraseña: 123456
+Para ingresar a la aplicación se pueden utilizar las siguientes credenciales de prueba. De lo contrario, se debe solicitar al administrador de Firebase que otorgue un usuario con correo personal para cambiar la contraseña.
 
-## Importante: si al ejecutar la app aparece un error relacionado con Firebase (por ejemplo, FirebaseException o google-services.json not found), verificar que los archivos android/app/google-services.json y lib/firebase_options.dart existen en el proyecto clonado. Si no están presentes, deben solicitarse al equipo de desarrollo ya que contienen credenciales del proyecto.
+**Correo:** `pruebafirebase@test.com`
 
-Si se desea/necesita conectar la app a un proyecto Firebase propio en lugar del incluido en el repositorio, siga estos pasos:
+**Contraseña:** `123456`
 
-## 0. Crear una cuenta de firebase (si ya tiene una, salte directamente al paso 1)
-Firebase es un servicio de Google, por lo que se accede con una cuenta de Google (la misma que se usa para Gmail, YouTube, etc.). Si no se tiene una cuenta de Google, primero crear una en https://accounts.google.com/signup.
+### Importante
 
-Una vez que se tiene la cuenta de Google:
+Si al ejecutar la aplicación aparece un error relacionado con Firebase (por ejemplo, `FirebaseException` o `google-services.json not found`), verificar que los archivos `android/app/google-services.json` y `lib/firebase_options.dart` existan en el proyecto clonado.
 
-Ir a https://firebase.google.com
-Hacer clic en el botón "Comenzar" o "Get started" en la esquina superior derecha
-Iniciar sesión con la cuenta de Google
-Se redirigirá automáticamente a la consola de Firebase en https://console.firebase.google.com, donde ya se puede crear y administrar proyectos
+Si no están presentes, deben solicitarse al equipo de desarrollo, ya que contienen la configuración de conexión del proyecto.
 
-## 1. Instalar herramientas necesarias
-primero, se debe instalar la CLI de Firebase y la herramienta FlutterFire. Para ello abra una terminal y ejecute los comandos:
+---
 
+# Configuración de un proyecto Firebase propio
+
+Si se desea o necesita conectar la aplicación a un proyecto Firebase propio en lugar del incluido en el repositorio, seguir estos pasos.
+
+### 0. Crear una cuenta de Firebase
+
+Si ya se dispone de una cuenta de Google, se puede saltar directamente al paso 1.
+
+Firebase utiliza cuentas de Google. Si no se tiene una, crear una desde:
+
+https://accounts.google.com/signup
+
+Una vez creada la cuenta:
+
+1. Ir a https://firebase.google.com.
+2. Hacer clic en "Comenzar" o "Get started".
+3. Iniciar sesión con la cuenta de Google.
+4. Se redirigirá a Firebase Console: https://console.firebase.google.com.
+
+### 1. Instalar herramientas necesarias
+
+Primero se debe instalar Firebase CLI y FlutterFire CLI.
+
+Ejecutar:
+
+```bash
 npm install -g firebase-tools
+```
 
+```bash
 dart pub global activate flutterfire_cli
+```
 
-(Si no tiene Node.js instalado (necesario para el primer comando), descárgalo desde https://nodejs.org e instalelo antes de continuar.)
+Si no se tiene Node.js instalado (necesario para el primer comando), descargarlo desde https://nodejs.org e instalarlo antes de continuar.
 
-## 2. Iniciar sesión en Firebase
-ejecute el comando firebase login
-este comando abrirá una ventana en el navegador pidiendo iniciar sesión con su cuenta de google con acceso a Firebase. Acepte los permisos solicitados. (si no tiene una cuenta en firebase siga los pasos del punto 0)
+### 2. Iniciar sesión en Firebase
 
-## 3. Activar el plan Blaze en Firebase
+Ejecutar:
 
-Esta aplicación utiliza Firebase Storage (para guardar los PDFs) y Trigger Email (para enviar correos). Ambos servicios requieren que el proyecto tenga activado el plan Blaze (pago por uso), ya que no están disponibles en el plan gratuito Spark.
+```bash
+firebase login
+```
 
-Importante: activar el plan Blaze no significa que se va a cobrar dinero automáticamente. Firebase solo cobra si el uso supera los límites gratuitos incluidos en el plan, los cuales son bastante generosos para una aplicación de uso normal (para que empiece a cobrar la cantidad de lecturas debe superar las 50 mil por dia y las escrituras y eliminaciones deben superar las 20.000 por dia y en storage se debe superar los 5GB en archivos, sin embargo los PDFs no suelen pesar mas de 10mb cada uno). Sin embargo, sí es necesario registrar una tarjeta de crédito o débito para habilitarlo.
+Este comando abrirá una ventana en el navegador para iniciar sesión con una cuenta de Google que tenga acceso a Firebase. Aceptar los permisos solicitados.
+
+### 3. Activar el plan Blaze en Firebase
+
+Esta aplicación utiliza Firebase Storage para guardar los PDFs y Trigger Email para enviar correos. Estos servicios requieren que el proyecto tenga activado el plan Blaze (pago por uso).
+
+Activar el plan Blaze no significa que se cobrará dinero automáticamente. Firebase cobra según el uso de los servicios y los límites aplicables al proyecto. Se debe revisar la información de precios vigente antes de activar el plan.
 
 Para activarlo:
 
-Dentro del proyecto en https://console.firebase.google.com, ir a la esquina inferior izquierda donde dice "Spark" y hacer clic en "Actualizar"
-Seleccionar el plan Blaze y seguir los pasos para ingresar los datos de pago
-Se recomienda configurar un presupuesto de seguridad para evitar sorpresas: durante el proceso de activación, Firebase ofrece la opción de establecer un límite de gasto mensual. Al alcanzar ese límite, Firebase envía una notificación por correo. Establecer un valor bajo (por ejemplo, $1 o $5 CLP) es suficiente como medida de seguridad.
+1. Dentro del proyecto en https://console.firebase.google.com, ir a la sección de facturación.
+2. Seleccionar el plan Blaze.
+3. Seguir los pasos para ingresar los datos de pago.
+4. Revisar las opciones de presupuesto y alertas de facturación disponibles.
 
-## 4. Crear proyecto en Firebase Console 
-1. ir a https://console.firebase.google.com
-2. Hacer click en "Agregar proyecto" y seguir los pasos
-3. Una vez creado el proyecto, debe habilitar los siguientes servicios desde el menú lateral:
-  • Authentication → Métodos de acceso → Correo/Contraseña → Activar
-  • Firestore Database → Crear base de datos → Seleccionar Modo producción
-  • Storage → Comenzar → Aceptar las reglas por defecto
+Se recomienda configurar alertas de presupuesto para monitorear los gastos del proyecto.
 
-## 5. Configurar Trigger Email
-Trigger email es una extensión de firebase que permite enviar correos electronicos de forma automatica cuando se agrega un documento a una colección de Firestore. Está app la utiliza para enviar las cotizaciones en formato PDF al correo de los clientes.
+### 4. Crear proyecto en Firebase Console
+
+1. Ir a https://console.firebase.google.com.
+2. Hacer clic en "Agregar proyecto" y seguir los pasos.
+3. Una vez creado el proyecto, habilitar los siguientes servicios:
+
+   - Authentication → Métodos de acceso → Correo/Contraseña → Activar.
+   - Firestore Database → Crear base de datos → Seleccionar modo producción.
+   - Storage → Comenzar → Configurar las reglas de seguridad correspondientes.
+
+### 5. Configurar Trigger Email
+
+Trigger Email es una extensión de Firebase que permite enviar correos electrónicos automáticamente cuando se agrega un documento a una colección de Firestore.
+
+La aplicación la utiliza para enviar las cotizaciones en formato PDF al correo de los clientes.
 
 Para instalarla:
-1. En el menú lateral de Firebase Console, dirijase a "Extensions (o extensiones si lo tiene en español)"
-2. Hacer click en explorar extensiones.
-3. Buscar "Trigger Email from Firestore" y seleccionarla
-4. Hacer click en instalar y seguir los pasos de configuración:
-  • En el campo "Email documents collection", ingrese EXACTAMENTE historial_correos
-  • En la sección "SMTP connection URI" ingrese las credenciales del servicio de correo que usará para enviar los correos. Se recomienda usar gmail con una contraseña de aplicación:
-    • Ir a https://myaccount.google.com/apppasswords y genera una contraseña de aplicación
-    IMPORTANTE: para poder generar la contraseña de aplicación debe tener habilitada en su cuenta de google la verificación en dos pasos
-    • El formato de la URI (campo donde debe escribir) es smtps://tucorreo@gmail.com:contraseña_de_app(sin espacios)@smtp.gmail.com:465
-    • En el campo "Default From address" ponga la dirección de correo desde donde quiere que se envíen los correos de la app.
-    • En el campo OAuth2 SMTP Port(opcional) se recomienda poner 465 si trabajará con gmail (a pesar de ser opcional)
-5. Hacer click en "Instalar Extensión" y esperar a que finalice la instalación (esto puede tardar algunos minutos)
 
-## 6. Conectar el proyecto flutter con Firebase
-Dentro de la carpeta raiz del proyecto (donde está el archivo pubspec.yaml) ejecute el comando:
+1. En el menú lateral de Firebase Console, dirigirse a Extensions (Extensiones).
+2. Hacer clic en explorar extensiones.
+3. Buscar "Trigger Email from Firestore" y seleccionarla.
+4. Hacer clic en instalar y seguir los pasos de configuración:
 
+   - En el campo **Email documents collection**, ingresar exactamente:
+
+     ```text
+     historial_correos
+     ```
+
+   - En **SMTP connection URI**, ingresar las credenciales del servicio de correo que se utilizará para enviar los correos. Se recomienda Gmail con una contraseña de aplicación.
+   - Ir a https://myaccount.google.com/apppasswords y generar una contraseña de aplicación. Para ello, debe estar habilitada la verificación en dos pasos de la cuenta de Google.
+   - El formato de la URI es:
+
+     ```text
+     smtps://tucorreo@gmail.com:contraseña_de_app@ smtp.gmail.com:465
+     ```
+
+     Se debe eliminar el espacio antes de `smtp.gmail.com` al configurar el valor.
+
+   - En **Default From address**, ingresar la dirección de correo desde donde se enviarán los correos de la aplicación.
+   - En **OAuth2 SMTP Port** (opcional), se recomienda utilizar `465` si se trabajará con Gmail.
+
+5. Hacer clic en "Instalar extensión" y esperar a que finalice el proceso.
+
+### 6. Conectar el proyecto Flutter con Firebase
+
+Dentro de la carpeta raíz del proyecto (donde se encuentra `pubspec.yaml`), ejecutar:
+
+```bash
 flutterfire configure
+```
 
-Este comando detecta automaticamente los proyectos de Firebase disponibles en la cuenta y muestra un menú para seleccionar cual utilizar. Al seleccionar el proyecto correcto, el comando reemplaza automaticamente los archivos "google-services.json" y "firebase_options.dart" con los del nuevo proyecto. No es necesario que copie ni mueva los archivos manualmente.
+Este comando detecta automáticamente los proyectos de Firebase disponibles en la cuenta y muestra un menú para seleccionar cuál utilizar.
 
-## 7. Ejecutar la app
-Si todos los pasos anteriores fueron ejecutados correctamente, deberia poder levantar la app en su propio entorno de firebase, para ello utilice antes el comando: 
+Al seleccionar el proyecto correcto, genera o actualiza los archivos de configuración correspondientes, incluyendo `firebase_options.dart` y, según la configuración de plataformas, los archivos nativos necesarios.
 
-flutter pub get (para instalar las dependencias de pubspec.yaml y evitar conflictos)
+### 7. Ejecutar la aplicación
 
-y luego ejecute el comando:
+Si todos los pasos anteriores fueron ejecutados correctamente, la aplicación debería estar conectada al nuevo proyecto Firebase.
 
+Ejecutar:
+
+```bash
+flutter pub get
+```
+
+Luego:
+
+```bash
 flutter run
+```
 
-A partir de este punto, la app deberia estar conectada a su nuevo proyecto de Firebase, con su propia base de datos.
+A partir de este punto, la aplicación debería estar conectada al nuevo proyecto Firebase y utilizar su propia base de datos.
 
-## 8. Configuración de reglas en Firestore
-Para que el proyecto funcione correctamente como está pensado con sus reglas de seguridad en la base de datos, pegue estas reglas en Firestore → Reglas (parte superior)
+### 8. Configuración de reglas en Firestore
 
+Para que el proyecto funcione correctamente con sus reglas de seguridad, pegar las siguientes reglas en Firebase Console → Firestore Database → Reglas:
+
+```javascript
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+
     match /cliente/{clienteId} {
       allow read, delete: if request.auth != null;
       allow write: if request.auth != null;
     }
-    
+
     match /cotizaciones/{cotizacionId} {
       allow read, delete, create: if request.auth != null;
       allow update: if request.auth != null &&
@@ -229,12 +357,151 @@ service cloud.firestore {
 
     match /historial_correos/{document} {
       allow read, create: if request.auth != null;
-      allow update, delete: if false; 
+      allow update, delete: if false;
     }
-    
+
     match /contadores/{contadorId} {
       allow read, update: if request.auth != null;
       allow create: if request.auth != null;
     }
   }
 }
+```
+
+---
+
+## Configuración de Firebase Storage y CORS para Flutter Web
+
+### Problema identificado
+
+Durante las pruebas de la aplicación en Flutter Web, se detectó que los documentos PDF almacenados en Firebase Storage no podían visualizarse correctamente desde el navegador.
+
+Se presentaban errores como:
+
+```text
+There was an error opening this document.
+```
+
+Y posteriormente:
+
+```text
+ClientException: Failed to fetch
+```
+
+El problema se relacionaba con las restricciones CORS (Cross-Origin Resource Sharing) al realizar solicitudes desde el navegador hacia Firebase Storage.
+
+### Solución implementada
+
+Se configuró CORS directamente en el bucket de Firebase Storage utilizando Google Cloud CLI.
+
+**Bucket utilizado:**
+
+```text
+proyecto-desarrollo-movi-47954.firebasestorage.app
+```
+
+### 1. Instalar Google Cloud CLI
+
+Descargar e instalar Google Cloud CLI desde:
+
+https://cloud.google.com/sdk/docs/install
+
+Una vez instalado, comprobar su funcionamiento:
+
+```powershell
+gcloud --version
+```
+
+### 2. Autenticarse y seleccionar el proyecto
+
+Ejecutar:
+
+```powershell
+gcloud init
+```
+
+Durante la configuración:
+
+- Seleccionar la cuenta de Google que tenga permisos para administrar el bucket.
+- Seleccionar el proyecto Firebase correspondiente.
+- No es necesario configurar una región ni zona de Compute Engine para esta operación.
+
+Para comprobar el proyecto activo:
+
+```powershell
+gcloud config get-value project
+```
+
+### 3. Crear el archivo cors.json
+
+En la raíz del proyecto, crear un archivo llamado `cors.json` con el siguiente contenido:
+
+```json
+[
+  {
+    "origin": ["*"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Content-Range",
+      "Accept-Ranges"
+    ],
+    "maxAgeSeconds": 3600
+  }
+]
+```
+
+**Descripción de los parámetros:**
+
+| Parámetro | Descripción |
+|---|---|
+| origin | Orígenes desde los cuales se permiten solicitudes CORS. |
+| method | Métodos HTTP permitidos: GET y HEAD. |
+| responseHeader | Encabezados de respuesta expuestos al navegador. |
+| maxAgeSeconds | Tiempo de caché de la configuración CORS, expresado en segundos. |
+
+### 4. Aplicar la configuración al bucket
+
+Desde PowerShell, ubicado en la carpeta donde se encuentra `cors.json`, ejecutar:
+
+```powershell
+gcloud storage buckets update gs://proyecto-desarrollo-movi-47954.firebasestorage.app --cors-file=cors.json
+```
+
+### 5. Verificar la configuración
+
+Ejecutar:
+
+```powershell
+gcloud storage buckets describe gs://proyecto-desarrollo-movi-47954.firebasestorage.app --format="default(cors_config)"
+```
+
+La configuración debe mostrar los métodos `GET` y `HEAD`, el origen configurado y los encabezados correspondientes.
+
+### 6. Resultado obtenido
+
+Después de aplicar y verificar la configuración CORS, se volvió a ejecutar la aplicación Flutter Web.
+
+Se comprobó que el documento PDF de la cotización `CT-019` podía visualizarse correctamente desde el navegador.
+
+**Estado:** configuración aplicada y visualización de PDF verificada en el entorno de desarrollo.
+
+### 7. Consideraciones de seguridad
+
+- CORS no hace públicos los documentos ni reemplaza las reglas de seguridad de Firebase Storage.
+- Las reglas de Storage deben seguir exigiendo autenticación para las operaciones protegidas.
+- La configuración utilizada con `origin: ["*"]` se aplicó para facilitar las pruebas de desarrollo.
+- Antes de desplegar la aplicación en producción, se debe reemplazar `*` por el dominio real autorizado.
+
+Ejemplo:
+
+```json
+"origin": ["https://midominio.cl"]
+```
+
+Si la aplicación utiliza más de un dominio autorizado, se deben agregar los orígenes correspondientes.
+
+Después de modificar `cors.json`, volver a aplicar la configuración al bucket utilizando el comando de actualización indicado anteriormente.
+
+**Importante:** la configuración CORS se administra directamente en Google Cloud Storage. Guardar `cors.json` en el repositorio permite conservar y reproducir la configuración, pero no significa que se aplique automáticamente al desplegar la aplicación.
