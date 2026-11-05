@@ -475,8 +475,21 @@ class PrevisualizacionPdfWidget extends StatefulWidget {
               ],
             ),
 
-            pw.SizedBox(height: 25),
+            if (cotizacion.viaticoDescripcion != null &&
+                cotizacion.viaticoDescripcion!.trim().isNotEmpty)
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(top: 4, left: 4),
+                child: pw.Text(
+                  'Detalle: ${cotizacion.viaticoDescripcion!.trim()}',
+                  style: pw.TextStyle(
+                    fontSize: 9,
+                    fontStyle: pw.FontStyle.italic,
+                    color: PdfColors.grey700,
+                  ),
+                ),
+              ),
 
+            pw.SizedBox(height: 25),
             pw.Container(
               padding: const pw.EdgeInsets.all(10),
               decoration: const pw.BoxDecoration(

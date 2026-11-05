@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../../../core/utils/clp_input_formatter.dart';
 import '../../domain/entities/cotizacion_model.dart';
 
@@ -25,12 +26,13 @@ class DialogoTrabajoForm extends StatefulWidget {
 }
 
 class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
-  final nombreController = TextEditingController();
   final m2ItemController = TextEditingController();
   final precioItemController = TextEditingController();
   final descripcionItemController = TextEditingController();
 
   bool esPrecioFijo = false;
+  String? tipoTrabajoSeleccionado;
+
   String? errorNombre;
   String? errorM2;
   String? errorPrecio;
@@ -44,7 +46,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
     final trabajo = widget.trabajoEditando;
 
     if (trabajo != null) {
-      nombreController.text = trabajo.tipo;
+      tipoTrabajoSeleccionado = trabajo.tipo;
       esPrecioFijo = trabajo.esPrecioFijo;
 
       m2ItemController.text = trabajo.metrosCuadrados == 0
@@ -55,9 +57,10 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
           ? trabajo.precioFijo.toStringAsFixed(0)
           : trabajo.precioPorMetro.toStringAsFixed(0);
 
-      descripcionItemController.text = trabajo.descripcionBreve ?? '';
+      descripcionItemController.text =
+          trabajo.descripcionBreve ?? '';
     } else if (widget.tiposDisponibles.isNotEmpty) {
-      nombreController.text = widget.tiposDisponibles.first;
+      tipoTrabajoSeleccionado = widget.tiposDisponibles.first;
     }
   }
 
@@ -66,40 +69,56 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
   }
 
   double? _parsearDecimal(String valor) {
-    return double.tryParse(valor.trim().replaceAll(',', '.'));
+    return double.tryParse(
+      valor.trim().replaceAll(',', '.'),
+    );
   }
 
   @override
   void dispose() {
-    nombreController.dispose();
     m2ItemController.dispose();
     precioItemController.dispose();
     descripcionItemController.dispose();
     super.dispose();
   }
 
-  void _mostrarDialogoCrearTipoTrabajo() {
-    final nuevoTipoController = TextEditingController();
-    final formKeyTipo = GlobalKey<FormState>();
 
-    showDialog(
-      context: context,
-      builder: (subContext) => AlertDialog(
+Future<void> _mostrarDialogoCrearTipoTrabajo() async {
+  final nuevoTipoController = TextEditingController();
+  final formKeyTipo = GlobalKey<FormState>();
+
+  final nuevoTipo = await showDialog<String>(
+    context: context,
+    builder: (subContext) {
+      return AlertDialog(
         title: const Text('Nuevo tipo de trabajo'),
         content: Form(
           key: formKeyTipo,
           child: TextFormField(
             controller: nuevoTipoController,
+            autofocus: true,
+            maxLength: 100,
             validator: (value) {
-              if (value == null || value.trim().isEmpty) {
+              final nombre = value?.trim() ?? '';
+
+              if (nombre.isEmpty) {
                 return 'Por favor, ingrese un nombre';
               }
-              if (value.trim().length < 3) {
+
+              if (nombre.length < 3) {
                 return 'El nombre debe tener al menos 3 caracteres';
               }
-              if (value.trim().length > 100) {
-                return 'El nombre no puede exceder los 100 caracteres';
+
+              final existe = widget.tiposDisponibles.any(
+                (tipo) =>
+                    tipo.trim().toLowerCase() ==
+                    nombre.toLowerCase(),
+              );
+
+              if (existe) {
+                return 'Este tipo de trabajo ya existe';
               }
+
               return null;
             },
             decoration: const InputDecoration(
@@ -110,7 +129,7 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(subContext).pop(),
+            onPressed: () => Navigator.pop(subContext),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -119,27 +138,40 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
               foregroundColor: Colors.white,
             ),
             onPressed: () {
-              if (!formKeyTipo.currentState!.validate()) return;
-
-              final nuevoTipo = nuevoTipoController.text.trim();
-
-              Navigator.of(subContext).pop();
-
-              widget.onNuevoTipoCreado(nuevoTipo);
-
-              setState(() {
-                nombreController.text = nuevoTipo;
-              });
+              if (formKeyTipo.currentState!.validate()) {
+                Navigator.pop(
+                  subContext,
+                  nuevoTipoController.text.trim(),
+                );
+              }
             },
             child: const Text('Crear'),
           ),
         ],
-      ),
-    ).then((_) => nuevoTipoController.dispose());
-  }
+      );
+    },
+  );
+
+  // Esperar a que termine de cerrarse el diálogo antes de liberar
+  // el controlador.
+  await Future<void>.delayed(Duration.zero);
+
+  nuevoTipoController.dispose();
+
+  if (!mounted || nuevoTipo == null) return;
+
+  setState(() {
+    tipoTrabajoSeleccionado = nuevoTipo;
+    errorNombre = null;
+  });
+
+  // Notificar a la pantalla principal después de actualizar
+  // el estado del formulario.
+  widget.onNuevoTipoCreado(nuevoTipo);
+}
 
   void _guardarTrabajo() {
-    final nombre = nombreController.text.trim();
+    final nombre = tipoTrabajoSeleccionado?.trim() ?? '';
     final m2Texto = m2ItemController.text.trim();
     final precioTexto = precioItemController.text.trim();
     final descripcion = descripcionItemController.text.trim();
@@ -147,35 +179,39 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
     final m2 = _parsearDecimal(m2Texto);
     final precio = ClpInputFormatter.toDouble(precioTexto);
 
+    String? nuevoErrorNombre;
+    String? nuevoErrorM2;
+    String? nuevoErrorPrecio;
+
+    if (nombre.isEmpty) {
+      nuevoErrorNombre = 'Debe seleccionar un tipo de trabajo';
+    }
+
+    if (!esPrecioFijo) {
+      if (m2Texto.isEmpty) {
+        nuevoErrorM2 = 'Debe ingresar los metros cuadrados';
+      } else if (m2 == null || !m2.isFinite || m2 <= 0) {
+        nuevoErrorM2 = 'Ingrese una cantidad válida';
+      }
+    }
+
+    if (precioTexto.isEmpty) {
+      nuevoErrorPrecio = esPrecioFijo
+          ? 'Debe ingresar el precio total'
+          : 'Debe ingresar el precio por m²';
+    } else if (precio <= 0) {
+      nuevoErrorPrecio = 'Ingrese un precio positivo válido';
+    }
+
     setState(() {
-      errorNombre = null;
-      errorM2 = null;
-      errorPrecio = null;
-
-      if (nombre.isEmpty) {
-        errorNombre = 'Debe ingresar un nombre para el trabajo';
-      }
-
-      if (!esPrecioFijo) {
-        if (m2Texto.isEmpty) {
-          errorM2 = 'Debe ingresar los metros cuadrados';
-        } else if (m2 == null || !m2.isFinite || m2 <= 0) {
-          errorM2 = 'Ingrese una cantidad válida';
-        }
-      }
-
-      if (precioTexto.isEmpty) {
-        errorPrecio = esPrecioFijo
-            ? 'Debe ingresar el precio total'
-            : 'Debe ingresar el precio por m²';
-      } else if (precio <= 0) {
-        errorPrecio = 'Ingrese un precio positivo válido';
-      }
+      errorNombre = nuevoErrorNombre;
+      errorM2 = nuevoErrorM2;
+      errorPrecio = nuevoErrorPrecio;
     });
 
-    if (errorNombre != null ||
-        errorM2 != null ||
-        errorPrecio != null) {
+    if (nuevoErrorNombre != null ||
+        nuevoErrorM2 != null ||
+        nuevoErrorPrecio != null) {
       return;
     }
 
@@ -189,11 +225,34 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
     );
 
     widget.onGuardar(trabajo);
+
     Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Evita duplicados sin distinguir mayúsculas y minúsculas.
+    final tipos = <String>[];
+
+    for (final tipo in widget.tiposDisponibles) {
+      if (!tipos.any(
+        (existente) =>
+            existente.toLowerCase() == tipo.toLowerCase(),
+      )) {
+        tipos.add(tipo);
+      }
+    }
+
+    // Permite mostrar el tipo seleccionado aunque no esté en la lista.
+    if (tipoTrabajoSeleccionado != null &&
+        !tipos.any(
+          (tipo) =>
+              tipo.toLowerCase() ==
+              tipoTrabajoSeleccionado!.toLowerCase(),
+        )) {
+      tipos.add(tipoTrabajoSeleccionado!);
+    }
+
     return AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
@@ -208,7 +267,9 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
           Expanded(
             child: Text(
               estaEditando ? 'Editar trabajo' : 'Añadir trabajo',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -240,22 +301,36 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
                 });
               },
             ),
+
             const SizedBox(height: 16),
 
-            TextField(
-              controller: nombreController,
-              maxLength: 100,
+            DropdownButtonFormField<String>(
+              value: tipos.contains(tipoTrabajoSeleccionado)
+                  ? tipoTrabajoSeleccionado
+                  : null,
+              isExpanded: true,
               decoration: InputDecoration(
-                labelText: 'Nombre del trabajo',
-                hintText: 'Ej: Instalación de puertas',
+                labelText: 'Tipo de trabajo',
                 prefixIcon: const Icon(Icons.work_outline),
                 border: const OutlineInputBorder(),
                 errorText: errorNombre,
               ),
-              onChanged: (_) {
-                if (errorNombre != null) {
-                  setState(() => errorNombre = null);
-                }
+              hint: const Text('Seleccione un trabajo'),
+              items: tipos.map((tipo) {
+                return DropdownMenuItem<String>(
+                  value: tipo,
+                  child: Text(
+                    tipo,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                );
+              }).toList(),
+              onChanged: (nuevoTipo) {
+                setState(() {
+                  tipoTrabajoSeleccionado = nuevoTipo;
+                  errorNombre = null;
+                });
               },
             ),
 
@@ -349,7 +424,9 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             backgroundColor: widget.verdeApp,
             foregroundColor: Colors.white,
           ),
-          child: Text(estaEditando ? 'Guardar cambios' : 'Guardar ítem'),
+          child: Text(
+            estaEditando ? 'Guardar cambios' : 'Guardar ítem',
+          ),
         ),
       ],
     );
