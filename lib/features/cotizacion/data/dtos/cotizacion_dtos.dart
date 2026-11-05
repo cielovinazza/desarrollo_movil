@@ -21,6 +21,7 @@ class CotizacionDto {
   final double subtotalManoObra;
 
   final double viatico;
+  final String? viaticoDescripcion;
   final double porcentajeUtilidad;
   final double porcentajeIva;
   final double totalFinal;
@@ -51,6 +52,7 @@ class CotizacionDto {
     required this.subtotalMateriales,
     required this.subtotalManoObra,
     required this.viatico,
+    required this.viaticoDescripcion,
     required this.porcentajeUtilidad,
     required this.porcentajeIva,
     required this.totalFinal,
@@ -80,6 +82,7 @@ class CotizacionDto {
       'subtotalMateriales': subtotalMateriales,
       'subtotalManoObra': subtotalManoObra,
       'viatico': viatico,
+      'viaticoDescripcion': viaticoDescripcion,
       'porcentajeUtilidad': porcentajeUtilidad,
       'porcentajeIva': porcentajeIva,
       'totalFinal': totalFinal,
@@ -114,6 +117,7 @@ class CotizacionDto {
       subtotalMateriales: (map['subtotalMateriales'] as num?)?.toDouble() ?? 0.0,
       subtotalManoObra: (map['subtotalManoObra'] as num?)?.toDouble() ?? 0.0,
       viatico: (map['viatico'] as num?)?.toDouble() ?? 0.0,
+      viaticoDescripcion: map['viaticoDescripcion'] as String?,
       porcentajeUtilidad: (map['porcentajeUtilidad'] as num?)?.toDouble() ?? 0.0,
       porcentajeIva: (map['porcentajeIva'] as num?)?.toDouble() ?? 0.0,
       totalFinal: (map['totalFinal'] as num?)?.toDouble() ?? 0.0,
@@ -152,6 +156,7 @@ class CotizacionDto {
     double? subtotalMateriales,
     double? subtotalManoObra,
     double? viatico,
+    String? viaticoDescripcion,
     double? porcentajeUtilidad,
     double? porcentajeIva,
     double? totalFinal,
@@ -180,6 +185,7 @@ class CotizacionDto {
       subtotalMateriales: subtotalMateriales ?? this.subtotalMateriales,
       subtotalManoObra: subtotalManoObra ?? this.subtotalManoObra,
       viatico: viatico ?? this.viatico,
+      viaticoDescripcion: viaticoDescripcion ?? this.viaticoDescripcion,
       porcentajeUtilidad: porcentajeUtilidad ?? this.porcentajeUtilidad,
       porcentajeIva: porcentajeIva ?? this.porcentajeIva,
       totalFinal: totalFinal ?? this.totalFinal,

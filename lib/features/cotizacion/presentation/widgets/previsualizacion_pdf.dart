@@ -727,86 +727,88 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     );
   }
 
-  Widget _buildSeccionTrabajosObra() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _tituloSeccion(Icons.construction_outlined, 'TRABAJOS DE OBRA'),
-          const SizedBox(height: 8),
+ Widget _buildSeccionTrabajosObra() {
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _tituloSeccion(Icons.construction_outlined, 'TRABAJOS DE OBRA'),
+        const SizedBox(height: 8),
 
-          if (widget.cotizacion.listaTrabajos.isEmpty)
-            _filaVacia('Sin trabajos registrados')
-          else
-            ...widget.cotizacion.listaTrabajos.map(
-              (trabajo) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 5,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+        if (widget.cotizacion.listaTrabajos.isEmpty)
+          _filaVacia('Sin trabajos registrados')
+        else
+          ...widget.cotizacion.listaTrabajos.map(
+            (trabajo) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 3),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          trabajo.tipo,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: _texto,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (trabajo.descripcionBreve != null &&
+                            trabajo.descripcionBreve!.isNotEmpty) ...[
+                          const SizedBox(height: 2),
                           Text(
-                            trabajo.tipo,
+                            trabajo.descripcionBreve!,
                             style: TextStyle(
-                              fontSize: 12,
-                              color: _texto,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              color: _gris,
+                              fontStyle: FontStyle.italic,
                             ),
                           ),
-                          if (trabajo.descripcionBreve != null &&
-                              trabajo.descripcionBreve!.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              trabajo.descripcionBreve!,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: _gris,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ),
-                          ],
                         ],
-                      ),
+                      ],
                     ),
-                    Expanded(
-                      flex: 4,
-                      child: Text(
-                        '${trabajo.metrosCuadrados.toStringAsFixed(1)} m² × ${_clp(trabajo.precioPorMetro)}',
-                        style: TextStyle(fontSize: 11, color: _gris),
-                        textAlign: TextAlign.center,
-                      ),
+                  ),
+                  Expanded(
+                    flex: 4,
+                    child: Text(
+                      trabajo.esPrecioFijo
+                          ? 'Precio fijo'
+                          : '${trabajo.metrosCuadrados.toStringAsFixed(2)} m² × ${_clp(trabajo.precioPorMetro)}',
+                      style: TextStyle(fontSize: 11, color: _gris),
+                      textAlign: TextAlign.center,
                     ),
-                    Expanded(
-                      flex: 3,
-                      child: Text(
-                        _clp(trabajo.subtotal),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: _texto,
-                        ),
-                        textAlign: TextAlign.end,
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: Text(
+                      _clp(trabajo.subtotal),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _texto,
                       ),
+                      textAlign: TextAlign.end,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-
-          const SizedBox(height: 6),
-          _filaSubtotal(
-            'Subtotal trabajos de obra',
-            _clp(_subtotalTrabajosObra),
           ),
-        ],
-      ),
-    );
-  }
+
+        const SizedBox(height: 6),
+        _filaSubtotal(
+          'Subtotal trabajos de obra',
+          _clp(_subtotalTrabajosObra),
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildEncabezado() {
     return Container(
@@ -994,24 +996,41 @@ class _PrevisualizacionPdfWidgetState extends State<PrevisualizacionPdfWidget> {
     );
   }
 
-  Widget _buildFilaTransporte() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _tituloSeccion(Icons.local_shipping_outlined, 'TRANSPORTE'),
-          const SizedBox(height: 8),
-          _filaItem(
-            'Gastos de viático / traslado',
-            _gastoTransporte > 0 ? 'Monto fijo' : 'No incluido',
-            _clp(_gastoTransporte),
+Widget _buildFilaTransporte() {
+  final descripcion = widget.cotizacion.viaticoDescripcion?.trim();
+
+  return Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _tituloSeccion(Icons.local_shipping_outlined, 'TRANSPORTE'),
+        const SizedBox(height: 8),
+
+        _filaItem(
+          'Gastos de viático / traslado',
+          _gastoTransporte > 0 ? 'Monto fijo' : 'No incluido',
+          _clp(_gastoTransporte),
+        ),
+
+        if (descripcion != null && descripcion.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              'Detalle: $descripcion',
+              style: TextStyle(
+                fontSize: 11,
+                color: _gris,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ),
         ],
-      ),
-    );
-  }
-
+      ],
+    ),
+  );
+}
   Widget _buildResumenTotales() {
     final porcentajeUtilidad = widget.cotizacion.porcentajeUtilidad;
     final porcentajeIva = widget.cotizacion.porcentajeIva;

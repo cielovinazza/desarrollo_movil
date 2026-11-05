@@ -1,3 +1,4 @@
+
 import '../../domain/entities/cotizacion_model.dart';
 import '../../presentation/widgets/materiales.dart';
 import '../dtos/cotizacion_dtos.dart';
@@ -28,11 +29,12 @@ class CotizacionMapper {
       trabajos: cotizacion.listaTrabajos.map((trabajo) {
         return {
           'tipo': trabajo.tipo,
-          'metrosCuadrados': trabajo.metrosCuadrados.toDouble(),
-          'precioPorMetro': trabajo.precioPorMetro.toDouble(),
-          'subtotal': trabajo.subtotal.toDouble(),
-          'descripcionBreve':
-              trabajo.descripcionBreve,
+          'metrosCuadrados': trabajo.metrosCuadrados,
+          'precioPorMetro': trabajo.precioPorMetro,
+          'precioFijo': trabajo.precioFijo,
+          'esPrecioFijo': trabajo.esPrecioFijo,
+          'subtotal': trabajo.subtotal,
+          'descripcionBreve': trabajo.descripcionBreve,
         };
       }).toList(),
       manoObra: cotizacion.listaManoObra.map((mano) {
@@ -53,16 +55,17 @@ class CotizacionMapper {
           'subtotal': material.subtotal.toDouble(),
         };
       }).toList(),
-      subtotalObra: cotizacion.subtotalObraTotal.toDouble(),
-      subtotalMateriales: cotizacion.subtotalMateriales.toDouble(),
-      subtotalManoObra: cotizacion.subtotalManoObraTotal.toDouble(),
+      subtotalObra: cotizacion.subtotalObraTotal,
+      subtotalMateriales: cotizacion.subtotalMateriales,
+      subtotalManoObra: cotizacion.subtotalManoObraTotal,
       viatico: (cotizacion.viatico ?? 0).toDouble(),
-      porcentajeUtilidad: cotizacion.porcentajeUtilidad.toDouble(),
-      porcentajeIva: cotizacion.porcentajeIva.toDouble(),
-      totalFinal: cotizacion.calcularTotalFinal().toDouble(),
+      viaticoDescripcion: cotizacion.viaticoDescripcion,
+      porcentajeUtilidad: cotizacion.porcentajeUtilidad,
+      porcentajeIva: cotizacion.porcentajeIva,
+      totalFinal: cotizacion.calcularTotalFinal(),
       estado: estado,
       fechaCreacion: isoNow,
-      fechaEdicion: isoNow
+      fechaEdicion: isoNow,
     );
   }
 
@@ -70,10 +73,13 @@ class CotizacionMapper {
     final trabajos = dto.trabajos.map<ItemTrabajo>((e) {
       return ItemTrabajo(
         tipo: e['tipo'] ?? '',
-        metrosCuadrados: (e['metrosCuadrados'] as num).toDouble(),
-        precioPorMetro: (e['precioPorMetro'] as num).toDouble(),
-        descripcionBreve:
-            e['descripcionBreve'] as String?, 
+        metrosCuadrados:
+            (e['metrosCuadrados'] as num?)?.toDouble() ?? 0.0,
+        precioPorMetro:
+            (e['precioPorMetro'] as num?)?.toDouble() ?? 0.0,
+        precioFijo: (e['precioFijo'] as num?)?.toDouble() ?? 0.0,
+        esPrecioFijo: e['esPrecioFijo'] == true,
+        descripcionBreve: e['descripcionBreve'] as String?,
       );
     }).toList();
 
@@ -108,22 +114,33 @@ class CotizacionMapper {
       materiales: materiales,
       listaManoObra: manoObra,
       viatico: dto.viatico,
+      viaticoDescripcion: dto.viaticoDescripcion,
       porcentajeUtilidad: dto.porcentajeUtilidad,
       porcentajeIva: dto.porcentajeIva,
-      fechaCreacion: dto.fechaCreacion != null ? DateTime.parse(dto.fechaCreacion!) : null,
-      fechaEdicion: dto.fechaEdicion != null ? DateTime.parse(dto.fechaEdicion!) : null,
+      fechaCreacion: dto.fechaCreacion != null
+          ? DateTime.parse(dto.fechaCreacion!)
+          : null,
+      fechaEdicion: dto.fechaEdicion != null
+          ? DateTime.parse(dto.fechaEdicion!)
+          : null,
     );
   }
 
   static List<ItemTrabajo> trabajosDesdeDto(List<dynamic> trabajos) {
     return trabajos.map((item) {
       if (item is ItemTrabajo) return item;
+
       final map = item as Map<String, dynamic>;
+
       return ItemTrabajo(
         tipo: map['tipo'] ?? '',
-        metrosCuadrados: (map['metrosCuadrados'] ?? 0).toDouble(),
-        precioPorMetro: (map['precioPorMetro'] ?? 0).toDouble(),
-        descripcionBreve: map['descripcionBreve'],
+        metrosCuadrados:
+            (map['metrosCuadrados'] as num?)?.toDouble() ?? 0.0,
+        precioPorMetro:
+            (map['precioPorMetro'] as num?)?.toDouble() ?? 0.0,
+        precioFijo: (map['precioFijo'] as num?)?.toDouble() ?? 0.0,
+        esPrecioFijo: map['esPrecioFijo'] == true,
+        descripcionBreve: map['descripcionBreve'] as String?,
       );
     }).toList();
   }
@@ -131,11 +148,14 @@ class CotizacionMapper {
   static List<ManoDeObra> manoObraDesdeDto(List<dynamic> manoObra) {
     return manoObra.map((item) {
       if (item is ManoDeObra) return item;
+
       final map = item as Map<String, dynamic>;
+
       return ManoDeObra(
         cargo: map['cargo'] ?? map['detalle'] ?? '',
         dias: (map['dias'] ?? 0).toInt(),
-        valorJornada: (map['valorJornada'] ?? map['costo'] ?? 0).toDouble(),
+        valorJornada:
+            (map['valorJornada'] ?? map['costo'] ?? 0).toDouble(),
       );
     }).toList();
   }
@@ -143,12 +163,14 @@ class CotizacionMapper {
   static List<MaterialEntity> materialesDesdeDto(List<dynamic> materiales) {
     return materiales.map((item) {
       if (item is MaterialEntity) return item;
+
       final map = item as Map<String, dynamic>;
+
       return MaterialEntity(
         nombre: map['nombre'] ?? '',
         cantidad: (map['cantidad'] ?? 0).toDouble(),
-        costoUnitario: (map['costoUnitario'] ?? map['precioUnitario'] ?? 0)
-            .toDouble(),
+        costoUnitario:
+            (map['costoUnitario'] ?? map['precioUnitario'] ?? 0).toDouble(),
         unidadMedida: map['unidadMedida'] ?? '',
       );
     }).toList();

@@ -56,6 +56,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
   final _clienteController = TextEditingController();
   final _direccionController = TextEditingController();
   final _viaticoController = TextEditingController();
+  final _viaticoDescripcionController = TextEditingController();
   final _utilidadController = TextEditingController(text: '0');
   final _ivaController = TextEditingController(text: '19');
   final _localStorage = LocalStorage();
@@ -88,10 +89,13 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     datasource = CotizacionFirestoreDataSource(FirebaseFirestore.instance);
     final repository = CotizacionRepositoryImpl(datasource);
     guardarCotizacionUseCase = GuardarCotizacion(repository);
-    _recuperarBorrador();
+    if (widget.cotizacionAEditar == null) {
+  _recuperarBorrador();
+}
     _clienteController.addListener(_autoguardar);
     _direccionController.addListener(_autoguardar);
     _viaticoController.addListener(_autoguardar);
+    _viaticoDescripcionController.addListener(_autoguardar);
     _utilidadController.addListener(_autoguardar);
     _ivaController.addListener(_autoguardar);
 
@@ -111,6 +115,7 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
       _clienteController.text = edicion.clienteNombre;
       _direccionController.text = edicion.direccion;
       _viaticoController.text = _formatearNumero(edicion.viatico);
+      _viaticoDescripcionController.text = edicion.viaticoDescripcion ?? '';
       _utilidadController.text = _formatearNumero(edicion.porcentajeUtilidad);
       _ivaController.text = _formatearNumero(edicion.porcentajeIva);
 
@@ -126,21 +131,25 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
     }
   }
 
-  @override
-  void dispose() {
-    _clienteController.dispose();
-    _direccionController.dispose();
-    _viaticoController.dispose();
-    _utilidadController.dispose();
-    _ivaController.dispose();
-    _direccionFocus.dispose();
-    _clienteController.removeListener(_autoguardar);
-    _direccionController.removeListener(_autoguardar);
-    _viaticoController.removeListener(_autoguardar);
-    _utilidadController.removeListener(_autoguardar);
-    _ivaController.removeListener(_autoguardar);
-    super.dispose();
-  }
+@override
+void dispose() {
+  _clienteController.removeListener(_autoguardar);
+  _direccionController.removeListener(_autoguardar);
+  _viaticoController.removeListener(_autoguardar);
+  _viaticoDescripcionController.removeListener(_autoguardar);
+  _utilidadController.removeListener(_autoguardar);
+  _ivaController.removeListener(_autoguardar);
+
+  _clienteController.dispose();
+  _direccionController.dispose();
+  _viaticoController.dispose();
+  _viaticoDescripcionController.dispose();
+  _utilidadController.dispose();
+  _ivaController.dispose();
+  _direccionFocus.dispose();
+
+  super.dispose();
+}
 
   CotizacionModel _obtenerEstadoActual() {
     final viaticoTexto = _viaticoController.text.trim();
@@ -158,22 +167,26 @@ class _CrearCotizacionPageState extends State<CrearCotizacionPage> {
           direccion: '',
         );
 
-    return CotizacionModel(
-      cliente: clienteSeguro,
-      direccionObra: _direccionController.text.trim(),
-      listaTrabajos: _trabajosAgregados,
-      listaManoObra: _manoObraAgregada,
-      viatico: viaticoValor,
-      porcentajeUtilidad: double.tryParse(_utilidadController.text) ?? 0.0,
-      porcentajeIva: double.tryParse(_ivaController.text) ?? 19.0,
-      materiales: _materialesAgregados,
-      fechaCreacion: widget.cotizacionAEditar?.fechaCreacion != null
-        ? DateTime.parse(widget.cotizacionAEditar!.fechaCreacion!)
-        : fechaRecienCreada,
-      fechaEdicion: widget.cotizacionAEditar?.fechaEdicion != null
-        ? DateTime.parse(widget.cotizacionAEditar!.fechaEdicion!)
-        : null,
-    );
+return CotizacionModel(
+  cliente: clienteSeguro,
+  direccionObra: _direccionController.text.trim(),
+  listaTrabajos: _trabajosAgregados,
+  listaManoObra: _manoObraAgregada,
+  viatico: viaticoValor,
+  viaticoDescripcion:
+      _viaticoDescripcionController.text.trim().isEmpty
+          ? null
+          : _viaticoDescripcionController.text.trim(),
+  porcentajeUtilidad: double.tryParse(_utilidadController.text) ?? 0.0,
+  porcentajeIva: double.tryParse(_ivaController.text) ?? 19.0,
+  materiales: _materialesAgregados,
+  fechaCreacion: widget.cotizacionAEditar?.fechaCreacion != null
+      ? DateTime.parse(widget.cotizacionAEditar!.fechaCreacion!)
+      : fechaRecienCreada,
+  fechaEdicion: widget.cotizacionAEditar?.fechaEdicion != null
+      ? DateTime.parse(widget.cotizacionAEditar!.fechaEdicion!)
+      : null,
+);
   }
 
   Future<String> _guardarCotizacion() async {
@@ -386,6 +399,7 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
       'subtotalMateriales': dto.subtotalMateriales,
       'subtotalManoObra': dto.subtotalManoObra,
       'viatico': dto.viatico,
+      'viaticoDescripcion': dto.viaticoDescripcion,
       'porcentajeUtilidad': dto.porcentajeUtilidad,
       'porcentajeIva': dto.porcentajeIva,
       'totalFinal': dto.totalFinal,
@@ -426,78 +440,129 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
     }
   }
 
-  void _mostrarDialogoAgregarTrabajo() {
-    // Cierra el teclado para que no reaparezca al volver del diálogo
-    _direccionFocus.unfocus();
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => DialogoTrabajoForm(
-        tiposDisponibles: _tiposDisponibles,
-        verdeApp: _verdeApp,
-        onGuardar: (tipo, m2, precio, descripcion) {
-          setState(() {
-            _trabajosAgregados.add(
-              ItemTrabajo(
-                tipo: tipo,
-                metrosCuadrados: m2,
-                precioPorMetro: precio,
-                descripcionBreve: descripcion.isEmpty ? null : descripcion,
-              ),
-            );
-          });
+void _mostrarDialogoAgregarTrabajo() {
+  _direccionFocus.unfocus();
 
-          _autoguardar();
-        },
-        onNuevoTipoCreado: (nuevoTipo) {
-          setState(() {
-            if (!_tiposDisponibles.contains(nuevoTipo)) {
-              _tiposDisponibles.add(nuevoTipo);
-            }
-          });
-        },
-      ),
-    );
-  }
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => DialogoTrabajoForm(
+      tiposDisponibles: _tiposDisponibles,
+      verdeApp: _verdeApp,
+      onGuardar: (trabajo) {
+        setState(() {
+          _trabajosAgregados.add(trabajo);
+        });
 
-  Widget _trabajoCard(
-    BuildContext context,
-    ItemTrabajo item,
-    int index,
-    bool esOscuro,
-  ) {
-    return Card(
-      color: esOscuro ? const Color(0xFF1E1E1E) : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(
-          color: esOscuro ? Colors.white24 : Colors.grey.shade200,
-        ),
+        _autoguardar();
+      },
+      onNuevoTipoCreado: (nuevoTipo) {
+        setState(() {
+          if (!_tiposDisponibles.contains(nuevoTipo)) {
+            _tiposDisponibles.add(nuevoTipo);
+          }
+        });
+      },
+    ),
+  );
+}
+
+Widget _trabajoCard(
+  BuildContext context,
+  ItemTrabajo item,
+  int index,
+  bool esOscuro,
+) {
+  final textoColor = esOscuro ? Colors.white : Colors.black87;
+  final secundarioColor = esOscuro ? Colors.white70 : Colors.grey;
+
+  final detalleTrabajo = item.esPrecioFijo
+      ? 'Precio fijo: ${CurrencyFormatter.format(item.precioFijo)}'
+      : '${item.metrosCuadrados.toString().replaceAll('.', ',')} m² × '
+          '${CurrencyFormatter.format(item.precioPorMetro)} / m²';
+
+  return Card(
+    color: esOscuro ? const Color(0xFF1E1E1E) : Colors.white,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+      side: BorderSide(
+        color: esOscuro ? Colors.white24 : Colors.grey.shade200,
       ),
-      child: ListTile(
-        leading: Icon(Icons.build_circle_outlined, color: _verdeApp),
-        title: Text(
-          item.tipo,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: esOscuro ? Colors.white : Colors.black87),
-        ),
-        subtitle: Text(
-          '${item.metrosCuadrados.toInt()} m² × ${CurrencyFormatter.format(item.precioPorMetro)} / m²' '\n${item.descripcionBreve ?? ''}',
-          maxLines: 4,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(color: esOscuro ? Colors.white70 : Colors.grey),
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-          onPressed: () {
-            setState(() => _trabajosAgregados.removeAt(index));
-            _autoguardar();
-          },
-        ),
+    ),
+    child: ListTile(
+      leading: Icon(Icons.build_circle_outlined, color: _verdeApp),
+
+      title: Text(
+        item.tipo,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: textoColor),
       ),
-    );
-  }
+
+      subtitle: Text(
+        [
+          detalleTrabajo,
+          if (item.descripcionBreve != null &&
+              item.descripcionBreve!.trim().isNotEmpty)
+            item.descripcionBreve!,
+        ].join('\n'),
+        maxLines: 4,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(color: secundarioColor),
+      ),
+
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Editar trabajo',
+            icon: Icon(Icons.edit_outlined, color: _verdeApp),
+            onPressed: () {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (dialogContext) => DialogoTrabajoForm(
+                  tiposDisponibles: _tiposDisponibles,
+                  verdeApp: _verdeApp,
+                  trabajoEditando: item,
+                  onGuardar: (trabajoActualizado) {
+                    setState(() {
+                      _trabajosAgregados[index] = trabajoActualizado;
+                    });
+
+                    _autoguardar();
+                  },
+                  onNuevoTipoCreado: (nuevoTipo) {
+                    setState(() {
+                      if (!_tiposDisponibles.contains(nuevoTipo)) {
+                        _tiposDisponibles.add(nuevoTipo);
+                      }
+                    });
+                  },
+                ),
+              );
+            },
+          ),
+
+          IconButton(
+            tooltip: 'Eliminar trabajo',
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.redAccent,
+            ),
+            onPressed: () {
+              setState(() {
+                _trabajosAgregados.removeAt(index);
+              });
+
+              _autoguardar();
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   Future<void> _agregarManoObra() async {
     final resultado = await showDialog<ManoDeObra>(
@@ -543,7 +608,7 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
             _trabajosAgregados.isNotEmpty;
 
       case 2:
-        return _manoObraAgregada.isNotEmpty;
+        return true;
 
       case 3:
         return true;
@@ -672,6 +737,7 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
       clienteTexto: _clienteController.text,
       direccion: _direccionController.text,
       viatico: _viaticoController.text,
+      viaticoDescripcion: _viaticoDescripcionController.text,
       utilidad: _utilidadController.text,
       iva: _ivaController.text,
       currentStep: _currentStep,
@@ -697,17 +763,12 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
         _clienteController.text = edicion.clienteNombre;
         _direccionController.text = edicion.direccion;
         _viaticoController.text = _formatearNumero(edicion.viatico);
+        _viaticoDescripcionController.text =
+    edicion.viaticoDescripcion ?? '';
         _utilidadController.text = _formatearNumero(edicion.porcentajeUtilidad);
         _ivaController.text = _formatearNumero(edicion.porcentajeIva);
         _trabajosAgregados.addAll(
-          edicion.trabajos.map(
-            (item) => ItemTrabajo(
-              tipo: item.tipo,
-              metrosCuadrados: item.metrosCuadrados,
-              precioPorMetro: item.precioPorMetro,
-              descripcionBreve: item.descripcionBreve,
-            ),
-          ),
+          CotizacionMapper.trabajosDesdeDto(edicion.trabajos),
         );
         _manoObraAgregada.addAll(
           edicion.manoObra.map(
@@ -784,6 +845,7 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
       _clienteController.text = dto.clienteTexto;
       _direccionController.text = dto.direccion;
       _viaticoController.text = dto.viatico;
+      _viaticoDescripcionController.text = dto.viaticoDescripcion;
       _utilidadController.text = dto.utilidad;
       _ivaController.text = dto.iva;
       _currentStep = dto.currentStep;
@@ -908,16 +970,6 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
                   AppDialogs.mostrarSnackBar(
                     context,
                     'Debes añadir al menos un trabajo',
-                  );
-                  return;
-                }
-              }
-
-              if (_currentStep == 2) {
-                if (_manoObraAgregada.isEmpty) {
-                  AppDialogs.mostrarSnackBar(
-                    context,
-                    'Debes añadir al menos una carga de mano de obra',
                   );
                   return;
                 }
@@ -1197,19 +1249,39 @@ String _generarCodigoVersionado(String codigoBase, int versionNueva) {
                 content: Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: TextFormField(
-                        controller: _viaticoController,
-                        keyboardType: TextInputType.number,
-                        validator: (val) => _validarCampoNumerico(val, 'Viático'),
-                        inputFormatters: [ClpInputFormatter(maxDigits: 9)],
-                        decoration: const InputDecoration(
-                          labelText: 'Viático adicional (Opcional - CLP)',
-                          prefixIcon: Icon(Icons.payments_outlined),
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
+  padding: const EdgeInsets.only(top: 8),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      TextFormField(
+        controller: _viaticoController,
+        keyboardType: TextInputType.number,
+        validator: (val) => _validarCampoNumerico(val, 'Viático'),
+        inputFormatters: [
+          ClpInputFormatter(maxDigits: 9),
+        ],
+        decoration: const InputDecoration(
+          labelText: 'Viático adicional (Opcional - CLP)',
+          prefixIcon: Icon(Icons.payments_outlined),
+          border: OutlineInputBorder(),
+        ),
+      ),
+      const SizedBox(height: 12),
+      TextFormField(
+        controller: _viaticoDescripcionController,
+        keyboardType: TextInputType.text,
+        maxLines: 2,
+        maxLength: 150,
+        decoration: const InputDecoration(
+          labelText: 'Descripción del viático (Opcional)',
+          hintText: 'Ej: Traslado de materiales y herramientas',
+          prefixIcon: Icon(Icons.description_outlined),
+          border: OutlineInputBorder(),
+        ),
+      ),
+    ],
+  ),
+),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _utilidadController,

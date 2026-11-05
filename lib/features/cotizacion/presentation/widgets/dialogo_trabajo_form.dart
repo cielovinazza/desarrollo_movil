@@ -1,12 +1,15 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/utils/clp_input_formatter.dart';
+import '../../domain/entities/cotizacion_model.dart';
 
 class DialogoTrabajoForm extends StatefulWidget {
   final List<String> tiposDisponibles;
   final Color verdeApp;
-  final void Function(String tipo, double m2, double precio, String descripcion) onGuardar;
+  final void Function(ItemTrabajo trabajo) onGuardar;
   final void Function(String nuevoTipo) onNuevoTipoCreado;
+  final ItemTrabajo? trabajoEditando;
 
   const DialogoTrabajoForm({
     super.key,
@@ -14,6 +17,7 @@ class DialogoTrabajoForm extends StatefulWidget {
     required this.verdeApp,
     required this.onGuardar,
     required this.onNuevoTipoCreado,
+    this.trabajoEditando,
   });
 
   @override
@@ -21,21 +25,53 @@ class DialogoTrabajoForm extends StatefulWidget {
 }
 
 class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
-  late String tipoSeleccionado;
+  final nombreController = TextEditingController();
   final m2ItemController = TextEditingController();
   final precioItemController = TextEditingController();
   final descripcionItemController = TextEditingController();
+
+  bool esPrecioFijo = false;
+  String? errorNombre;
   String? errorM2;
   String? errorPrecio;
+
+  bool get estaEditando => widget.trabajoEditando != null;
 
   @override
   void initState() {
     super.initState();
-    tipoSeleccionado = widget.tiposDisponibles.first;
+
+    final trabajo = widget.trabajoEditando;
+
+    if (trabajo != null) {
+      nombreController.text = trabajo.tipo;
+      esPrecioFijo = trabajo.esPrecioFijo;
+
+      m2ItemController.text = trabajo.metrosCuadrados == 0
+          ? ''
+          : _formatearNumero(trabajo.metrosCuadrados);
+
+      precioItemController.text = esPrecioFijo
+          ? trabajo.precioFijo.toStringAsFixed(0)
+          : trabajo.precioPorMetro.toStringAsFixed(0);
+
+      descripcionItemController.text = trabajo.descripcionBreve ?? '';
+    } else if (widget.tiposDisponibles.isNotEmpty) {
+      nombreController.text = widget.tiposDisponibles.first;
+    }
+  }
+
+  String _formatearNumero(double valor) {
+    return valor.toString().replaceAll('.', ',');
+  }
+
+  double? _parsearDecimal(String valor) {
+    return double.tryParse(valor.trim().replaceAll(',', '.'));
   }
 
   @override
   void dispose() {
+    nombreController.dispose();
     m2ItemController.dispose();
     precioItemController.dispose();
     descripcionItemController.dispose();
@@ -66,11 +102,6 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
               }
               return null;
             },
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(
-                RegExp(r'[a-zA-ZñÑáéíóúÉÁÍÚÓ ]'),
-              ),
-            ],
             decoration: const InputDecoration(
               labelText: 'Nombre del tipo de trabajo',
               border: OutlineInputBorder(),
@@ -89,31 +120,96 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
             ),
             onPressed: () {
               if (!formKeyTipo.currentState!.validate()) return;
+
               final nuevoTipo = nuevoTipoController.text.trim();
+
               Navigator.of(subContext).pop();
+
               widget.onNuevoTipoCreado(nuevoTipo);
+
               setState(() {
-                tipoSeleccionado = nuevoTipo;
+                nombreController.text = nuevoTipo;
               });
             },
             child: const Text('Crear'),
           ),
         ],
       ),
+    ).then((_) => nuevoTipoController.dispose());
+  }
+
+  void _guardarTrabajo() {
+    final nombre = nombreController.text.trim();
+    final m2Texto = m2ItemController.text.trim();
+    final precioTexto = precioItemController.text.trim();
+    final descripcion = descripcionItemController.text.trim();
+
+    final m2 = _parsearDecimal(m2Texto);
+    final precio = ClpInputFormatter.toDouble(precioTexto);
+
+    setState(() {
+      errorNombre = null;
+      errorM2 = null;
+      errorPrecio = null;
+
+      if (nombre.isEmpty) {
+        errorNombre = 'Debe ingresar un nombre para el trabajo';
+      }
+
+      if (!esPrecioFijo) {
+        if (m2Texto.isEmpty) {
+          errorM2 = 'Debe ingresar los metros cuadrados';
+        } else if (m2 == null || !m2.isFinite || m2 <= 0) {
+          errorM2 = 'Ingrese una cantidad válida';
+        }
+      }
+
+      if (precioTexto.isEmpty) {
+        errorPrecio = esPrecioFijo
+            ? 'Debe ingresar el precio total'
+            : 'Debe ingresar el precio por m²';
+      } else if (precio <= 0) {
+        errorPrecio = 'Ingrese un precio positivo válido';
+      }
+    });
+
+    if (errorNombre != null ||
+        errorM2 != null ||
+        errorPrecio != null) {
+      return;
+    }
+
+    final trabajo = ItemTrabajo(
+      tipo: nombre,
+      metrosCuadrados: esPrecioFijo ? 0 : m2!,
+      precioPorMetro: esPrecioFijo ? 0 : precio,
+      precioFijo: esPrecioFijo ? precio : 0,
+      esPrecioFijo: esPrecioFijo,
+      descripcionBreve: descripcion.isEmpty ? null : descripcion,
     );
+
+    widget.onGuardar(trabajo);
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       title: Row(
         children: [
-          Icon(Icons.add_task, color: widget.verdeApp),
+          Icon(
+            estaEditando ? Icons.edit : Icons.add_task,
+            color: widget.verdeApp,
+          ),
           const SizedBox(width: 10),
-          const Text(
-            'Añadir Trabajo',
-            style: TextStyle(fontWeight: FontWeight.bold),
+          Expanded(
+            child: Text(
+              estaEditando ? 'Editar trabajo' : 'Añadir trabajo',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -121,25 +217,48 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            DropdownButtonFormField<String>(
-              initialValue: widget.tiposDisponibles.contains(tipoSeleccionado)
-                  ? tipoSeleccionado
-                  : widget.tiposDisponibles.first,
-              decoration: const InputDecoration(
-                labelText: 'Tipo de Rubro',
-                border: OutlineInputBorder(),
-              ),
-              items: widget.tiposDisponibles
-                  .map(
-                    (tipo) => DropdownMenuItem(value: tipo, child: Text(tipo)),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() => tipoSeleccionado = value);
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment<bool>(
+                  value: false,
+                  label: Text('Por m²'),
+                  icon: Icon(Icons.square_foot),
+                ),
+                ButtonSegment<bool>(
+                  value: true,
+                  label: Text('Precio fijo'),
+                  icon: Icon(Icons.price_check),
+                ),
+              ],
+              selected: {esPrecioFijo},
+              onSelectionChanged: (seleccion) {
+                setState(() {
+                  esPrecioFijo = seleccion.first;
+                  errorM2 = null;
+                  errorPrecio = null;
+                  precioItemController.clear();
+                });
               },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
+
+            TextField(
+              controller: nombreController,
+              maxLength: 100,
+              decoration: InputDecoration(
+                labelText: 'Nombre del trabajo',
+                hintText: 'Ej: Instalación de puertas',
+                prefixIcon: const Icon(Icons.work_outline),
+                border: const OutlineInputBorder(),
+                errorText: errorNombre,
+              ),
+              onChanged: (_) {
+                if (errorNombre != null) {
+                  setState(() => errorNombre = null);
+                }
+              },
+            ),
+
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
@@ -148,45 +267,67 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
                 label: const Text('Crear nuevo tipo'),
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: m2ItemController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+
+            if (!esPrecioFijo) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: m2ItemController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                inputFormatters: [
+                  LengthLimitingTextInputFormatter(10),
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'[0-9,.]'),
+                  ),
+                ],
+                decoration: InputDecoration(
+                  labelText: 'Cantidad de metros cuadrados (m²)',
+                  hintText: 'Ej: 10,75',
+                  prefixIcon: const Icon(Icons.square_foot),
+                  border: const OutlineInputBorder(),
+                  errorText: errorM2,
+                ),
+                onChanged: (_) {
+                  if (errorM2 != null) {
+                    setState(() => errorM2 = null);
+                  }
+                },
               ),
-              inputFormatters: [
-                LengthLimitingTextInputFormatter(3),
-                FilteringTextInputFormatter.digitsOnly,
-              ],
-              decoration: InputDecoration(
-                labelText: 'Cantidad Metros Cuadrados (m²)',
-                prefixIcon: const Icon(Icons.square_foot),
-                border: const OutlineInputBorder(),
-                errorText: errorM2,
-              ),
-            ),
+            ],
+
             const SizedBox(height: 16),
+
             TextField(
               controller: precioItemController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: false,
-              ),
-              inputFormatters: [ClpInputFormatter(maxDigits: 9)],
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                ClpInputFormatter(maxDigits: 9),
+              ],
               decoration: InputDecoration(
-                labelText: 'Precio por m² (CLP)',
+                labelText: esPrecioFijo
+                    ? 'Precio total (CLP)'
+                    : 'Precio por m² (CLP)',
                 prefixIcon: const Icon(Icons.sell_outlined),
                 border: const OutlineInputBorder(),
                 errorText: errorPrecio,
               ),
+              onChanged: (_) {
+                if (errorPrecio != null) {
+                  setState(() => errorPrecio = null);
+                }
+              },
             ),
+
             const SizedBox(height: 16),
+
             TextField(
               controller: descripcionItemController,
               maxLength: 200,
               maxLines: 2,
               decoration: const InputDecoration(
                 labelText: 'Descripción breve (Opcional)',
-                hintText: 'Ej: Aplicación de dos manos de pintura látex...',
+                hintText: 'Ej: Aplicación de dos manos de pintura...',
                 prefixIcon: Icon(Icons.description_outlined),
                 border: OutlineInputBorder(),
               ),
@@ -196,60 +337,21 @@ class _DialogoTrabajoFormState extends State<DialogoTrabajoForm> {
       ),
       actions: [
         TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text(
+            'Cancelar',
+            style: TextStyle(color: Colors.grey),
+          ),
         ),
         ElevatedButton(
-          onPressed: () {
-            final m2Texto = m2ItemController.text.trim();
-            final precioTexto = precioItemController.text.trim();
-            final descripcionTexto = descripcionItemController.text.trim();
-
-            final m2 = double.tryParse(m2Texto);
-            final precio = ClpInputFormatter.toDouble(precioTexto);
-
-            setState(() {
-              errorM2 = null;
-              errorPrecio = null;
-
-              if (m2Texto.isEmpty) {
-                errorM2 = 'Debe ingresar la cantidad de metros cuadrados';
-              } else if (m2 == null || m2 <= 0) {
-                errorM2 = 'Ingrese un número positivo válido';
-              }
-
-              if (precioTexto.isEmpty) {
-                errorPrecio = 'Debe ingresar el precio por m²';
-              } else if (precio <= 0) {
-                errorPrecio = 'Ingrese un precio positivo válido';
-              }
-            });
-
-            if (errorM2 != null || errorPrecio != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Formulario incompleto, debe rellenar los campos para continuar',
-                  ),
-                  backgroundColor: Colors.red,
-                ),
-              );
-              return;
-            }
-
-            widget.onGuardar(tipoSeleccionado, m2!, precio, descripcionTexto);
-            Navigator.of(context).pop();
-          },
+          onPressed: _guardarTrabajo,
           style: ElevatedButton.styleFrom(
             backgroundColor: widget.verdeApp,
             foregroundColor: Colors.white,
           ),
-          child: const Text('Guardar Ítem'),
+          child: Text(estaEditando ? 'Guardar cambios' : 'Guardar ítem'),
         ),
       ],
     );
   }
 }
-
