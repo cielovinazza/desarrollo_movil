@@ -1,0 +1,29 @@
+﻿name: Flutter CI
+
+on:
+  push:
+    branches:
+      - cristobal1
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  tests:
+    name: Ejecutar pruebas Flutter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Ejecutar pruebas
+        run: flutter test --reporter expanded
